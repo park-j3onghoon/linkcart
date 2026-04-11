@@ -1,0 +1,17 @@
+{
+  "name": "@linkcart/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "codegen": "openapi-typescript http://localhost:8000/openapi.json -o src/types/api.gen.ts",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7",
+    "typescript": "^5"
+  }
+}
