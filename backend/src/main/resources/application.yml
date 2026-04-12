@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: linkcart-backend
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=300s
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /openapi.json
+  swagger-ui:
+    path: /docs

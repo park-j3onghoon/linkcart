@@ -20,18 +20,16 @@ build/
 .env.test.local
 .env.production.local
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-.eggs/
-*.egg
-.venv/
-venv/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+# Kotlin/Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+*.jar
+*.war
+
+# IntelliJ IDEA
+out/
 
 # IDE
 .idea/

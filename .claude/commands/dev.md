@@ -4,10 +4,10 @@
 
 ## 실행 방법
 
-1. 백엔드: `cd backend && source .venv/bin/activate && uvicorn main:app --reload`
+1. 백엔드: `cd backend && ./gradlew bootRun`
 2. 웹: `cd apps/web && npm run dev`
 3. 모바일: `cd apps/mobile && npx expo start`
 
 ## 포트
-- 백엔드 API: http://localhost:8000 (Swagger: http://localhost:8000/docs)
+- 백엔드 API: http://localhost:8080 (Swagger: http://localhost:8080/docs)
 - 웹: http://localhost:3000

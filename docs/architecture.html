@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkCart Architecture</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #38bdf8;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --pink: #f472b6;
+    --purple: #a78bfa;
+    --orange: #fb923c;
+    --red: #f87171;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--text-dim); margin-bottom: 2rem; font-size: 0.95rem; }
+  h2 {
+    font-size: 1.3rem;
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: var(--accent); }
+
+  /* --- Tabs --- */
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab {
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    transition: all 0.2s;
+  }
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* --- Architecture Layers --- */
+  .layers { display: flex; flex-direction: column; gap: 0; }
+  .layer {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .layer:hover { transform: translateX(4px); }
+  .layer + .layer { margin-top: -1px; }
+
+  .layer-presentation { border-color: var(--accent); background: rgba(56,189,248,0.08); }
+  .layer-application { border-color: var(--purple); background: rgba(167,139,250,0.08); }
+  .layer-infrastructure { border-color: var(--orange); background: rgba(251,146,60,0.08); }
+  .layer-domain { border-color: var(--green); background: rgba(74,222,128,0.08); }
+
+  .layer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .layer-name { font-weight: 700; font-size: 1.1rem; }
+  .layer-presentation .layer-name { color: var(--accent); }
+  .layer-application .layer-name { color: var(--purple); }
+  .layer-infrastructure .layer-name { color: var(--orange); }
+  .layer-domain .layer-name { color: var(--green); }
+
+  .layer-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    background: var(--surface2);
+    color: var(--text-dim);
+  }
+  .layer-desc { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 0.8rem; }
+
+  .layer-files {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.5rem;
+  }
+  .file {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .file-name { color: var(--yellow); }
+  .file-role { color: var(--text-dim); font-size: 0.75rem; margin-top: 0.2rem; }
+
+  .arrow-down {
+    text-align: center;
+    padding: 0.3rem 0;
+    color: var(--text-dim);
+    font-size: 1.2rem;
+  }
+
+  /* --- Flow Diagram --- */
+  .flow { display: flex; flex-direction: column; gap: 0; align-items: center; }
+  .flow-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1.5rem;
+    text-align: center;
+    min-width: 300px;
+    max-width: 500px;
+    width: 100%;
+  }
+  .flow-step strong { color: var(--accent); }
+  .flow-step code { background: var(--surface2); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.85rem; }
+  .flow-arrow { color: var(--text-dim); font-size: 1.4rem; padding: 0.2rem 0; }
+  .flow-branch {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 700px;
+  }
+  .flow-branch .flow-step { min-width: 180px; flex: 1; }
+  .flow-branch .flow-step.coupang { border-color: var(--pink); }
+  .flow-branch .flow-step.elevenst { border-color: var(--yellow); }
+  .flow-branch .flow-step.og { border-color: var(--green); }
+
+  /* --- Package Tree --- */
+  .tree {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 1.5rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+  .tree .dir { color: var(--accent); }
+  .tree .kt { color: var(--yellow); }
+  .tree .comment { color: var(--text-dim); }
+
+  /* --- Tech Stack --- */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  .stack-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+  }
+  .stack-card h4 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1rem; }
+  .stack-card p { color: var(--text-dim); font-size: 0.85rem; }
+  .stack-card .tech {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .stack-card .tech span {
+    background: var(--surface2);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+  }
+
+  /* --- Annotation Table --- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  th { color: var(--accent); background: var(--surface); }
+  td code {
+    background: var(--surface2);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    color: var(--yellow);
+    font-size: 0.8rem;
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 640px) {
+    body { padding: 1rem; }
+    .layer-files { grid-template-columns: 1fr; }
+    .flow-branch { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<h1><span>LinkCart</span> Architecture</h1>
+<p class="subtitle">Spring Boot + Kotlin &middot; Next.js &middot; Expo &middot; Clean Architecture</p>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('layers')">레이어 구조</div>
+  <div class="tab" onclick="showTab('flow')">데이터 흐름</div>
+  <div class="tab" onclick="showTab('tree')">패키지 트리</div>
+  <div class="tab" onclick="showTab('stack')">기술 스택</div>
+  <div class="tab" onclick="showTab('annotations')">어노테이션 가이드</div>
+</div>
+
+<!-- ==================== 레이어 구조 ==================== -->
+<div id="layers" class="tab-content active">
+  <h2>클린 아키텍처 레이어</h2>
+  <p style="color:var(--text-dim);margin-bottom:1.5rem;font-size:0.9rem;">
+    의존성 방향: 바깥 → 안쪽. Domain은 아무것에도 의존하지 않음.
+  </p>
+
+  <div class="layers">
+    <div class="layer layer-presentation">
+      <div class="layer-header">
+        <span class="layer-name">Presentation</span>
+        <span class="layer-badge">HTTP 요청/응답</span>
+      </div>
+      <div class="layer-desc">@RestController로 API 엔드포인트 정의. JSON ↔ Kotlin 변환.</div>
+      <div class="layer-files">
+        <div class="file">
+          <div class="file-name">ProductController.kt</div>
+          <div class="file-role">POST /api/v1/products/parse</div>
+        </div>
+        <div class="file">
+          <div class="file-name">ImageProxyController.kt</div>
+          <div class="file-role">GET /api/v1/images/proxy</div>
+        </div>
+        <div class="file">
+          <div class="file-name">ParseRequest.kt</div>
+          <div class="file-role">요청 DTO (url 필드)</div>
+        </div>
+        <div class="file">
+          <div class="file-name">ParseResponse.kt</div>
+          <div class="file-role">응답 DTO (상품 정보)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-down">▼ 호출</div>
+
+    <div class="layer layer-application">
+      <div class="layer-header">
+        <span class="layer-name">Application</span>
+        <span class="layer-badge">비즈니스 유스케이스</span>
+      </div>
+      <div class="layer-desc">@Service로 유스케이스 정의. interface(Port)로 외부 의존성 추상화.</div>
+      <div class="layer-files">
+        <div class="file">
+          <div class="file-name">ParseProductUseCase.kt</div>
+          <div class="file-role">파싱 + 폴백 체인 로직</div>
+        </div>
+        <div class="file">
+          <div class="file-name">ProductParser.kt</div>
+          <div class="file-role">interface — 파서 계약</div>
+        </div>
+        <div class="file">
+          <div class="file-name">ParseResult.kt</div>
+          <div class="file-role">sealed class — 결과 표현</div>
+        </div>
+        <div class="file">
+          <div class="file-name">ProductRepository.kt</div>
+          <div class="file-role">interface — Phase 2용 Port</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-down">▲ 구현 (의존성 역전)</div>
+
+    <div class="layer layer-infrastructure">
+      <div class="layer-header">
+        <span class="layer-name">Infrastructure</span>
+        <span class="layer-badge">외부 시스템 연동</span>
+      </div>
+      <div class="layer-desc">@Component로 Port 구현. API 호출, HTML 파싱, 캐시 등 외부 기술 사용.</div>
+      <div class="layer-files">
+        <div class="file">
+          <div class="file-name">CoupangApiClient.kt</div>
+          <div class="file-role">쿠팡 Partners API</div>
+        </div>
+        <div class="file">
+          <div class="file-name">ElevenStApiClient.kt</div>
+          <div class="file-role">11번가 Open API</div>
+        </div>
+        <div class="file">
+          <div class="file-name">OgParser.kt</div>
+          <div class="file-role">Jsoup OG 태그 파싱</div>
+        </div>
+        <div class="file">
+          <div class="file-name">ParserFactory.kt</div>
+          <div class="file-role">URL → 파서 라우팅</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-down">▼ 사용</div>
+
+    <div class="layer layer-domain">
+      <div class="layer-header">
+        <span class="layer-name">Domain</span>
+        <span class="layer-badge">핵심 비즈니스 규칙</span>
+      </div>
+      <div class="layer-desc">순수 Kotlin. 프레임워크 의존 없음. data class + enum class만.</div>
+      <div class="layer-files">
+        <div class="file">
+          <div class="file-name">Product.kt</div>
+          <div class="file-role">data class — 상품 엔티티</div>
+        </div>
+        <div class="file">
+          <div class="file-name">Money.kt</div>
+          <div class="file-role">data class — 가격 값 객체</div>
+        </div>
+        <div class="file">
+          <div class="file-name">Mall.kt</div>
+          <div class="file-role">enum class — 쇼핑몰 종류</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 데이터 흐름 ==================== -->
+<div id="flow" class="tab-content">
+  <h2>요청 → 응답 데이터 흐름</h2>
+  <p style="color:var(--text-dim);margin-bottom:1.5rem;font-size:0.9rem;">
+    사용자가 URL을 입력하면 어떤 경로로 데이터가 흐르는지.
+  </p>
+
+  <div class="flow">
+    <div class="flow-step">
+      <strong>사용자</strong><br>
+      <code>POST /api/v1/products/parse</code><br>
+      <span style="color:var(--text-dim);font-size:0.85rem;">{ "url": "https://www.coupang.com/vp/..." }</span>
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-step">
+      <strong>ProductController</strong><br>
+      JSON → <code>ParseRequest</code> 변환 + URL 형식 검증
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-step">
+      <strong>ParseProductUseCase</strong><br>
+      캐시 확인 → ParserFactory에서 파서 선택 → 파싱 실행
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-step" style="border-color:var(--purple);">
+      <strong>ParserFactory</strong><br>
+      URL 도메인 분석 → 적절한 파서 반환
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-branch">
+      <div class="flow-step coupang">
+        <strong style="color:var(--pink);">CoupangApiClient</strong><br>
+        <span style="font-size:0.8rem;">coupang.com</span><br>
+        <span style="font-size:0.8rem;">어필리에이트 API</span>
+      </div>
+      <div class="flow-step elevenst">
+        <strong style="color:var(--yellow);">ElevenStApiClient</strong><br>
+        <span style="font-size:0.8rem;">11st.co.kr</span><br>
+        <span style="font-size:0.8rem;">어필리에이트 API</span>
+      </div>
+      <div class="flow-step og">
+        <strong style="color:var(--green);">OgParser</strong><br>
+        <span style="font-size:0.8rem;">기타 URL (폴백)</span><br>
+        <span style="font-size:0.8rem;">Jsoup OG 태그</span>
+      </div>
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-step" style="border-color:var(--purple);">
+      <strong>ParseResult</strong> (sealed class)<br>
+      <span style="color:var(--green);">Success</span> &middot;
+      <span style="color:var(--yellow);">Partial</span> &middot;
+      <span style="color:var(--red);">Failure</span>
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-step">
+      <strong>ProductController</strong><br>
+      <code>ParseResult</code> → <code>ParseResponse</code> JSON 변환
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-step">
+      <strong>사용자</strong><br>
+      <span style="font-size:0.85rem;color:var(--text-dim);">{ name, price, imageUrl, mall, ... }</span>
+    </div>
+  </div>
+
+  <h3>Fallback Chain</h3>
+  <div class="flow" style="margin-top:1rem;">
+    <div class="flow-step" style="border-color:var(--pink);text-align:left;">
+      1. 전용 파서 (CoupangApi / ElevenStApi) 시도<br>
+      <span style="color:var(--green);font-size:0.85rem;">→ 성공: ParseResult.Success 반환</span><br>
+      <span style="color:var(--red);font-size:0.85rem;">→ 실패: 다음 단계로</span>
+    </div>
+    <div class="flow-arrow">▼ 실패 시</div>
+    <div class="flow-step" style="border-color:var(--green);text-align:left;">
+      2. OgParser (폴백) 시도<br>
+      <span style="color:var(--green);font-size:0.85rem;">→ 전체 성공: ParseResult.Success</span><br>
+      <span style="color:var(--yellow);font-size:0.85rem;">→ 부분 성공: ParseResult.Partial</span><br>
+      <span style="color:var(--red);font-size:0.85rem;">→ 완전 실패: ParseResult.Failure</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 패키지 트리 ==================== -->
+<div id="tree" class="tab-content">
+  <h2>패키지 구조</h2>
+  <div class="tree"><pre>
+<span class="dir">backend/src/main/kotlin/com/linkcart/</span>
+├── <span class="kt">LinkcartBackendApplication.kt</span>  <span class="comment">← 앱 진입점</span>
+├── <span class="kt">WebConfig.kt</span>                    <span class="comment">← CORS 설정</span>
+│
+├── <span class="dir">domain/</span>                         <span class="comment">← 순수 Kotlin (프레임워크 의존 없음)</span>
+│   ├── <span class="dir">entity/</span>
+│   │   └── <span class="kt">Product.kt</span>              <span class="comment">← data class Product(name, price, imageUrl, sourceUrl, mall)</span>
+│   └── <span class="dir">vo/</span>
+│       ├── <span class="kt">Money.kt</span>                <span class="comment">← data class Money(amount, currency)</span>
+│       └── <span class="kt">Mall.kt</span>                 <span class="comment">← enum class Mall { COUPANG, ELEVENST, GENERIC }</span>
+│
+├── <span class="dir">application/</span>                    <span class="comment">← 비즈니스 로직 (@Service, interface)</span>
+│   ├── <span class="dir">port/</span>
+│   │   ├── <span class="kt">ProductParser.kt</span>        <span class="comment">← interface: canParse(url), parse(url)</span>
+│   │   └── <span class="kt">ProductRepository.kt</span>    <span class="comment">← interface: save(), findByUrl() — Phase 2용</span>
+│   ├── <span class="dir">dto/</span>
+│   │   └── <span class="kt">ParseResult.kt</span>          <span class="comment">← sealed class: Success | Partial | Failure</span>
+│   └── <span class="dir">usecase/</span>
+│       └── <span class="kt">ParseProductUseCase.kt</span>  <span class="comment">← @Service: 파싱 + 폴백 체인</span>
+│
+├── <span class="dir">infrastructure/</span>                 <span class="comment">← 외부 연동 (@Component)</span>
+│   ├── <span class="dir">client/</span>
+│   │   ├── <span class="kt">CoupangApiClient.kt</span>     <span class="comment">← 쿠팡 Partners API (어필리에이트)</span>
+│   │   └── <span class="kt">ElevenStApiClient.kt</span>    <span class="comment">← 11번가 Open API (어필리에이트)</span>
+│   ├── <span class="dir">parser/</span>
+│   │   ├── <span class="kt">OgParser.kt</span>             <span class="comment">← Jsoup으로 OG 태그 파싱 (폴백)</span>
+│   │   └── <span class="kt">ParserFactory.kt</span>        <span class="comment">← URL 도메인 → 파서 선택</span>
+│   └── <span class="dir">cache/</span>
+│       └── <span class="comment">(Caffeine + @Cacheable — Spring이 자동 관리)</span>
+│
+└── <span class="dir">presentation/</span>                   <span class="comment">← HTTP 레이어 (@RestController)</span>
+    ├── <span class="dir">api/</span>
+    │   ├── <span class="kt">ProductController.kt</span>    <span class="comment">← POST /api/v1/products/parse</span>
+    │   ├── <span class="kt">ImageProxyController.kt</span> <span class="comment">← GET /api/v1/images/proxy</span>
+    │   └── <span class="kt">HealthController.kt</span>     <span class="comment">← GET /health</span>
+    └── <span class="dir">dto/</span>
+        ├── <span class="kt">ParseRequest.kt</span>         <span class="comment">← { "url": "https://..." }</span>
+        └── <span class="kt">ParseResponse.kt</span>        <span class="comment">← { name, price, imageUrl, mall, ... }</span>
+</pre></div>
+
+  <h3 style="margin-top:2rem;">프론트엔드 구조</h3>
+  <div class="tree"><pre>
+<span class="dir">apps/web/</span>                            <span class="comment">← Next.js 15 (TypeScript + Tailwind)</span>
+└── <span class="dir">src/app/</span>                         <span class="comment">← App Router</span>
+
+<span class="dir">apps/mobile/</span>                         <span class="comment">← Expo (React Native + TypeScript)</span>
+└── <span class="dir">app/</span>                             <span class="comment">← Expo Router</span>
+
+<span class="dir">packages/shared/</span>                     <span class="comment">← 웹 + 모바일 공유 패키지</span>
+└── <span class="dir">src/</span>
+    ├── <span class="dir">types/</span>  <span class="kt">product.ts</span>          <span class="comment">← Product, Money, ParseResponse 타입</span>
+    ├── <span class="dir">api/</span>    <span class="kt">client.ts</span>           <span class="comment">← createApiClient() → ApiResult&lt;T&gt;</span>
+    └── <span class="dir">validation/</span> <span class="kt">url.ts</span>         <span class="comment">← validateUrl() — URL 형식 검증</span>
+</pre></div>
+</div>
+
+<!-- ==================== 기술 스택 ==================== -->
+<div id="stack" class="tab-content">
+  <h2>기술 스택</h2>
+  <div class="stack-grid">
+    <div class="stack-card">
+      <h4>Backend</h4>
+      <p>API 서버 + 상품 파싱 엔진</p>
+      <div class="tech">
+        <span>Kotlin</span>
+        <span>Spring Boot 3.5</span>
+        <span>Gradle</span>
+        <span>JDK 21</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <h4>Web Frontend</h4>
+      <p>서버 사이드 렌더링 웹 앱</p>
+      <div class="tech">
+        <span>Next.js 15</span>
+        <span>TypeScript</span>
+        <span>Tailwind CSS</span>
+        <span>React 19</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <h4>Mobile</h4>
+      <p>iOS/Android 크로스플랫폼 앱</p>
+      <div class="tech">
+        <span>Expo</span>
+        <span>React Native</span>
+        <span>TypeScript</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <h4>Shared Package</h4>
+      <p>웹/모바일 공유 코드</p>
+      <div class="tech">
+        <span>TypeScript</span>
+        <span>OpenAPI codegen</span>
+        <span>ApiResult&lt;T&gt;</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <h4>파싱</h4>
+      <p>상품 정보 수집</p>
+      <div class="tech">
+        <span>어필리에이트 API</span>
+        <span>Jsoup (OG 폴백)</span>
+        <span>Caffeine 캐시</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <h4>API 문서</h4>
+      <p>자동 생성 Swagger UI</p>
+      <div class="tech">
+        <span>springdoc-openapi</span>
+        <span>/docs (Swagger)</span>
+        <span>/openapi.json</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <h4>테스트</h4>
+      <p>TDD 기반 테스트</p>
+      <div class="tech">
+        <span>JUnit 5</span>
+        <span>Kotlin Test</span>
+        <span>MockMvc</span>
+        <span>Vitest (FE)</span>
+      </div>
+    </div>
+    <div class="stack-card">
+      <h4>빌드 & 모노레포</h4>
+      <p>프로젝트 관리</p>
+      <div class="tech">
+        <span>Turborepo</span>
+        <span>Gradle (Kotlin DSL)</span>
+        <span>npm workspaces</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 어노테이션 가이드 ==================== -->
+<div id="annotations" class="tab-content">
+  <h2>Spring Boot 어노테이션 가이드</h2>
+  <p style="color:var(--text-dim);margin-bottom:1rem;font-size:0.9rem;">
+    Kotlin 코드에 붙이는 @ 표시. Spring에게 "이 클래스는 OO 역할이야"라고 알려주는 메타데이터.
+  </p>
+
+  <h3>레이어별 어노테이션</h3>
+  <table>
+    <tr><th>어노테이션</th><th>레이어</th><th>역할</th><th>Django 대응</th></tr>
+    <tr>
+      <td><code>@RestController</code></td>
+      <td>Presentation</td>
+      <td>API 컨트롤러 (JSON 자동 직렬화)</td>
+      <td>views.py + @api_view</td>
+    </tr>
+    <tr>
+      <td><code>@RequestMapping</code></td>
+      <td>Presentation</td>
+      <td>URL 경로 매핑</td>
+      <td>urls.py path()</td>
+    </tr>
+    <tr>
+      <td><code>@PostMapping</code></td>
+      <td>Presentation</td>
+      <td>POST 요청 처리</td>
+      <td>@api_view(['POST'])</td>
+    </tr>
+    <tr>
+      <td><code>@RequestBody</code></td>
+      <td>Presentation</td>
+      <td>요청 JSON → Kotlin 객체 변환</td>
+      <td>serializer.data</td>
+    </tr>
+    <tr>
+      <td><code>@Valid</code></td>
+      <td>Presentation</td>
+      <td>요청 유효성 검증 실행</td>
+      <td>serializer.is_valid()</td>
+    </tr>
+    <tr>
+      <td><code>@Service</code></td>
+      <td>Application</td>
+      <td>비즈니스 로직 서비스 (DI 대상)</td>
+      <td>services.py 클래스</td>
+    </tr>
+    <tr>
+      <td><code>@Component</code></td>
+      <td>Infrastructure</td>
+      <td>Spring이 관리하는 범용 컴포넌트</td>
+      <td>없음</td>
+    </tr>
+    <tr>
+      <td><code>@Cacheable</code></td>
+      <td>Application</td>
+      <td>메서드 결과 캐싱</td>
+      <td>@cache_page</td>
+    </tr>
+    <tr>
+      <td><code>@Configuration</code></td>
+      <td>설정</td>
+      <td>설정 클래스 (CORS 등)</td>
+      <td>settings.py</td>
+    </tr>
+    <tr>
+      <td><code>@SpringBootApplication</code></td>
+      <td>진입점</td>
+      <td>앱 시작점 (main 함수)</td>
+      <td>manage.py</td>
+    </tr>
+  </table>
+
+  <h3>의존성 주입 (DI) 작동 방식</h3>
+  <table>
+    <tr><th>단계</th><th>무슨 일이 일어나는가</th></tr>
+    <tr>
+      <td>1</td>
+      <td>Spring이 <code>@Component</code>, <code>@Service</code>, <code>@RestController</code> 붙은 클래스를 자동 탐지</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>각 클래스의 인스턴스를 생성하여 "컨테이너"에 보관</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>생성자에 <code>interface</code> 타입 파라미터가 있으면, 해당 interface를 구현한 클래스를 찾아서 주입</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>모든 의존성이 연결된 상태로 앱이 시작됨</td>
+    </tr>
+  </table>
+
+  <div class="tree" style="margin-top:1rem;"><pre>
+<span class="comment">-- Spring이 자동으로 하는 일 --</span>
+
+1. <span class="kt">OgParser</span> 발견     → <span class="comment">@Component + ProductParser 구현</span> → 인스턴스 생성
+2. <span class="kt">ParserFactory</span> 발견 → <span class="comment">@Component</span> → OgParser 주입하여 생성
+3. <span class="kt">ParseProductUseCase</span> 발견 → <span class="comment">@Service</span> → ParserFactory 주입하여 생성
+4. <span class="kt">ProductController</span> 발견 → <span class="comment">@RestController</span> → UseCase 주입하여 생성
+
+<span class="comment">결과: Controller → UseCase → Factory → Parser 체인이 자동 완성!</span>
+</pre></div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector(`.tab[onclick="showTab('${id}')"]`).classList.add('active');
+}
+</script>
+
+</body>
+</html>
