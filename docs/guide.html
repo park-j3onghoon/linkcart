@@ -791,6 +791,69 @@ dependencies {
   그래서 팀원이 Gradle을 직접 설치할 필요가 없습니다.
 </div>
 
+<h4>./gradlew build 명령어 해부</h4>
+
+<pre><code>./gradlew build
+<span class="cm">│    │     │</span>
+<span class="cm">│    │     └── build = 실행할 "태스크" 이름</span>
+<span class="cm">│    └── gradlew = Gradle Wrapper 스크립트</span>
+<span class="cm">└── ./ = "현재 디렉토리의" (리눅스/macOS 실행 문법)</span>
+</code></pre>
+
+<h4>./gradlew build 가 내부적으로 하는 일 (순서대로)</h4>
+
+<div class="diagram">
+  <div class="flow-v">
+    <div class="flow-box">① <strong>의존성 다운로드</strong><br><span style="color:var(--dim);font-size:0.85rem;">build.gradle.kts의 dependencies에 적힌 라이브러리들을 인터넷에서 다운로드<br>(처음 한 번만. 이후엔 캐시 사용)<br><b>Python 비교:</b> <code>pip install -r requirements.txt</code></span></div>
+    <div class="flow-arr">▼</div>
+    <div class="flow-box">② <strong>컴파일 (compileKotlin)</strong><br><span style="color:var(--dim);font-size:0.85rem;">src/main/kotlin/ 아래의 .kt 파일들을 JVM 바이트코드(.class)로 변환<br>여기서 <b>타입 에러, 문법 에러</b>가 발견됨 → 에러 있으면 여기서 멈춤!<br><b>Python 비교:</b> Python은 이 단계가 없음 (실행 시 에러 발견)</span></div>
+    <div class="flow-arr">▼</div>
+    <div class="flow-box">③ <strong>리소스 처리 (processResources)</strong><br><span style="color:var(--dim);font-size:0.85rem;">src/main/resources/ 의 application.yml 등 설정 파일을 빌드 결과에 포함</span></div>
+    <div class="flow-arr">▼</div>
+    <div class="flow-box">④ <strong>테스트 컴파일 (compileTestKotlin)</strong><br><span style="color:var(--dim);font-size:0.85rem;">src/test/kotlin/ 아래의 테스트 코드도 컴파일</span></div>
+    <div class="flow-arr">▼</div>
+    <div class="flow-box" style="border-color:var(--green);">⑤ <strong>테스트 실행 (test)</strong><br><span style="color:var(--dim);font-size:0.85rem;">컴파일된 테스트를 JUnit 5로 실행<br>하나라도 실패하면 → 빌드 실패!<br><b>Python 비교:</b> <code>pytest</code></span></div>
+    <div class="flow-arr">▼</div>
+    <div class="flow-box">⑥ <strong>검사 (check)</strong><br><span style="color:var(--dim);font-size:0.85rem;">코드 스타일, 정적 분석 등 추가 검사 (설정된 경우)</span></div>
+    <div class="flow-arr">▼</div>
+    <div class="flow-box" style="border-color:var(--accent);">⑦ <strong>패키징 (jar)</strong><br><span style="color:var(--dim);font-size:0.85rem;">컴파일된 코드 + 리소스 + 라이브러리를 하나의 .jar 파일로 묶음<br>.jar = Java ARchive. 실행 가능한 파일 하나로 배포 가능<br><b>Python 비교:</b> <code>pip install -e .</code> 로 패키지 설치하는 것과 비슷</span></div>
+    <div class="flow-arr">▼</div>
+    <div class="flow-box" style="border-color:var(--green);"><strong>BUILD SUCCESSFUL</strong> 🎉<br><span style="color:var(--dim);font-size:0.85rem;">모든 단계 통과! build/libs/에 .jar 파일 생성됨</span></div>
+  </div>
+</div>
+
+<div class="box box-compare">
+  <strong>Python과의 핵심 차이</strong>
+  Python은 "컴파일" 단계가 없어서 <code>pip install + pytest</code>로 끝나지만,<br>
+  Kotlin은 <b>소스코드 → 바이트코드 변환(컴파일)</b>이 필수입니다.<br>
+  이 컴파일 과정에서 타입 에러를 잡아주는 것이 Kotlin의 최대 장점입니다.<br><br>
+  <b>요약:</b> <code>./gradlew build</code> = <code>pip install</code> + <code>mypy --strict</code> + <code>pytest</code> + <code>패키징</code> 을 한 번에.
+</div>
+
+<h4>빌드 결과물은 어디에?</h4>
+
+<pre><code>backend/
+└── build/                       <span class="cm">← 빌드 결과 디렉토리 (git에는 안 올라감)</span>
+    ├── classes/                  <span class="cm">← 컴파일된 .class 파일들</span>
+    ├── libs/
+    │   └── backend-0.0.1-SNAPSHOT.jar  <span class="cm">← 실행 가능한 최종 파일!</span>
+    ├── reports/
+    │   └── tests/               <span class="cm">← 테스트 결과 HTML 리포트</span>
+    └── tmp/                     <span class="cm">← 임시 파일</span>
+</code></pre>
+
+<div class="box box-tip">
+  <strong>다른 명령어들과의 관계</strong>
+  <table>
+    <tr><th>명령어</th><th>하는 일</th><th>build와의 관계</th></tr>
+    <tr><td><code>./gradlew build</code></td><td>전부 다 (컴파일+테스트+패키징)</td><td>—</td></tr>
+    <tr><td><code>./gradlew test</code></td><td>컴파일 + 테스트만</td><td>build의 일부</td></tr>
+    <tr><td><code>./gradlew bootRun</code></td><td>컴파일 + 서버 실행 (테스트 안 함)</td><td>build와 별개</td></tr>
+    <tr><td><code>./gradlew clean</code></td><td>build/ 폴더 삭제</td><td>build의 반대</td></tr>
+    <tr><td><code>./gradlew clean build</code></td><td>처음부터 다시 빌드</td><td>clean + build 연속 실행</td></tr>
+  </table>
+</div>
+
 <!-- ============================= -->
 <!-- SPRING BOOT                    -->
 <!-- ============================= -->
