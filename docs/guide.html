@@ -139,6 +139,12 @@ td code { font-size: 0.82rem; }
   <h2>LinkCart 학습 가이드</h2>
   <a href="#intro">시작하기</a>
   <div class="sep"></div>
+  <a href="#env">0. 환경 설정</a>
+  <a href="#e-jdk" class="sub">JDK란</a>
+  <a href="#e-install" class="sub">설치 명령어 해부</a>
+  <a href="#e-javahome" class="sub">JAVA_HOME</a>
+  <a href="#e-structure" class="sub">프로젝트 구조 전체</a>
+  <div class="sep"></div>
   <a href="#kotlin">1. Kotlin 기초</a>
   <a href="#k-var" class="sub">변수와 타입</a>
   <a href="#k-null" class="sub">null 안전성</a>
@@ -194,6 +200,154 @@ td code { font-size: 0.82rem; }
   <b>Spring Boot</b> — Java/Kotlin 세계의 Django 같은 웹 프레임워크<br>
   <b>Gradle</b> — 빌드/의존성 관리 도구 (Python의 pip + Makefile)<br>
   <b>Clean Architecture</b> — 레이어를 나누어 코드를 정리하는 설계 방식
+</div>
+
+<!-- ============================= -->
+<!-- 환경 설정                       -->
+<!-- ============================= -->
+<h2 id="env"><span class="emoji">⚙️</span> 0. 환경 설정</h2>
+
+<h3 id="e-jdk">JDK란?</h3>
+
+<p>
+  <b>JDK (Java Development Kit)</b>는 Kotlin/Java 코드를 실행하기 위한 "런타임 + 도구 모음"입니다.
+</p>
+
+<div class="box box-compare">
+  <strong>Python과 비교</strong>
+  Python에서 <code>python3</code>를 설치해야 <code>.py</code> 파일을 실행할 수 있듯이,
+  JDK를 설치해야 <code>.kt</code>(Kotlin) 파일을 컴파일하고 실행할 수 있습니다.
+
+  <table>
+    <tr><th>Python</th><th>Kotlin/Java</th></tr>
+    <tr><td><code>python3</code> 설치</td><td>JDK 설치</td></tr>
+    <tr><td><code>python3 app.py</code> 실행</td><td><code>java -jar app.jar</code> 실행</td></tr>
+    <tr><td>소스 → 바로 실행</td><td>소스 → <b>컴파일</b> → 실행</td></tr>
+  </table>
+</div>
+
+<h4>JDK 버전 이해하기</h4>
+
+<p>Java는 6개월마다 새 버전이 나오지만, <b>LTS(Long Term Support)</b> 버전만 장기 지원됩니다.</p>
+
+<table>
+  <tr><th>버전</th><th>LTS?</th><th>상태</th></tr>
+  <tr><td>Java 17</td><td>✅ LTS</td><td>많은 프로젝트가 사용 중</td></tr>
+  <tr><td>Java 21</td><td>✅ LTS</td><td><b>이 프로젝트가 사용</b> — 현재 권장</td></tr>
+  <tr><td>Java 22, 23, 24</td><td>❌</td><td>단기 지원 (6개월)</td></tr>
+  <tr><td>Java 25</td><td>✅ LTS</td><td>최신이지만 일부 도구가 아직 미지원</td></tr>
+</table>
+
+<div class="box box-info">
+  <strong>왜 25가 아니라 21?</strong>
+  JDK 25가 설치되어 있었지만, 빌드 도구(Gradle)가 아직 25를 지원하지 않아서 21을 사용합니다.
+  실무에서도 "최신"보다 "안정적인 LTS"를 쓰는 것이 일반적입니다.
+</div>
+
+<h4>JDK 배포판</h4>
+
+<p>
+  JDK는 "Java 소스 코드"가 공개되어 있어서 여러 회사가 자체 빌드를 배포합니다.
+  리눅스 배포판(Ubuntu, Fedora 등)과 비슷한 개념입니다.
+</p>
+
+<table>
+  <tr><th>배포판</th><th>제공자</th><th>비용</th></tr>
+  <tr><td><b>Eclipse Temurin</b></td><td>Eclipse 재단</td><td>무료 — <b>이 프로젝트에서 사용</b></td></tr>
+  <tr><td>Oracle JDK</td><td>Oracle</td><td>상업용 유료 (개발용 무료)</td></tr>
+  <tr><td>Amazon Corretto</td><td>AWS</td><td>무료</td></tr>
+  <tr><td>GraalVM</td><td>Oracle</td><td>무료 (고성능 특화)</td></tr>
+</table>
+
+<h3 id="e-install">설치 명령어 해부</h3>
+
+<pre><code>brew install --cask temurin@21
+<span class="cm">│      │        │      │     │</span>
+<span class="cm">│      │        │      │     └── @21 = Java 21 버전</span>
+<span class="cm">│      │        │      └── temurin = Eclipse Temurin (무료 JDK 배포판)</span>
+<span class="cm">│      │        └── --cask = GUI 앱/바이너리 설치 옵션</span>
+<span class="cm">│      └── install = 설치 명령</span>
+<span class="cm">└── brew = Homebrew (macOS 패키지 관리자)</span>
+</code></pre>
+
+<div class="box box-info">
+  <strong>Homebrew 기본 개념</strong>
+  <code>brew</code>는 macOS의 패키지 관리자입니다. Ubuntu의 <code>apt</code>, Python의 <code>pip</code>과 같은 역할.
+
+  <table>
+    <tr><th>명령</th><th>역할</th></tr>
+    <tr><td><code>brew install git</code></td><td>CLI 도구 설치 (formula)</td></tr>
+    <tr><td><code>brew install --cask chrome</code></td><td>앱/바이너리 설치 (cask)</td></tr>
+    <tr><td><code>brew list</code></td><td>설치된 목록</td></tr>
+    <tr><td><code>brew update</code></td><td>brew 자체 + 패키지 목록 업데이트</td></tr>
+  </table>
+  JDK는 단순 CLI가 아니라 런타임 환경(수백 MB)이라 <code>--cask</code>로 설치합니다.
+</div>
+
+<h3 id="e-javahome">JAVA_HOME — "어떤 JDK를 쓸지" 지정</h3>
+
+<p>JDK가 여러 개 설치되어 있을 때, 어떤 걸 사용할지 환경 변수로 지정합니다.</p>
+
+<pre><code><span class="cm"># 설치된 JDK 목록 확인</span>
+/usr/libexec/java_home -V
+<span class="cm"># 결과:
+# 25.0.2 (arm64) "Eclipse Adoptium" - "OpenJDK 25.0.2"
+# 21.0.10 (arm64) "Eclipse Adoptium" - "OpenJDK 21.0.10"  ← 우리가 쓸 것</span>
+
+<span class="cm"># JDK 21을 기본으로 설정 (이 터미널 세션에서)</span>
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+
+<span class="cm"># 확인</span>
+java -version
+<span class="cm"># openjdk version "21.0.10" ← OK!</span>
+</code></pre>
+
+<div class="box box-tip">
+  <strong>매번 치기 귀찮다면</strong>
+  쉘 설정 파일(<code>~/.zshrc</code>)에 추가하면 터미널 열 때마다 자동 적용됩니다:
+<pre><code>echo 'export JAVA_HOME=$(/usr/libexec/java_home -v 21)' >> ~/.zshrc
+source ~/.zshrc
+</code></pre>
+</div>
+
+<h3 id="e-structure">프로젝트 구조 전체 그림</h3>
+
+<div class="box box-info">
+  <strong>이 프로젝트는 모노레포(monorepo)입니다</strong>
+  하나의 Git 저장소 안에 백엔드 + 웹 + 모바일 + 공유 패키지가 모두 들어있습니다.
+  백엔드는 Kotlin/Gradle, 나머지는 TypeScript/npm으로 관리됩니다.
+</div>
+
+<pre><code><span class="cm">linkcart/                        ← Git 저장소 루트</span>
+├── <span class="fn">backend/</span>                     <span class="cm">← 🟡 Spring Boot + Kotlin (Gradle이 관리)</span>
+│   ├── build.gradle.kts         <span class="cm">← 의존성 + 빌드 설정 (Python의 requirements.txt)</span>
+│   ├── gradlew                  <span class="cm">← Gradle 실행 스크립트 (Gradle 미설치도 OK)</span>
+│   ├── src/main/kotlin/com/linkcart/  <span class="cm">← Kotlin 소스 코드</span>
+│   │   ├── domain/              <span class="cm">← 핵심 도메인 (Product, Money, Mall)</span>
+│   │   ├── application/         <span class="cm">← 비즈니스 로직 (UseCase, interface)</span>
+│   │   ├── infrastructure/      <span class="cm">← 외부 연동 (API 호출, 파서)</span>
+│   │   └── presentation/        <span class="cm">← HTTP 처리 (Controller)</span>
+│   └── src/test/kotlin/         <span class="cm">← 테스트 코드</span>
+│
+├── <span class="fn">apps/web/</span>                    <span class="cm">← 🔵 Next.js 웹앱 (npm이 관리)</span>
+├── <span class="fn">apps/mobile/</span>                 <span class="cm">← 🟢 Expo 모바일앱 (npm이 관리)</span>
+├── <span class="fn">packages/shared/</span>             <span class="cm">← 🟣 공유 TS 패키지 (타입, API 클라이언트)</span>
+│
+├── <span class="fn">docs/</span>                        <span class="cm">← 📖 문서</span>
+│   ├── guide.html               <span class="cm">← 이 파일!</span>
+│   ├── architecture.html        <span class="cm">← 아키텍처 시각화</span>
+│   └── plan.md                  <span class="cm">← 구현 계획</span>
+│
+├── package.json                 <span class="cm">← 모노레포 루트 (Turborepo가 TS 앱들 관리)</span>
+├── turbo.json                   <span class="cm">← Turborepo 설정</span>
+└── CLAUDE.md                    <span class="cm">← Claude Code 프로젝트 설정</span>
+</code></pre>
+
+<div class="box box-warn">
+  <strong>두 개의 빌드 시스템이 공존</strong>
+  <b>Gradle</b> — <code>backend/</code>만 관리 (Kotlin 빌드/테스트)<br>
+  <b>npm + Turborepo</b> — <code>apps/</code> + <code>packages/</code> 관리 (TypeScript 빌드/테스트)<br>
+  이 둘은 독립적입니다. 백엔드를 빌드할 때 <code>./gradlew</code>, 프론트를 빌드할 때 <code>npm run</code>.
 </div>
 
 <!-- ============================= -->
