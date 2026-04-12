@@ -17,12 +17,7 @@ export interface Product {
   mall: string;
 }
 
-export interface ParseResponse {
-  name: string;
-  price: Money;
-  image_url: string;
-  source_url: string;
-  mall: string;
+export interface ParseResponse extends Product {
   partial: Record<string, unknown> | null;
   parser_used: string;
   fallback_used: boolean;

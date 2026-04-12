@@ -1,5 +1,7 @@
 # Phase 1 구현 계획: 상품 링크 파서 앱
 
+> **NOTE**: 이 문서는 초기 Python/FastAPI 기반으로 작성된 계획입니다. 백엔드는 Kotlin/Spring Boot로 전환되었습니다. 현재 아키텍처는 `CLAUDE.md`와 `docs/architecture.html`을 참고하세요.
+
 ## Context
 
 쇼핑몰 링크를 입력하면 상품명, 가격, 이미지를 파싱하여 보여주는 크로스플랫폼 앱의 MVP 1단계.

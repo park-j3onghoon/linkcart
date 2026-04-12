@@ -1,6 +1,6 @@
 package com.linkcart.domain.vo
 
 data class Money(
-    val amount: Int,
+    val amount: Long,
     val currency: String = "KRW",
 )

@@ -30,7 +30,7 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
         const body = await response.json().catch(() => ({} as Record<string, unknown>));
         const detail = typeof body === "object" && body !== null && "detail" in body
           ? String(body.detail)
-          : `HTTP ${response.status}`;
+          : `HTTP ${response.status} ${response.statusText}`;
         return {
           ok: false,
           error: { code: "PARSE_FAILED", message: detail },
