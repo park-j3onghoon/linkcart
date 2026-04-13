@@ -3,7 +3,7 @@ node_modules/
 .pnp
 .pnp.js
 
-# Build
+# Build (JS + Kotlin/Gradle 공용)
 .next/
 out/
 dist/
@@ -22,7 +22,6 @@ build/
 
 # Kotlin/Gradle
 .gradle/
-build/
 !gradle/wrapper/gradle-wrapper.jar
 *.class
 *.jar

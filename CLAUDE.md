@@ -62,7 +62,7 @@ npm run codegen                     # 백엔드 서버 실행 중일 때
 
 ### Kotlin (백엔드)
 - data class로 엔티티/VO 표현
-- sealed class로 결과 타입 표현 (ParseResult 등)
+- sealed interface로 결과 타입 표현 (ParseResult 등)
 - enum class로 제한된 값 표현 (Mall 등)
 - interface로 포트 정의 (Spring DI로 구현체 주입)
 - 테스트 메서드명은 영어 (JUnit 5 @DisplayName으로 한글 설명 가능)
@@ -90,7 +90,7 @@ URL → ParserFactory
 ```
 
 - Fallback chain: 전용 API → OG 파서 → partial 허용
-- sealed class ParseResult로 Success/Partial/Failure 표현
+- sealed interface ParseResult로 Success/Partial/Failure 표현
 - Caffeine TTL 캐시 (5분) + 프론트 중복 URL 체크로 이중 방지
 
 ## 계획 문서

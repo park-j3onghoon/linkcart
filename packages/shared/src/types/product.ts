@@ -9,12 +9,14 @@ export interface Money {
   currency: string;
 }
 
+export type MallType = "coupang" | "elevenst" | "generic";
+
 export interface Product {
   name: string;
   price: Money;
   image_url: string;
   source_url: string;
-  mall: string;
+  mall: MallType;
 }
 
 export interface ParseResponse extends Product {

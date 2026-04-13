@@ -1,1 +1,1 @@
-export type { Money, Product, ParseResponse } from "./product";
+export type { Money, MallType, Product, ParseResponse } from "./product";
