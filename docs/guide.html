@@ -170,9 +170,15 @@ td code { font-size: 0.82rem; }
   <a href="#s-config" class="sub">설정 파일</a>
   <a href="#s-cache" class="sub">캐싱</a>
   <div class="sep"></div>
-  <a href="#arch">4. 클린 아키텍처</a>
+  <a href="#arch">4. 아키텍처 패턴</a>
+  <a href="#a-patterns" class="sub">패턴들의 관계</a>
+  <a href="#a-hex" class="sub">헥사고날 아키텍처</a>
+  <a href="#a-clean" class="sub">클린 아키텍처</a>
+  <a href="#a-ddd" class="sub">DDD</a>
+  <a href="#a-cqs" class="sub">CQS 패턴</a>
   <a href="#a-why" class="sub">왜 레이어를 나누는가</a>
   <a href="#a-layers" class="sub">4개 레이어 상세</a>
+  <a href="#a-ideal" class="sub">이상적 패키지 구조</a>
   <a href="#a-dep" class="sub">의존성 규칙</a>
   <div class="sep"></div>
   <a href="#flow">5. 데이터 흐름</a>
@@ -1075,7 +1081,197 @@ def execute(url):
 <!-- ============================= -->
 <!-- 클린 아키텍처                   -->
 <!-- ============================= -->
-<h2 id="arch"><span class="emoji">🔵</span> 4. 클린 아키텍처</h2>
+<h2 id="arch"><span class="emoji">🔵</span> 4. 아키텍처 패턴</h2>
+
+<p>이 프로젝트는 여러 아키텍처 패턴을 조합합니다. 각각이 무엇이고, 어떻게 합쳐지는지 설명합니다.</p>
+
+<h3 id="a-patterns">아키텍처 패턴들의 관계</h3>
+
+<div class="box box-info">
+  <strong>이 프로젝트가 따르는 패턴들</strong>
+  <table>
+    <tr><th>패턴</th><th>핵심 아이디어</th><th>한 줄 요약</th></tr>
+    <tr><td><b>레이어드 아키텍처</b></td><td>코드를 수평 계층으로 나눔</td><td>"위에서 아래로만 호출"</td></tr>
+    <tr><td><b>클린 아키텍처</b></td><td>의존성이 안쪽으로만 향함</td><td>"비즈니스 규칙이 프레임워크를 모름"</td></tr>
+    <tr><td><b>헥사고날 아키텍처</b></td><td>포트(규격)와 어댑터(구현체)로 분리</td><td>"플러그를 갈아끼울 수 있다"</td></tr>
+    <tr><td><b>DDD</b></td><td>비즈니스 도메인 중심으로 설계</td><td>"코드가 비즈니스 언어를 쓴다"</td></tr>
+    <tr><td><b>CQS</b></td><td>명령(변경)과 조회(읽기)를 분리</td><td>"바꾸는 함수와 읽는 함수를 섞지 마라"</td></tr>
+  </table>
+  이것들은 <b>서로 배타적이지 않습니다</b>. 전부 합쳐서 하나의 구조로 만들 수 있습니다.
+</div>
+
+<!-- 헥사고날 -->
+<h3 id="a-hex">헥사고날 아키텍처 (Ports &amp; Adapters)</h3>
+
+<p>2005년 Alistair Cockburn이 제안한 아키텍처. <b>"포트와 어댑터"</b>라고도 부릅니다.</p>
+
+<h4>핵심 아이디어</h4>
+
+<p>
+  애플리케이션을 <b>육각형(hexagon)</b>으로 그립니다.
+  육각형 안에 비즈니스 로직이 있고, 바깥 세계와는 <b>포트(port)</b>를 통해 연결됩니다.
+  포트에 어떤 <b>어댑터(adapter)</b>를 꽂느냐에 따라 동작이 바뀝니다.
+</p>
+
+<div class="diagram">
+<pre style="text-align:left;background:transparent;border:none;color:var(--text);font-size:0.82rem;line-height:1.9;">
+<span class="cm">                        [바깥 세계]</span>
+
+   <span style="color:var(--accent);">🌐 웹 브라우저</span>          <span style="color:var(--pink);">📱 모바일 앱</span>          <span style="color:var(--yellow);">⌨️ CLI</span>
+        │                      │                    │
+        ▼                      ▼                    ▼
+   ┌─ <span style="color:var(--accent);">Controller</span> ──── <span style="color:var(--pink);">Controller</span> ──── <span style="color:var(--yellow);">CLI Handler</span> ─┐
+   │          <b>Driving Adapters</b> (들어오는 쪽)          │
+   │   ═══════════════════════════════════════════   │
+   │        <span style="color:var(--cyan);">▼ Driving Port (inbound interface)</span>        │
+   │                                                 │
+   │              ┌───────────────┐                  │
+   │              │   <span style="color:var(--green);font-weight:bold;">Application</span>   │  ← 비즈니스     │
+   │              │   <span style="color:var(--green);">+ Domain</span>     │     로직        │
+   │              └───────────────┘                  │
+   │                                                 │
+   │       <span style="color:var(--cyan);">▼ Driven Port (outbound interface)</span>        │
+   │   ═══════════════════════════════════════════   │
+   │        <b>Driven Adapters</b> (나가는 쪽)              │
+   └─ <span style="color:var(--orange);">DB Adapter</span> ──── <span style="color:var(--orange);">API Client</span> ──── <span style="color:var(--orange);">Parser</span> ──┘
+        │                   │                │
+        ▼                   ▼                ▼
+   <span style="color:var(--orange);">🗄️ PostgreSQL</span>     <span style="color:var(--orange);">🌐 쿠팡 API</span>      <span style="color:var(--orange);">📄 HTML</span>
+
+<span class="cm">                        [바깥 세계]</span>
+</pre>
+</div>
+
+<h4>포트(Port)와 어댑터(Adapter)</h4>
+
+<table>
+  <tr><th>개념</th><th>비유</th><th>코드에서</th><th>예시</th></tr>
+  <tr>
+    <td><b>Port</b></td>
+    <td>콘센트 규격</td>
+    <td><code>interface</code></td>
+    <td><code>ProductParser</code>, <code>ProductRepository</code></td>
+  </tr>
+  <tr>
+    <td><b>Driving Adapter</b><br>(들어오는 쪽)</td>
+    <td>전자제품을 켜는 스위치</td>
+    <td>Controller, CLI</td>
+    <td><code>ProductController</code> — 웹에서 요청이 들어옴</td>
+  </tr>
+  <tr>
+    <td><b>Driven Adapter</b><br>(나가는 쪽)</td>
+    <td>콘센트에 꽂는 플러그</td>
+    <td>구현체 (@Component)</td>
+    <td><code>OgParser</code>, <code>CoupangApiClient</code> — 밖으로 나감</td>
+  </tr>
+</table>
+
+<div class="box box-compare">
+  <strong>헥사고날의 핵심 가치</strong>
+  <p>
+    <b>"어댑터를 갈아끼울 수 있다"</b><br><br>
+    지금은 <code>OgParser</code>(HTML 파싱)를 쓰다가, 나중에 <code>CoupangApiClient</code>(API 호출)로 바꿔도
+    비즈니스 로직은 한 줄도 바뀌지 않습니다.<br>
+    지금은 <code>Controller</code>(웹)로 들어오지만, 나중에 <code>CLI</code>(터미널)나 <code>배치 Job</code>으로
+    들어와도 비즈니스 로직은 동일합니다.<br><br>
+    테스트할 때도 "가짜 어댑터"를 꽂아서 실제 DB나 API 없이 테스트 가능합니다.
+  </p>
+</div>
+
+<!-- 클린 아키텍처 -->
+<h3 id="a-clean">클린 아키텍처 (Clean Architecture)</h3>
+
+<p>2012년 Uncle Bob(Robert C. Martin)이 제안. 헥사고날과 매우 비슷하지만, <b>동심원 다이어그램</b>으로 의존성 방향을 강조합니다.</p>
+
+<div class="diagram">
+<pre style="text-align:left;background:transparent;border:none;color:var(--text);font-size:0.82rem;line-height:1.9;">
+<span class="cm">동심원 — 안쪽이 더 중요하고, 안쪽은 바깥을 모른다</span>
+
+    ┌──────────────────────────────────────────────┐
+    │  <span style="color:var(--accent);">Presentation</span> / <span style="color:var(--orange);">Infrastructure</span>               │  바깥 (프레임워크, DB, 웹)
+    │    ┌──────────────────────────────────────┐   │
+    │    │  <span style="color:var(--purple);">Application</span>                          │   │  중간 (유스케이스)
+    │    │    ┌──────────────────────────────┐   │   │
+    │    │    │  <span style="color:var(--green);">Domain</span>                       │   │   │  안쪽 (엔티티 + 인터페이스)
+    │    │    │  Entity, VO, <b>Port(interface)</b> │   │   │
+    │    │    └──────────────────────────────┘   │   │
+    │    │  UseCase, Service, DTO               │   │
+    │    └──────────────────────────────────────┘   │
+    │  Controller, OgParser, DB Adapter, Config     │
+    └──────────────────────────────────────────────┘
+
+    <b>규칙: 화살표는 반드시 안쪽을 향한다 (바깥 → 안쪽)</b>
+    <span style="color:var(--green);">✅</span> Presentation → Application → Domain
+    <span style="color:var(--green);">✅</span> Infrastructure → Domain (의존성 역전)
+    <span style="color:var(--red);">❌</span> Domain → Application/Infrastructure/Presentation
+</pre>
+</div>
+
+<!-- DDD -->
+<h3 id="a-ddd">DDD (Domain-Driven Design)</h3>
+
+<p>Eric Evans가 제안. <b>"코드가 비즈니스 언어를 쓰게 하라"</b>는 철학입니다.</p>
+
+<div class="box box-info">
+  <strong>DDD에서 가져온 개념들</strong>
+  <table>
+    <tr><th>개념</th><th>이 프로젝트에서</th><th>의미</th></tr>
+    <tr><td><b>Entity</b></td><td><code>Product</code></td><td>고유 식별자를 가진 도메인 객체</td></tr>
+    <tr><td><b>Value Object (VO)</b></td><td><code>Money</code>, <code>Mall</code></td><td>값으로 비교되는 불변 객체. Money(15900) == Money(15900)</td></tr>
+    <tr><td><b>Repository</b></td><td><code>ProductRepository</code></td><td>엔티티의 저장/조회 계약 (interface)</td></tr>
+    <tr><td><b>Domain Service</b></td><td>(필요 시 추가)</td><td>특정 엔티티에 속하지 않는 도메인 로직</td></tr>
+    <tr><td><b>Ubiquitous Language</b></td><td>Product, Parse, Mall</td><td>개발자와 비개발자가 같은 용어 사용</td></tr>
+  </table>
+</div>
+
+<!-- CQS -->
+<h3 id="a-cqs">CQS (Command Query Separation)</h3>
+
+<p>Bertrand Meyer가 제안. <b>"바꾸는 함수와 읽는 함수를 섞지 마라"</b>는 원칙입니다.</p>
+
+<table>
+  <tr><th></th><th>Command (명령)</th><th>Query (조회)</th></tr>
+  <tr><td><b>하는 일</b></td><td>상태를 변경한다</td><td>상태를 읽어서 반환한다</td></tr>
+  <tr><td><b>반환값</b></td><td>없음 (void/Unit)</td><td>있음 (데이터)</td></tr>
+  <tr><td><b>부작용</b></td><td>있음 (DB 저장, API 호출 등)</td><td>없음 (읽기만)</td></tr>
+  <tr><td><b>예시</b></td><td><code>saveProduct(product)</code></td><td><code>findProductByUrl(url): Product?</code></td></tr>
+</table>
+
+<pre><code><span class="cm">// ✅ CQS를 따르는 Repository interface</span>
+<span class="kw">interface</span> <span class="tp">ProductRepository</span> {
+    <span class="kw">fun</span> <span class="fn">save</span>(product: <span class="tp">Product</span>)                  <span class="cm">// Command: 저장 (반환 없음)</span>
+    <span class="kw">fun</span> <span class="fn">findByUrl</span>(url: <span class="tp">String</span>): <span class="tp">Product?</span>         <span class="cm">// Query: 조회 (데이터 반환)</span>
+}
+
+<span class="cm">// ❌ CQS 위반 — 저장하면서 동시에 결과를 반환</span>
+<span class="kw">fun</span> <span class="fn">saveAndReturn</span>(product: <span class="tp">Product</span>): <span class="tp">Product</span>    <span class="cm">// 변경 + 반환을 한 함수에서!</span>
+</code></pre>
+
+<div class="box box-tip">
+  <strong>Phase 2+에서 CQS 확장</strong>
+  지금은 파싱(조회)만 있어서 단순하지만, Phase 2에서 장바구니 저장이 추가되면:
+<pre><code><span class="cm">// Command UseCase — 상태를 변경</span>
+<span class="kw">class</span> <span class="tp">AddToCartUseCase</span>    <span class="cm">→ save(product)</span>
+
+<span class="cm">// Query UseCase — 상태를 조회</span>
+<span class="kw">class</span> <span class="tp">GetCartItemsUseCase</span>  <span class="cm">→ findAll(): List&lt;Product&gt;</span>
+</code></pre>
+</div>
+
+<!-- 이 패턴들이 합쳐지면 -->
+<h3>이 패턴들이 합쳐지면?</h3>
+
+<div class="box box-compare">
+  <strong>각 패턴이 담당하는 영역</strong>
+  <table>
+    <tr><th>패턴</th><th>결정하는 것</th></tr>
+    <tr><td><b>레이어드</b></td><td>코드를 <b>몇 개의 층</b>으로 나눌지 → 4개 (Domain, Application, Infrastructure, Presentation)</td></tr>
+    <tr><td><b>클린 아키텍처</b></td><td><b>의존성 방향</b> → 바깥에서 안쪽으로만</td></tr>
+    <tr><td><b>헥사고날</b></td><td><b>경계를 어떻게 연결</b>할지 → Port(interface) + Adapter(구현체)</td></tr>
+    <tr><td><b>DDD</b></td><td>Domain 안에 <b>뭘 넣을지</b> → Entity, VO, Repository interface</td></tr>
+    <tr><td><b>CQS</b></td><td>함수를 <b>어떻게 설계</b>할지 → Command(변경)와 Query(조회) 분리</td></tr>
+  </table>
+</div>
 
 <h3 id="a-why">왜 레이어를 나누는가?</h3>
 
@@ -1120,6 +1316,95 @@ def execute(url):
     </div>
   </div>
 </div>
+
+<h3 id="a-ideal">이 프로젝트의 이상적 패키지 구조</h3>
+
+<p>
+  위의 패턴들(헥사고날 + 클린 + DDD + CQS + 레이어드)을 모두 조합한
+  이 프로젝트의 <b>이상적 구조</b>입니다.
+</p>
+
+<div class="diagram">
+<pre style="text-align:left;background:transparent;border:none;color:var(--text);font-size:0.82rem;line-height:1.8;">
+<span class="cm">com.linkcart/</span>
+
+<span style="color:var(--green);font-weight:bold;">domain/</span>                         <span class="cm">← 가장 안쪽. 순수 Kotlin. 프레임워크 의존 0</span>
+├── <span style="color:var(--green);">entity/</span>
+│   └── Product.kt              <span class="cm">← 핵심 비즈니스 엔티티 (DDD Entity)</span>
+├── <span style="color:var(--green);">vo/</span>
+│   ├── Money.kt                <span class="cm">← 값 객체 (DDD Value Object)</span>
+│   └── Mall.kt                 <span class="cm">← 열거형 (DDD Value Object)</span>
+└── <span style="color:var(--green);font-weight:bold;">port/</span>                       <span class="cm">← ⭐ 포트(interface)가 여기!</span>
+    ├── ProductParser.kt        <span class="cm">← Driven Port: "상품 파싱 규격" (헥사고날)</span>
+    └── ProductRepository.kt    <span class="cm">← Driven Port: "상품 저장 규격" (DDD Repository)</span>
+
+<span style="color:var(--purple);font-weight:bold;">application/</span>                    <span class="cm">← 비즈니스 워크플로우. Domain만 import</span>
+├── <span style="color:var(--purple);">usecase/</span>                    <span class="cm">← UseCase = 여러 Service를 조합하는 오케스트레이터</span>
+│   └── ParseProductUseCase.kt  <span class="cm">← "URL을 파싱하라" 워크플로우</span>
+├── <span style="color:var(--purple);">service/</span>                    <span class="cm">← Service = 개별 비즈니스 로직 단위</span>
+│   └── (Phase 2+에서 추가)     <span class="cm">← 예: PriceCompareService, NotifyService</span>
+└── <span style="color:var(--purple);">dto/</span>                        <span class="cm">← Application 내부 데이터 전달 객체</span>
+    └── ParseResult.kt          <span class="cm">← sealed interface: Success | Partial | Failure</span>
+
+<span style="color:var(--orange);font-weight:bold;">infrastructure/</span>                 <span class="cm">← Driven Adapters. Domain의 port를 구현</span>
+├── <span style="color:var(--orange);">adapter/</span>                    <span class="cm">← 포트에 꽂는 어댑터(구현체)</span>
+│   ├── parser/
+│   │   ├── OgParser.kt         <span class="cm">← ProductParser 구현: OG 태그 파싱</span>
+│   │   ├── CoupangApiClient.kt <span class="cm">← ProductParser 구현: 쿠팡 API</span>
+│   │   ├── ElevenStApiClient.kt<span class="cm">← ProductParser 구현: 11번가 API</span>
+│   │   └── ParserFactory.kt    <span class="cm">← URL → 적절한 파서 선택</span>
+│   └── persistence/            <span class="cm">← (Phase 2) ProductRepository 구현</span>
+└── <span style="color:var(--orange);">config/</span>                     <span class="cm">← Spring 설정</span>
+    └── WebConfig.kt            <span class="cm">← CORS, 캐시 등</span>
+
+<span style="color:var(--accent);font-weight:bold;">presentation/</span>                   <span class="cm">← Driving Adapters. 들어오는 요청 처리</span>
+├── <span style="color:var(--accent);">api/</span>                        <span class="cm">← REST API 컨트롤러</span>
+│   ├── ProductController.kt    <span class="cm">← POST /api/v1/products/parse</span>
+│   ├── ImageProxyController.kt <span class="cm">← GET /api/v1/images/proxy</span>
+│   └── HealthController.kt     <span class="cm">← GET /health</span>
+└── <span style="color:var(--accent);">dto/</span>                        <span class="cm">← HTTP 요청/응답 전용 DTO</span>
+    ├── ParseRequest.kt         <span class="cm">← JSON 요청 바디</span>
+    └── ParseResponse.kt        <span class="cm">← JSON 응답 바디</span>
+</pre>
+</div>
+
+<div class="box box-warn">
+  <strong>현재 코드와의 차이</strong>
+  현재 프로젝트에서 <code>ProductParser</code>와 <code>ProductRepository</code> interface가
+  <code>application/port/</code>에 있습니다.
+  이상적 구조에서는 <code><b>domain/port/</b></code>에 있어야 합니다.<br><br>
+  <b>왜?</b> interface(포트)는 <b>"비즈니스가 요구하는 규격"</b>입니다.
+  "상품을 파싱할 수 있어야 한다", "상품을 저장할 수 있어야 한다"는 <b>도메인 요구사항</b>이지,
+  애플리케이션 요구사항이 아닙니다.
+  DDD에서 Repository interface가 Domain에 위치하는 것도 같은 이유입니다.<br><br>
+  → <b>PR 2에서 <code>application/port/</code> → <code>domain/port/</code>로 이동</b> 예정
+</div>
+
+<h4>각 패턴이 이 구조에 어떻게 반영되었는가</h4>
+
+<table>
+  <tr><th>패턴</th><th>구조에서 보이는 곳</th></tr>
+  <tr>
+    <td><b>레이어드</b></td>
+    <td>4개 패키지(domain/application/infrastructure/presentation)로 수평 분리</td>
+  </tr>
+  <tr>
+    <td><b>클린 아키텍처</b></td>
+    <td>import 방향이 항상 domain을 향함. Domain은 아무것도 import 안 함</td>
+  </tr>
+  <tr>
+    <td><b>헥사고날</b></td>
+    <td><code>domain/port/</code> = Port, <code>infrastructure/adapter/</code> = Driven Adapter, <code>presentation/api/</code> = Driving Adapter</td>
+  </tr>
+  <tr>
+    <td><b>DDD</b></td>
+    <td><code>domain/entity/</code> = Entity, <code>domain/vo/</code> = Value Object, <code>domain/port/ProductRepository</code> = Repository</td>
+  </tr>
+  <tr>
+    <td><b>CQS</b></td>
+    <td>Repository interface의 <code>save()</code>(Command)와 <code>findByUrl()</code>(Query) 분리</td>
+  </tr>
+</table>
 
 <h3 id="a-dep">의존성 규칙 (상세)</h3>
 
