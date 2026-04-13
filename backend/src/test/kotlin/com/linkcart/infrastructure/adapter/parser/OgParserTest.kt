@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.parser
 
-import com.linkcart.application.dto.ParseResult
+import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.vo.Mall
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
