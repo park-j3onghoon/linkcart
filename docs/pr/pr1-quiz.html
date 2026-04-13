@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR 1 Quiz — TNEAR Backend 면접 대비</title>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --border: #475569;
+  --text: #e2e8f0; --dim: #94a3b8; --accent: #38bdf8; --green: #4ade80;
+  --yellow: #fbbf24; --pink: #f472b6; --purple: #a78bfa; --orange: #fb923c;
+  --red: #f87171; --cyan: #22d3ee;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.7;
+}
+
+/* --- Layout --- */
+.layout { display: flex; min-height: 100vh; }
+nav {
+  width: 280px; min-width: 280px; background: var(--surface);
+  border-right: 1px solid var(--border); position: sticky; top: 0;
+  height: 100vh; overflow-y: auto; padding: 1.5rem 0;
+}
+nav h2 { font-size: 1rem; color: var(--accent); padding: 0 1.2rem; margin-bottom: 1rem; }
+nav a {
+  display: block; padding: 0.4rem 1.2rem; color: var(--dim); text-decoration: none;
+  font-size: 0.85rem; border-left: 3px solid transparent; transition: all 0.15s;
+}
+nav a:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+nav a.sub { padding-left: 2rem; font-size: 0.8rem; }
+nav .sep { height: 1px; background: var(--border); margin: 0.8rem 1.2rem; }
+nav .progress-bar {
+  margin: 0.8rem 1.2rem; padding: 0.6rem 0.8rem;
+  background: var(--surface2); border-radius: 8px; font-size: 0.82rem;
+}
+nav .progress-bar .bar {
+  height: 6px; background: var(--surface); border-radius: 3px; margin-top: 0.4rem; overflow: hidden;
+}
+nav .progress-bar .bar-fill {
+  height: 100%; background: var(--green); border-radius: 3px; transition: width 0.3s;
+}
+main { flex: 1; max-width: 900px; padding: 2rem 3rem 4rem; }
+
+/* --- Typography --- */
+h1 { font-size: 2.2rem; margin-bottom: 0.3rem; }
+h1 span { color: var(--accent); }
+.subtitle { color: var(--dim); margin-bottom: 2.5rem; }
+h2 {
+  font-size: 1.6rem; margin: 3rem 0 1rem; padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+h3 { font-size: 1.15rem; margin: 2rem 0 0.8rem; color: var(--accent); }
+h4 { font-size: 1rem; margin: 1.5rem 0 0.5rem; color: var(--yellow); }
+p { margin-bottom: 1rem; }
+
+/* --- Code --- */
+pre {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1.2rem 1.5rem; overflow-x: auto; margin: 0.8rem 0 1.2rem;
+  font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace; font-size: 0.85rem;
+  line-height: 1.6;
+}
+code {
+  font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace;
+  background: var(--surface2); padding: 0.15rem 0.4rem; border-radius: 4px;
+  font-size: 0.88rem;
+}
+pre code { background: none; padding: 0; }
+.kw { color: var(--pink); }
+.fn { color: var(--accent); }
+.str { color: var(--green); }
+.cm { color: var(--dim); }
+.tp { color: var(--yellow); }
+.num { color: var(--orange); }
+.an { color: var(--purple); }
+
+/* --- Quiz Components --- */
+.quiz-item {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.5rem; margin: 1.2rem 0;
+}
+.quiz-item .q-number {
+  display: inline-block; background: var(--accent); color: var(--bg);
+  font-weight: 700; font-size: 0.8rem; padding: 0.15rem 0.6rem;
+  border-radius: 4px; margin-bottom: 0.8rem;
+}
+.quiz-item .q-number.q-code { background: var(--purple); }
+.quiz-item .q-number.q-essay { background: var(--orange); }
+.quiz-item .q-number.q-interview { background: var(--pink); }
+.quiz-item .q-text { font-size: 1rem; margin-bottom: 1rem; font-weight: 500; }
+
+.choices { list-style: none; padding: 0; margin: 0 0 1rem; }
+.choices li {
+  padding: 0.5rem 0.8rem; margin: 0.3rem 0; border-radius: 6px;
+  font-size: 0.92rem; cursor: default;
+  border: 1px solid transparent;
+}
+.choices li code { font-size: 0.82rem; }
+
+.answer-toggle {
+  display: inline-block; padding: 0.4rem 1rem; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--accent); font-size: 0.85rem; cursor: pointer;
+  transition: all 0.2s; user-select: none;
+}
+.answer-toggle:hover { background: rgba(56,189,248,0.15); border-color: var(--accent); }
+
+.answer-box {
+  display: none; margin-top: 1rem; padding: 1rem 1.2rem;
+  border-radius: 8px; border-left: 4px solid var(--green);
+  background: rgba(74,222,128,0.06);
+}
+.answer-box.show { display: block; }
+.answer-box .correct-label {
+  display: inline-block; background: var(--green); color: var(--bg);
+  font-weight: 700; font-size: 0.78rem; padding: 0.1rem 0.5rem;
+  border-radius: 3px; margin-bottom: 0.5rem;
+}
+.answer-box .explain { color: var(--dim); font-size: 0.9rem; margin-top: 0.5rem; line-height: 1.6; }
+.answer-box .explain strong { color: var(--text); }
+.answer-box .tnear-tag {
+  display: inline-block; margin-top: 0.6rem; padding: 0.3rem 0.7rem;
+  background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3);
+  border-radius: 5px; font-size: 0.82rem; color: var(--yellow);
+}
+
+/* --- Section Header Boxes --- */
+.section-header {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.2rem 1.5rem; margin: 0.5rem 0 1.5rem;
+}
+.section-header .count { color: var(--accent); font-weight: 600; }
+.section-header .desc { color: var(--dim); font-size: 0.9rem; margin-top: 0.3rem; }
+
+/* --- Boxes --- */
+.box {
+  border-radius: 10px; padding: 1.2rem 1.5rem; margin: 1rem 0 1.5rem;
+  border-left: 4px solid;
+}
+.box-info { background: rgba(56,189,248,0.08); border-color: var(--accent); }
+.box-warn { background: rgba(251,146,60,0.08); border-color: var(--orange); }
+.box-tip { background: rgba(74,222,128,0.08); border-color: var(--green); }
+.box-compare { background: rgba(167,139,250,0.08); border-color: var(--purple); }
+.box strong { display: block; margin-bottom: 0.3rem; }
+.box-info strong { color: var(--accent); }
+.box-warn strong { color: var(--orange); }
+.box-tip strong { color: var(--green); }
+.box-compare strong { color: var(--purple); }
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  nav { display: none; }
+  main { padding: 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+<!-- ============ SIDEBAR ============ -->
+<nav>
+  <h2>PR 1 Quiz</h2>
+  <div class="progress-bar">
+    <span id="progress-text">0 / 32 answered</span>
+    <div class="bar"><div class="bar-fill" id="progress-fill" style="width: 0%"></div></div>
+  </div>
+  <div class="sep"></div>
+  <a href="#intro">Overview</a>
+  <div class="sep"></div>
+  <a href="#s1">1. Kotlin Basics</a>
+  <a href="#q1" class="sub">Q1. val vs var</a>
+  <a href="#q2" class="sub">Q2. data class</a>
+  <a href="#q3" class="sub">Q3. sealed vs enum</a>
+  <a href="#q4" class="sub">Q4. null safety</a>
+  <a href="#q5" class="sub">Q5. ?. vs ?:</a>
+  <a href="#q6" class="sub">Q6. Product.kt reading</a>
+  <a href="#q7" class="sub">Q7. Money.kt reading</a>
+  <a href="#q8" class="sub">Q8. ParseResult.kt reading</a>
+  <a href="#q9" class="sub">Q9. when exhaustive</a>
+  <a href="#q10" class="sub">Q10. enum property</a>
+  <div class="sep"></div>
+  <a href="#s2">2. Gradle &amp; Spring Boot</a>
+  <a href="#q11" class="sub">Q11. gradlew build</a>
+  <a href="#q12" class="sub">Q12. dependencies</a>
+  <a href="#q13" class="sub">Q13. Controller/Service/Component</a>
+  <a href="#q14" class="sub">Q14. DI</a>
+  <a href="#q15" class="sub">Q15. application.yml</a>
+  <a href="#q16" class="sub">Q16. @SpringBootApplication</a>
+  <a href="#q17" class="sub">Q17. CORS Config</a>
+  <a href="#q18" class="sub">Q18. build.gradle.kts plugins</a>
+  <div class="sep"></div>
+  <a href="#s3">3. Architecture</a>
+  <a href="#q19" class="sub">Q19. dependency rule</a>
+  <a href="#q20" class="sub">Q20. port &amp; adapter</a>
+  <a href="#q21" class="sub">Q21. Entity vs VO</a>
+  <a href="#q22" class="sub">Q22. CQS</a>
+  <a href="#q23" class="sub">Q23. import judgment</a>
+  <a href="#q24" class="sub">Q24. import judgment 2</a>
+  <a href="#q25" class="sub">Q25. DI necessity</a>
+  <a href="#q26" class="sub">Q26. layer placement</a>
+  <div class="sep"></div>
+  <a href="#s4">4. Interview Sim</a>
+  <a href="#q27" class="sub">Q27. null safety vs Java</a>
+  <a href="#q28" class="sub">Q28. DB swap impact</a>
+  <a href="#q29" class="sub">Q29. fail-fast</a>
+  <a href="#q30" class="sub">Q30. API response format</a>
+  <a href="#q31" class="sub">Q31. testable code</a>
+  <a href="#q32" class="sub">Q32. why Kotlin/Spring</a>
+</nav>
+
+<!-- ============ MAIN ============ -->
+<main>
+
+<h1 id="intro">PR 1 <span>Quiz</span></h1>
+<p class="subtitle">TNEAR Backend Developer Interview Preparation &mdash; LinkCart PR 1 Based</p>
+
+<div class="box box-info">
+  <strong>About This Quiz</strong>
+  PR 1 "Backend Kotlin/Spring Boot Setup"에서 작성한 코드와 학습한 개념을 기반으로,
+  TNEAR(TINAREAL) Backend 개발자 면접에서 나올 수 있는 질문을 정리했다.
+  각 문제의 해설에는 "왜 이 답인지"와 "TNEAR 면접에서 왜 중요한지"가 포함되어 있다.
+</div>
+
+<div class="box box-warn">
+  <strong>Study Strategy</strong>
+  1차: 답 보기 전에 스스로 풀어보기 &mdash;
+  2차: 해설을 읽고 모르는 부분 guide.html 재학습 &mdash;
+  3차: 면접 시뮬레이션 문제를 소리 내서 답변 연습
+</div>
+
+
+<!-- =============================================================== -->
+<!-- SECTION 1: KOTLIN BASICS -->
+<!-- =============================================================== -->
+<h2 id="s1">Section 1: Kotlin Basics</h2>
+<div class="section-header">
+  <span class="count">10 Problems</span>
+  <div class="desc">
+    val/var, data class, sealed interface, enum class, null safety, 실제 PR 1 코드 읽기 문제.
+    TNEAR는 Kotlin(Java) + Spring을 요구하므로, Kotlin의 핵심 특징을 Java와 비교해서 설명할 수 있어야 한다.
+  </div>
+</div>
+
+<!-- Q1 -->
+<div class="quiz-item" id="q1">
+  <span class="q-number">Q1</span>
+  <div class="q-text">Kotlin에서 <code>val</code>과 <code>var</code>의 차이점으로 올바른 것은?</div>
+  <pre><code><span class="kw">val</span> name = <span class="str">"LinkCart"</span>    <span class="cm">// ???</span>
+<span class="kw">var</span> count = <span class="num">0</span>            <span class="cm">// ???</span>
+
+name = <span class="str">"NewName"</span>          <span class="cm">// ???</span>
+count = count + <span class="num">1</span>         <span class="cm">// ???</span></code></pre>
+  <ul class="choices">
+    <li>A. <code>val</code>은 nullable, <code>var</code>는 non-null을 의미한다</li>
+    <li>B. <code>val</code>은 읽기 전용(재할당 불가) 참조, <code>var</code>는 재할당 가능한 참조다</li>
+    <li>C. <code>val</code>은 함수 안에서만, <code>var</code>는 클래스 안에서만 사용 가능하다</li>
+    <li>D. <code>val</code>과 <code>var</code>는 같으며 스타일 차이일 뿐이다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B</span>
+    <div class="explain">
+      <code>val</code>은 Java의 <code>final</code> 변수와 유사하다. 한 번 할당하면 재할당할 수 없다.
+      <code>var</code>는 재할당이 가능하다. 위 코드에서 <code>name = "NewName"</code>은 컴파일 에러가 발생하고,
+      <code>count = count + 1</code>은 정상 동작한다.
+      <strong>주의:</strong> <code>val</code>은 "불변 객체"가 아니라 "재할당 불가 참조"다.
+      <code>val list = mutableListOf(1,2,3)</code>의 경우, <code>list</code> 자체는 바꿀 수 없지만 <code>list.add(4)</code>는 가능하다.
+      Python의 관점에서 보면, 상수(convention 수준)와 비슷하지만 Kotlin은 이를 <strong>컴파일러가 강제</strong>한다.
+      <span class="tnear-tag">TNEAR: Kotlin 기초 문법 중 가장 빈출. Java의 final과 비교 설명 필수.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q2 -->
+<div class="quiz-item" id="q2">
+  <span class="q-number">Q2</span>
+  <div class="q-text"><code>data class</code>를 선언하면 Kotlin 컴파일러가 자동으로 생성하는 것을 <strong>모두</strong> 고르시오.</div>
+  <pre><code><span class="kw">data class</span> <span class="tp">Money</span>(
+    <span class="kw">val</span> amount: <span class="tp">Long</span>,
+    <span class="kw">val</span> currency: <span class="tp">String</span> = <span class="str">"KRW"</span>,
+)</code></pre>
+  <ul class="choices">
+    <li>A. <code>equals()</code>, <code>hashCode()</code></li>
+    <li>B. <code>toString()</code></li>
+    <li>C. <code>copy()</code></li>
+    <li>D. <code>componentN()</code> (구조 분해)</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A, B, C, D &mdash; 전부</span>
+    <div class="explain">
+      <code>data class</code>는 primary constructor의 프로퍼티를 기반으로 위 4가지를 모두 자동 생성한다.
+      <br><br>
+      <strong>equals/hashCode</strong> &mdash; 값이 같으면 같은 객체로 취급 (Value Object 패턴에 핵심)<br>
+      <strong>toString</strong> &mdash; <code>Money(amount=15000, currency=KRW)</code> 형태로 디버깅 편의<br>
+      <strong>copy</strong> &mdash; 일부 필드만 바꾼 새 인스턴스 생성: <code>money.copy(amount = 20000)</code><br>
+      <strong>componentN</strong> &mdash; <code>val (amount, currency) = money</code> 구조 분해 가능<br><br>
+      Python의 <code>@dataclass</code>와 유사하지만, Kotlin은 <code>copy()</code>와 <code>componentN()</code>까지 포함한다.
+      Java에서는 이 모든 것을 직접 작성하거나 Lombok <code>@Data</code>를 써야 하지만, Kotlin은 언어 레벨에서 지원한다.
+      <span class="tnear-tag">TNEAR: "Java 대비 Kotlin의 생산성 장점"을 물을 때 data class는 대표적 예시.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q3 -->
+<div class="quiz-item" id="q3">
+  <span class="q-number">Q3</span>
+  <div class="q-text"><code>sealed interface</code>와 <code>enum class</code>의 차이점으로 올바른 것은?</div>
+  <pre><code><span class="cm">// enum: 각 항목이 고정된 싱글턴</span>
+<span class="kw">enum class</span> <span class="tp">Mall</span>(<span class="kw">val</span> displayName: <span class="tp">String</span>) {
+    COUPANG(<span class="str">"쿠팡"</span>), ELEVENST(<span class="str">"11번가"</span>), GENERIC(<span class="str">"기타"</span>),
+}
+
+<span class="cm">// sealed: 각 항목이 다른 데이터를 가질 수 있음</span>
+<span class="kw">sealed interface</span> <span class="tp">ParseResult</span> {
+    <span class="kw">data class</span> <span class="tp">Success</span>(<span class="kw">val</span> product: <span class="tp">Product</span>, ...) : <span class="tp">ParseResult</span>
+    <span class="kw">data class</span> <span class="tp">Failure</span>(<span class="kw">val</span> reason: <span class="tp">String</span>, ...) : <span class="tp">ParseResult</span>
+}</code></pre>
+  <ul class="choices">
+    <li>A. enum은 각 항목이 같은 구조의 싱글턴이고, sealed는 각 하위 타입이 서로 다른 데이터를 가질 수 있다</li>
+    <li>B. sealed가 더 빠르기 때문에 항상 sealed를 쓰는 것이 좋다</li>
+    <li>C. enum은 Kotlin 전용이고 sealed는 Java에서도 사용 가능하다</li>
+    <li>D. 둘 다 동일하며, 이름만 다르다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      <strong>enum class</strong>는 정해진 상수의 집합이다. 모든 항목이 같은 프로퍼티 구조를 갖는다.
+      <code>Mall.COUPANG</code>과 <code>Mall.ELEVENST</code>는 모두 <code>displayName</code>이라는 같은 필드를 가진다.
+      <br><br>
+      <strong>sealed interface</strong>는 가능한 하위 타입의 집합을 제한하되, 각 타입이 서로 다른 데이터 구조를 가질 수 있다.
+      <code>ParseResult.Success</code>는 <code>Product</code>를 갖고, <code>ParseResult.Failure</code>는 <code>reason: String</code>만 갖는다.
+      <br><br>
+      둘 다 <code>when</code> 식에서 <strong>exhaustive check</strong>를 제공한다 (모든 케이스를 처리했는지 컴파일러가 확인).
+      <br>
+      <strong>선택 기준:</strong> "값이 고정된 종류" &rarr; enum, "종류마다 다른 데이터가 필요" &rarr; sealed.
+      <span class="tnear-tag">TNEAR: 타입 안전한 결과 처리 패턴. API 응답 설계에서 핵심.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q4 -->
+<div class="quiz-item" id="q4">
+  <span class="q-number">Q4</span>
+  <div class="q-text">아래 Kotlin 코드 중 <strong>컴파일 에러</strong>가 발생하는 줄을 모두 고르시오.</div>
+  <pre><code><span class="kw">val</span> a: <span class="tp">String</span> = <span class="str">"hello"</span>       <span class="cm">// (1)</span>
+<span class="kw">val</span> b: <span class="tp">String</span> = <span class="kw">null</span>          <span class="cm">// (2)</span>
+<span class="kw">val</span> c: <span class="tp">String?</span> = <span class="kw">null</span>         <span class="cm">// (3)</span>
+<span class="kw">val</span> d: <span class="tp">Int</span> = c.<span class="fn">length</span>         <span class="cm">// (4)</span>
+<span class="kw">val</span> e: <span class="tp">Int?</span> = c?.<span class="fn">length</span>       <span class="cm">// (5)</span></code></pre>
+  <ul class="choices">
+    <li>A. (2)만</li>
+    <li>B. (2)와 (4)</li>
+    <li>C. (4)만</li>
+    <li>D. (2), (4), (5)</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B &mdash; (2)와 (4)</span>
+    <div class="explain">
+      <strong>(2)</strong> <code>String</code> 타입(non-null)에 <code>null</code>을 대입할 수 없다. <code>String?</code>이어야 한다.<br>
+      <strong>(4)</strong> <code>c</code>는 <code>String?</code>이므로 <code>c.length</code>로 직접 접근할 수 없다.
+      nullable 타입에 대한 멤버 접근은 <code>?.</code>(safe call)이나 <code>!!</code>(not-null assertion)을 사용해야 한다.<br>
+      <strong>(5)</strong> <code>c?.length</code>는 <code>c</code>가 null이면 전체 표현식이 <code>null</code>을 반환하므로 <code>Int?</code> 타입으로 합법적이다.
+      <br><br>
+      이것이 Kotlin의 <strong>null safety</strong> 핵심이다. 타입 시스템에서 nullable 여부를 구분하므로, NullPointerException이 컴파일 시점에 방지된다.
+      Java에서는 모든 참조 타입이 null이 될 수 있어서 런타임에야 NPE가 발생한다.
+      <span class="tnear-tag">TNEAR: "Kotlin의 null safety가 Java와 어떻게 다른가?" 면접 단골 질문.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q5 -->
+<div class="quiz-item" id="q5">
+  <span class="q-number">Q5</span>
+  <div class="q-text"><code>?.</code>(safe call)과 <code>?:</code>(Elvis operator)의 차이를 설명한 것 중 올바른 것은?</div>
+  <pre><code><span class="kw">val</span> url: <span class="tp">String?</span> = getUrl()
+
+<span class="cm">// safe call</span>
+<span class="kw">val</span> length1 = url<span class="fn">?.</span>length           <span class="cm">// url이 null이면 ???</span>
+
+<span class="cm">// Elvis</span>
+<span class="kw">val</span> length2 = url<span class="fn">?.</span>length <span class="fn">?:</span> <span class="num">0</span>      <span class="cm">// url이 null이면 ???</span></code></pre>
+  <ul class="choices">
+    <li>A. <code>?.</code>은 null이면 null 반환, <code>?:</code>은 null이면 우항의 기본값을 반환한다</li>
+    <li>B. <code>?.</code>은 null이면 예외를 던지고, <code>?:</code>은 null이면 0을 반환한다</li>
+    <li>C. 둘 다 null이면 0을 반환한다</li>
+    <li>D. <code>?.</code>은 Java의 try-catch와 같고, <code>?:</code>은 if-else와 같다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      <strong><code>?.</code> (Safe Call)</strong>: 왼쪽이 null이면 전체 표현식이 <code>null</code>이 된다.
+      <code>url?.length</code>에서 <code>url</code>이 null이면 결과는 <code>null</code> (<code>Int?</code> 타입).
+      <br><br>
+      <strong><code>?:</code> (Elvis Operator)</strong>: 왼쪽이 null이면 오른쪽 값을 사용한다.
+      <code>url?.length ?: 0</code>에서 <code>url</code>이 null이면 <code>length</code>도 null이 되고, Elvis에 의해 <code>0</code>이 된다. 결과 타입은 <code>Int</code>(non-null).
+      <br><br>
+      Python으로 비유하면 <code>?.</code>는 <code>url.length if url is not None else None</code>,
+      <code>?:</code>는 <code>url?.length or 0</code>과 유사하다 (정확히 같지는 않음).
+      <br><br>
+      실제 PR 1 코드에서 <code>ProductRepository.findByUrl()</code>의 반환 타입이 <code>Product?</code>인 이유도 이것이다.
+      조회 결과가 없을 수 있으므로 nullable을 명시한다.
+      <span class="tnear-tag">TNEAR: null 처리 전략은 장애 방지의 기본. 운영 서비스에서 NPE는 치명적.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q6 -->
+<div class="quiz-item" id="q6">
+  <span class="q-number q-code">Q6 Code</span>
+  <div class="q-text">PR 1의 <code>Product.kt</code>를 읽고 질문에 답하시오.</div>
+  <pre><code><span class="kw">package</span> com.linkcart.domain.entity
+
+<span class="kw">import</span> com.linkcart.domain.vo.Mall
+<span class="kw">import</span> com.linkcart.domain.vo.Money
+
+<span class="kw">data class</span> <span class="tp">Product</span>(
+    <span class="kw">val</span> name: <span class="tp">String</span>,
+    <span class="kw">val</span> price: <span class="tp">Money</span>,
+    <span class="kw">val</span> imageUrl: <span class="tp">String</span>,
+    <span class="kw">val</span> sourceUrl: <span class="tp">String</span>,
+    <span class="kw">val</span> mall: <span class="tp">Mall</span>,
+)</code></pre>
+  <p>아래 코드의 출력 결과는 무엇인가?</p>
+  <pre><code><span class="kw">val</span> p1 = Product(<span class="str">"Phone"</span>, Money(<span class="num">10000</span>), <span class="str">"img.jpg"</span>, <span class="str">"http://a.com"</span>, Mall.COUPANG)
+<span class="kw">val</span> p2 = Product(<span class="str">"Phone"</span>, Money(<span class="num">10000</span>), <span class="str">"img.jpg"</span>, <span class="str">"http://a.com"</span>, Mall.COUPANG)
+println(p1 == p2)</code></pre>
+  <ul class="choices">
+    <li>A. <code>true</code> &mdash; data class의 equals가 값 비교를 하므로</li>
+    <li>B. <code>false</code> &mdash; 서로 다른 객체(인스턴스)이므로</li>
+    <li>C. 컴파일 에러 &mdash; <code>==</code>를 직접 쓸 수 없으므로</li>
+    <li>D. <code>true</code> &mdash; 같은 메모리 주소를 가리키므로</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      <code>data class</code>의 <code>equals()</code>는 primary constructor의 모든 프로퍼티를 값으로 비교한다.
+      <code>p1</code>과 <code>p2</code>는 모든 필드 값이 같으므로 <code>true</code>가 출력된다.
+      <br><br>
+      <strong>주의:</strong> <code>Money</code>도 <code>data class</code>이므로 <code>Money(10000) == Money(10000)</code>도 <code>true</code>다.
+      만약 <code>Money</code>가 일반 <code>class</code>였다면, 참조 비교가 되어 <code>false</code>가 나왔을 것이다.
+      <br><br>
+      Kotlin의 <code>==</code>는 Java의 <code>.equals()</code>를 호출한다 (구조적 동등성).
+      Java의 <code>==</code> (참조 비교)는 Kotlin에서 <code>===</code>로 사용한다.
+      <span class="tnear-tag">TNEAR: Value Object 패턴의 동등성. DDD와 직결되는 개념.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q7 -->
+<div class="quiz-item" id="q7">
+  <span class="q-number q-code">Q7 Code</span>
+  <div class="q-text">PR 1의 <code>Money.kt</code>를 보고, <code>amount</code>를 <code>Double</code> 대신 <code>Long</code>으로 선언한 이유로 가장 적절한 것은?</div>
+  <pre><code><span class="kw">data class</span> <span class="tp">Money</span>(
+    <span class="kw">val</span> amount: <span class="tp">Long</span>,
+    <span class="kw">val</span> currency: <span class="tp">String</span> = <span class="str">"KRW"</span>,
+)</code></pre>
+  <ul class="choices">
+    <li>A. Kotlin에서 <code>Double</code> 타입이 지원되지 않아서</li>
+    <li>B. 부동소수점(floating point)의 정밀도 문제로 금액 계산에 오차가 생길 수 있어서</li>
+    <li>C. <code>Long</code>이 <code>Double</code>보다 메모리를 적게 차지해서</li>
+    <li>D. JSON 직렬화 시 <code>Long</code>만 지원되므로</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B</span>
+    <div class="explain">
+      <code>Double</code>은 IEEE 754 부동소수점으로, <code>0.1 + 0.2</code>가 정확히 <code>0.3</code>이 되지 않는 문제가 있다.
+      금액 처리에서 이 오차는 결제 금액 불일치, 정산 오류로 직결된다.
+      <br><br>
+      <code>Long</code>으로 원(Won) 단위 정수를 저장하면 오차가 없다.
+      소수점이 필요한 통화(USD 등)는 센트 단위로 저장하거나 <code>BigDecimal</code>을 사용한다.
+      <br><br>
+      Python에서도 같은 이유로 금액 계산에 <code>Decimal</code> 모듈을 쓰는 것과 동일한 원칙이다.
+      PR 1에서 <code>currency</code>에 기본값 <code>"KRW"</code>를 둔 것은, 한국 원화가 소수점이 없으므로 <code>Long</code>만으로 충분하다는 전제이기도 하다.
+      <span class="tnear-tag">TNEAR: 글로벌 서비스에서 다통화 처리는 필수. 금액 정밀도는 핵심 면접 주제.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q8 -->
+<div class="quiz-item" id="q8">
+  <span class="q-number q-code">Q8 Code</span>
+  <div class="q-text">PR 1의 <code>ParseResult.kt</code>에서, <code>Partial</code> 케이스가 존재하는 이유로 가장 적절한 것은?</div>
+  <pre><code><span class="kw">sealed interface</span> <span class="tp">ParseResult</span> {
+    <span class="kw">data class</span> <span class="tp">Success</span>(<span class="kw">val</span> product: <span class="tp">Product</span>, ...) : <span class="tp">ParseResult</span>
+    <span class="kw">data class</span> <span class="tp">Partial</span>(<span class="kw">val</span> fields: <span class="tp">Map&lt;String, Any&gt;</span>, ...) : <span class="tp">ParseResult</span>
+    <span class="kw">data class</span> <span class="tp">Failure</span>(<span class="kw">val</span> reason: <span class="tp">String</span>, ...) : <span class="tp">ParseResult</span>
+}</code></pre>
+  <ul class="choices">
+    <li>A. 외부 쇼핑몰에서 일부 필드만 파싱 가능한 경우를 명시적으로 표현하기 위해</li>
+    <li>B. Kotlin 문법상 sealed interface에는 최소 3개의 하위 타입이 필요해서</li>
+    <li>C. 캐싱을 위한 중간 저장 단계를 표현하기 위해</li>
+    <li>D. Success와 Failure의 공통 필드를 추출하기 위해</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      실제 외부 쇼핑몰 파싱에서는 "상품명은 가져왔지만 가격은 못 가져온" 같은 부분 성공이 빈번하다.
+      이를 Success나 Failure로 이분법적으로 처리하면, 사용자에게 유용한 정보까지 버리게 된다.
+      <br><br>
+      <strong>Partial</strong>은 <code>Map&lt;String, Any&gt;</code>로 파싱된 필드들을 유연하게 담는다.
+      프론트엔드는 이를 받아서 "가격 정보를 가져올 수 없습니다" 같은 세분화된 UI를 보여줄 수 있다.
+      <br><br>
+      <strong>Success</strong>는 완전한 <code>Product</code> 객체를, <strong>Failure</strong>는 <code>reason</code> 문자열만 갖는다.
+      세 타입이 서로 다른 데이터를 가지므로 <code>sealed interface</code>가 적합한 것이다.
+      <span class="tnear-tag">TNEAR: 외부 API 의존성이 높은 서비스에서 부분 실패 처리 설계는 운영 안정성의 핵심.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q9 -->
+<div class="quiz-item" id="q9">
+  <span class="q-number">Q9</span>
+  <div class="q-text">아래 <code>when</code> 식에서 <code>else</code> 분기가 필요 없는 이유는?</div>
+  <pre><code><span class="kw">fun</span> <span class="fn">toMessage</span>(result: <span class="tp">ParseResult</span>): <span class="tp">String</span> = <span class="kw">when</span> (result) {
+    <span class="kw">is</span> ParseResult.Success -> <span class="str">"success"</span>
+    <span class="kw">is</span> ParseResult.Partial -> <span class="str">"partial"</span>
+    <span class="kw">is</span> ParseResult.Failure -> <span class="str">"failure"</span>
+}</code></pre>
+  <ul class="choices">
+    <li>A. Kotlin의 <code>when</code>에는 <code>else</code>가 없기 때문에</li>
+    <li>B. <code>ParseResult</code>가 <code>sealed</code>이므로 모든 하위 타입이 컴파일 시점에 알려져 있고, 세 가지를 전부 처리했으므로</li>
+    <li>C. <code>String</code> 반환 타입이기 때문에</li>
+    <li>D. <code>is</code> 키워드가 자동으로 나머지 케이스를 처리하기 때문에</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B</span>
+    <div class="explain">
+      <code>sealed interface</code>의 하위 타입은 같은 파일에서만 정의할 수 있으므로,
+      컴파일러가 모든 가능한 타입을 알고 있다. 세 가지를 전부 처리하면 <code>else</code>가 불필요하다.
+      <br><br>
+      이것을 <strong>exhaustive when</strong>이라 한다.
+      만약 나중에 <code>ParseResult.Timeout</code> 같은 새 타입을 추가하면,
+      이 <code>when</code>을 사용한 모든 곳에서 <strong>컴파일 에러</strong>가 발생한다.
+      즉, 새로운 케이스를 처리하지 않는 실수를 컴파일러가 잡아준다.
+      <br><br>
+      Python의 <code>match</code>-<code>case</code>에는 이런 컴파일 시점 보장이 없다. mypy 등 타입 체커가 있지만 강제성이 다르다.
+      <span class="tnear-tag">TNEAR: 타입 안전성은 대규모 서비스에서 새 기능 추가 시 회귀 버그를 방지하는 핵심.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q10 -->
+<div class="quiz-item" id="q10">
+  <span class="q-number">Q10</span>
+  <div class="q-text">PR 1의 <code>Mall</code> enum에서 <code>val displayName: String</code> 프로퍼티의 용도로 가장 적절한 것은?</div>
+  <pre><code><span class="kw">enum class</span> <span class="tp">Mall</span>(<span class="kw">val</span> displayName: <span class="tp">String</span>) {
+    COUPANG(<span class="str">"쿠팡"</span>),
+    ELEVENST(<span class="str">"11번가"</span>),
+    GENERIC(<span class="str">"기타"</span>),
+}</code></pre>
+  <ul class="choices">
+    <li>A. 데이터베이스 컬럼명으로 사용하기 위해</li>
+    <li>B. 코드에서는 <code>COUPANG</code>으로 타입 안전하게 다루고, 사용자에게 보여줄 때는 한글 이름을 쓰기 위해</li>
+    <li>C. Spring이 자동으로 <code>displayName</code>을 API 엔드포인트로 등록하므로</li>
+    <li>D. enum 항목의 정렬 순서를 결정하기 위해</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B</span>
+    <div class="explain">
+      enum 상수(<code>COUPANG</code>)는 코드 내부에서 타입 안전하게 비교/분기하는 데 쓰인다.
+      <code>displayName</code>은 사용자 인터페이스나 로그에서 읽기 쉬운 이름을 제공한다.
+      <br><br>
+      <code>"coupang"</code> 같은 raw string을 쓰면 오타가 컴파일 시점에 안 잡히고,
+      여러 곳에서 하드코딩된 문자열이 흩어져서 일괄 변경이 어렵다.
+      <br><br>
+      글로벌 서비스에서는 <code>displayName</code> 대신 i18n key를 넣어서 다국어 처리를 할 수도 있다.
+      예: <code>COUPANG("mall.coupang")</code> &rarr; 한국어면 "쿠팡", 영어면 "Coupang".
+      <span class="tnear-tag">TNEAR: 글로벌 앱에서 다국어 지원 설계를 물을 때, enum + i18n 조합을 설명할 수 있어야 한다.</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- =============================================================== -->
+<!-- SECTION 2: GRADLE & SPRING BOOT -->
+<!-- =============================================================== -->
+<h2 id="s2">Section 2: Gradle &amp; Spring Boot</h2>
+<div class="section-header">
+  <span class="count">8 Problems</span>
+  <div class="desc">
+    빌드 시스템, 어노테이션, DI, 설정 파일. TNEAR는 Spring 기반 시스템 구축/운영을 요구하므로,
+    Spring의 동작 원리를 개념적으로 설명할 수 있어야 한다.
+  </div>
+</div>
+
+<!-- Q11 -->
+<div class="quiz-item" id="q11">
+  <span class="q-number">Q11</span>
+  <div class="q-text"><code>./gradlew build</code>를 실행하면 내부적으로 일어나는 일의 순서로 올바른 것은?</div>
+  <ul class="choices">
+    <li>A. Kotlin 컴파일 &rarr; 의존성 다운로드 &rarr; 테스트 실행 &rarr; JAR 패키징</li>
+    <li>B. 의존성 해석/다운로드 &rarr; Kotlin 컴파일 &rarr; 테스트 실행 &rarr; JAR 패키징</li>
+    <li>C. JAR 패키징 &rarr; 테스트 실행 &rarr; Kotlin 컴파일 &rarr; 의존성 다운로드</li>
+    <li>D. 테스트 실행 &rarr; Kotlin 컴파일 &rarr; 의존성 해석 &rarr; JAR 패키징</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B</span>
+    <div class="explain">
+      Gradle build의 주요 단계:<br>
+      <strong>1. 의존성 해석/다운로드</strong> &mdash; <code>repositories { mavenCentral() }</code>에서 라이브러리를 받아온다<br>
+      <strong>2. compileKotlin</strong> &mdash; <code>src/main/kotlin</code>의 소스를 JVM 바이트코드로 컴파일<br>
+      <strong>3. processResources</strong> &mdash; <code>application.yml</code> 등 리소스를 복사<br>
+      <strong>4. compileTestKotlin</strong> &mdash; 테스트 코드 컴파일<br>
+      <strong>5. test</strong> &mdash; JUnit 테스트 실행<br>
+      <strong>6. jar/bootJar</strong> &mdash; 실행 가능한 JAR 파일 생성<br><br>
+      <code>./gradlew</code>는 Gradle Wrapper로, 프로젝트에 지정된 Gradle 버전을 자동으로 사용한다.
+      팀원 모두가 같은 빌드 환경을 보장받는다.
+      <br><br>
+      Python의 <code>pip install + pytest + packaging</code>을 하나의 명령어로 묶은 것과 비슷하다.
+      <span class="tnear-tag">TNEAR: CI/CD 파이프라인의 빌드 단계. "빌드가 뭘 하는지" 설명 못하면 운영이 어렵다.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q12 -->
+<div class="quiz-item" id="q12">
+  <span class="q-number">Q12</span>
+  <div class="q-text">PR 1의 <code>build.gradle.kts</code>에서 <code>dependencies</code> 블록의 역할로 올바른 것은?</div>
+  <pre><code><span class="fn">dependencies</span> {
+    <span class="fn">implementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-web"</span>)
+    <span class="fn">implementation</span>(<span class="str">"org.jsoup:jsoup:1.18.3"</span>)
+    <span class="fn">testImplementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-test"</span>)
+}</code></pre>
+  <ul class="choices">
+    <li>A. 프로젝트가 사용하는 외부 라이브러리를 선언하는 곳이다. <code>implementation</code>은 메인 코드용, <code>testImplementation</code>은 테스트 전용이다.</li>
+    <li>B. 프로젝트의 API 엔드포인트 목록을 정의하는 곳이다</li>
+    <li>C. 애플리케이션의 환경 변수를 설정하는 곳이다</li>
+    <li>D. Docker 이미지에 포함될 파일 목록을 정의하는 곳이다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      Python의 <code>requirements.txt</code>나 <code>pyproject.toml</code>의 <code>[dependencies]</code>와 같은 역할이다.
+      <br><br>
+      <strong>implementation</strong>: 메인 코드에서 사용하는 라이브러리. 최종 JAR에 포함된다.<br>
+      <strong>testImplementation</strong>: 테스트 코드에서만 사용. 프로덕션 빌드에는 포함되지 않는다.<br>
+      <strong>testRuntimeOnly</strong>: 테스트 실행 시에만 필요한 런타임 의존성.<br><br>
+      PR 1에서 <code>jsoup</code>은 HTML 파싱용(OG 태그), <code>caffeine</code>은 TTL 캐시용,
+      <code>springdoc-openapi</code>는 Swagger/OpenAPI 문서 자동 생성용이다.
+      <span class="tnear-tag">TNEAR: 의존성 관리는 빌드/배포/보안(CVE) 모두에 영향. 실무에서 매우 중요.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q13 -->
+<div class="quiz-item" id="q13">
+  <span class="q-number">Q13</span>
+  <div class="q-text">Spring Boot의 <code>@RestController</code>, <code>@Service</code>, <code>@Component</code>의 차이를 설명한 것 중 올바른 것은?</div>
+  <ul class="choices">
+    <li>A. 셋 다 Spring 컨테이너에 Bean으로 등록된다. <code>@RestController</code>는 HTTP 요청/응답을 처리하고, <code>@Service</code>는 비즈니스 로직 레이어를, <code>@Component</code>는 범용 Bean을 나타낸다.</li>
+    <li>B. <code>@RestController</code>만 Bean으로 등록되고, 나머지는 일반 클래스다</li>
+    <li>C. <code>@Service</code>는 DB 접근 전용, <code>@Component</code>는 캐시 전용이다</li>
+    <li>D. 세 어노테이션은 동일하며, 이름만 다른 alias이다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      기술적으로 셋 다 <code>@Component</code>의 특수화(specialization)이다. 셋 다 Spring IoC 컨테이너에 Bean으로 등록된다.
+      <br><br>
+      <strong>@RestController</strong> = <code>@Controller</code> + <code>@ResponseBody</code>.
+      메서드의 반환값이 자동으로 JSON으로 직렬화된다.
+      Django의 <code>APIView</code> (DRF)와 유사하다.<br>
+      <strong>@Service</strong> = 비즈니스 로직 계층을 의미론적으로 표시.
+      Django의 Service 클래스 패턴과 비슷하다.<br>
+      <strong>@Component</strong> = 위 어노테이션에 해당하지 않는 범용 Bean.
+      유틸리티, 설정 헬퍼 등에 사용한다.<br><br>
+      <strong>왜 구분하는가?</strong> 기능 차이도 있지만(예: AOP 적용 범위),
+      주된 이유는 코드의 <strong>의도 전달</strong>이다. "이 클래스는 어떤 역할인가"를 어노테이션만 보고 파악할 수 있다.
+      <span class="tnear-tag">TNEAR: 레이어별 어노테이션 선택은 아키텍처 이해도를 보는 지표.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q14 -->
+<div class="quiz-item" id="q14">
+  <span class="q-number q-essay">Q14 Essay</span>
+  <div class="q-text">Spring Boot의 DI(Dependency Injection, 의존성 주입)가 무엇인지, PR 1의 코드를 예시로 설명하시오.</div>
+  <p style="color: var(--dim); font-size: 0.9rem;">
+    힌트: <code>ProductParser</code> interface와 이를 사용할 Use Case 클래스의 관계를 생각해보세요.
+  </p>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">Model Answer</span>
+    <div class="explain">
+      <strong>DI란:</strong> 객체가 자신이 필요로 하는 의존성을 직접 생성하지 않고, 외부(Spring 컨테이너)에서 주입받는 패턴이다.
+      <br><br>
+      <strong>PR 1 예시:</strong><br>
+      <code>ProductParser</code>는 인터페이스이다. 나중에 <code>CoupangParser</code>, <code>OgParser</code> 등의 구현체가 만들어질 것이다.
+      Use Case 클래스는 이 인터페이스에만 의존한다:
+      <pre><code><span class="an">@Service</span>
+<span class="kw">class</span> <span class="tp">ProductParseUseCase</span>(
+    <span class="kw">private val</span> parsers: <span class="tp">List&lt;ProductParser&gt;</span>,  <span class="cm">// Spring이 알아서 주입</span>
+)</code></pre>
+      Spring은 <code>ProductParser</code> 인터페이스를 구현한 모든 Bean을 찾아서 <code>parsers</code> 리스트에 자동으로 넣어준다.
+      <br><br>
+      <strong>Django와 비교:</strong><br>
+      Django에서는 보통 <code>from myapp.services import SomeService</code>처럼 직접 import한다.
+      Spring DI는 "어떤 구현체를 쓸지"를 코드가 아닌 <strong>설정(Bean 등록)</strong>으로 결정한다.
+      <br><br>
+      <strong>장점:</strong><br>
+      1. 구현체를 바꿔도 호출하는 쪽 코드를 수정할 필요가 없다<br>
+      2. 테스트에서 Mock 객체를 쉽게 주입할 수 있다<br>
+      3. 인터페이스에만 의존하므로 모듈 간 결합도가 낮아진다
+      <span class="tnear-tag">TNEAR: "테스트하기 쉬운 코드를 어떻게 작성하는가?"의 기반. 면접 핵심 주제.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q15 -->
+<div class="quiz-item" id="q15">
+  <span class="q-number">Q15</span>
+  <div class="q-text">PR 1의 <code>application.yml</code>에서 아래 설정의 의미로 올바른 것은?</div>
+  <pre><code><span class="tp">spring</span>:
+  <span class="tp">jackson</span>:
+    <span class="tp">property-naming-strategy</span>: <span class="str">SNAKE_CASE</span>
+  <span class="tp">cache</span>:
+    <span class="tp">type</span>: <span class="str">caffeine</span>
+    <span class="tp">caffeine</span>:
+      <span class="tp">spec</span>: <span class="str">maximumSize=100,expireAfterWrite=300s</span></code></pre>
+  <ul class="choices">
+    <li>A. Jackson은 DB 컬럼명을 snake_case로 만들고, Caffeine은 API 요청 수를 100개로 제한한다</li>
+    <li>B. Jackson은 JSON 직렬화 시 필드명을 snake_case로 변환하고, Caffeine은 최대 100개 항목을 5분간 캐시한다</li>
+    <li>C. Jackson은 Kotlin 변수명을 snake_case로 강제하고, Caffeine은 로그 파일을 100개까지 보관한다</li>
+    <li>D. 둘 다 테스트 환경에서만 적용되는 설정이다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B</span>
+    <div class="explain">
+      <strong>Jackson SNAKE_CASE:</strong> Kotlin에서는 <code>imageUrl</code>(camelCase)로 작성하지만,
+      JSON 응답은 <code>image_url</code>(snake_case)로 변환된다. 이 설정이 없으면 <code>imageUrl</code>로 내려간다.
+      <br><br>
+      <strong>왜 snake_case?</strong> Python, Ruby 등 snake_case를 사용하는 클라이언트/프론트엔드와의 호환성,
+      그리고 HTTP API의 관례(JSON은 보통 snake_case)를 따르기 위해서다. PR 1의 TypeScript 타입 정의에서도
+      <code>image_url</code>, <code>source_url</code>로 되어 있다.
+      <br><br>
+      <strong>Caffeine:</strong> <code>maximumSize=100</code>은 최대 100개 엔트리,
+      <code>expireAfterWrite=300s</code>는 캐시 후 5분 뒤 만료를 의미한다.
+      인메모리 캐시로, Redis 같은 외부 저장소 없이도 빠른 캐싱이 가능하다.
+      <span class="tnear-tag">TNEAR: API 응답 포맷 통일은 글로벌 서비스에서 필수. 캐시 설정은 성능/운영의 기본.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q16 -->
+<div class="quiz-item" id="q16">
+  <span class="q-number">Q16</span>
+  <div class="q-text"><code>@SpringBootApplication</code> 어노테이션이 하는 일로 올바른 것은?</div>
+  <pre><code><span class="an">@SpringBootApplication</span>
+<span class="kw">class</span> <span class="tp">LinkcartBackendApplication</span>
+
+<span class="kw">fun</span> <span class="fn">main</span>(args: <span class="tp">Array&lt;String&gt;</span>) {
+    <span class="fn">runApplication</span>&lt;<span class="tp">LinkcartBackendApplication</span>&gt;(*args)
+}</code></pre>
+  <ul class="choices">
+    <li>A. 이 클래스가 HTTP 요청을 직접 처리하도록 만든다</li>
+    <li>B. <code>@Configuration</code> + <code>@EnableAutoConfiguration</code> + <code>@ComponentScan</code>의 조합으로, Spring 컨텍스트를 자동 설정하고 Bean을 스캔한다</li>
+    <li>C. 이 클래스만 테스트 대상으로 지정한다</li>
+    <li>D. Gradle 빌드 플러그인을 활성화한다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B</span>
+    <div class="explain">
+      <code>@SpringBootApplication</code>은 세 어노테이션을 합친 메타 어노테이션이다:
+      <br><br>
+      <strong>@Configuration</strong> &mdash; 이 클래스가 Bean 설정의 소스임을 표시<br>
+      <strong>@EnableAutoConfiguration</strong> &mdash; classpath의 라이브러리를 기반으로 자동 설정 (예: spring-boot-starter-web이 있으면 내장 Tomcat 자동 구성)<br>
+      <strong>@ComponentScan</strong> &mdash; 이 패키지와 하위 패키지에서 <code>@Component</code>, <code>@Service</code>, <code>@Controller</code> 등을 찾아 Bean으로 등록<br><br>
+      Django의 <code>settings.py</code> + <code>INSTALLED_APPS</code> + <code>manage.py runserver</code>의 역할을 하나의 어노테이션이 담당하는 셈이다.
+      <code>runApplication<...>(*args)</code>는 내장 서버(Tomcat)를 띄우고 애플리케이션을 시작한다.
+      <span class="tnear-tag">TNEAR: Spring Boot의 자동 설정 원리를 이해하면 운영 시 디버깅과 커스터마이징이 수월해진다.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q17 -->
+<div class="quiz-item" id="q17">
+  <span class="q-number q-code">Q17 Code</span>
+  <div class="q-text">PR 1의 <code>WebConfig.kt</code>에서 CORS를 설정하는 이유와, 운영 환경에서 수정해야 할 부분을 고르시오.</div>
+  <pre><code><span class="an">@Configuration</span>
+<span class="kw">class</span> <span class="tp">WebConfig</span> : <span class="tp">WebMvcConfigurer</span> {
+    <span class="kw">override fun</span> <span class="fn">addCorsMappings</span>(registry: <span class="tp">CorsRegistry</span>) {
+        registry.<span class="fn">addMapping</span>(<span class="str">"/**"</span>)
+            .<span class="fn">allowedOrigins</span>(<span class="str">"http://localhost:3000"</span>)
+            .<span class="fn">allowedMethods</span>(<span class="str">"GET"</span>, <span class="str">"POST"</span>, <span class="str">"OPTIONS"</span>)
+    }
+}</code></pre>
+  <ul class="choices">
+    <li>A. CORS는 다른 Origin에서의 HTTP 요청을 허용하기 위한 설정이다. 운영 시 <code>localhost:3000</code>을 실제 도메인으로, <code>/**</code>을 필요한 경로만으로 제한해야 한다.</li>
+    <li>B. CORS는 캐시 설정이며, 운영에서는 삭제해도 된다</li>
+    <li>C. CORS는 인증 설정이며, 운영 시 HTTPS로 바꾸면 자동 해결된다</li>
+    <li>D. CORS는 개발 환경에서만 필요하고 배포하면 의미가 없다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      <strong>CORS(Cross-Origin Resource Sharing)</strong>: 브라우저의 보안 정책(Same-Origin Policy) 때문에,
+      프론트엔드(<code>localhost:3000</code>)가 백엔드(<code>localhost:8080</code>)에 요청하려면 서버가 명시적으로 허용해야 한다.
+      <br><br>
+      <strong>운영 시 수정 포인트:</strong><br>
+      1. <code>allowedOrigins</code>를 실제 도메인(예: <code>https://linkcart.app</code>)으로 변경<br>
+      2. <code>/**</code>를 API 경로(예: <code>/api/**</code>)로 제한<br>
+      3. 필요한 메서드만 허용 (PUT, DELETE 등 추가 여부 판단)<br>
+      4. <code>allowCredentials(true)</code>를 쓸 경우 <code>*</code> Origin은 사용 불가<br><br>
+      <strong>모바일 앱에서는?</strong> 네이티브 앱은 브라우저가 아니므로 CORS가 적용되지 않는다.
+      하지만 WebView를 쓰는 하이브리드 앱이면 CORS가 다시 필요하다.
+      <span class="tnear-tag">TNEAR: 모바일 + 웹 동시 지원 시 CORS 전략은 필수 고려사항.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q18 -->
+<div class="quiz-item" id="q18">
+  <span class="q-number">Q18</span>
+  <div class="q-text">PR 1의 <code>build.gradle.kts</code> 상단 <code>plugins</code> 블록에서 각 플러그인의 역할을 설명한 것 중 올바른 것은?</div>
+  <pre><code><span class="fn">plugins</span> {
+    <span class="fn">kotlin</span>(<span class="str">"jvm"</span>) version <span class="str">"1.9.25"</span>
+    <span class="fn">kotlin</span>(<span class="str">"plugin.spring"</span>) version <span class="str">"1.9.25"</span>
+    <span class="fn">id</span>(<span class="str">"org.springframework.boot"</span>) version <span class="str">"3.5.3"</span>
+    <span class="fn">id</span>(<span class="str">"io.spring.dependency-management"</span>) version <span class="str">"1.1.7"</span>
+}</code></pre>
+  <ul class="choices">
+    <li>A. <code>kotlin("jvm")</code>은 JVM용 Kotlin 컴파일, <code>kotlin("plugin.spring")</code>은 Spring이 필요로 하는 <code>open</code> 처리 자동화, <code>spring-boot</code>는 실행 가능한 JAR 생성, <code>dependency-management</code>는 Spring BOM으로 버전 통합 관리</li>
+    <li>B. 네 플러그인 모두 테스트 프레임워크를 설정하는 역할이다</li>
+    <li>C. <code>kotlin("jvm")</code>만 필수이고 나머지는 선택사항이다</li>
+    <li>D. 플러그인 순서는 중요하지 않으며 아무 순서로 배치해도 된다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      <strong>kotlin("jvm")</strong>: Kotlin 소스를 JVM 바이트코드로 컴파일한다. Python의 인터프리터에 해당.<br>
+      <strong>kotlin("plugin.spring")</strong>: Kotlin은 기본적으로 모든 클래스가 <code>final</code>이다. 하지만 Spring은 프록시 패턴으로 Bean을 감싸야 하므로 클래스가 <code>open</code>이어야 한다. 이 플러그인이 <code>@Configuration</code>, <code>@Service</code> 등이 붙은 클래스를 자동으로 <code>open</code>으로 만든다.<br>
+      <strong>spring-boot</strong>: <code>bootJar</code> 태스크를 추가하여 의존성을 모두 포함한 실행 가능 JAR(fat JAR)을 생성한다.<br>
+      <strong>dependency-management</strong>: Spring BOM(Bill of Materials)을 적용하여, Spring 관련 라이브러리의 버전을 일일이 명시하지 않아도 호환되는 버전을 자동으로 맞춰준다.<br><br>
+      이 4개는 Kotlin + Spring Boot 프로젝트의 표준 구성이다.
+      <span class="tnear-tag">TNEAR: 빌드 설정을 이해해야 CI/CD 파이프라인을 구성하고 디버깅할 수 있다.</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- =============================================================== -->
+<!-- SECTION 3: ARCHITECTURE -->
+<!-- =============================================================== -->
+<h2 id="s3">Section 3: Architecture</h2>
+<div class="section-header">
+  <span class="count">8 Problems</span>
+  <div class="desc">
+    클린 아키텍처, 헥사고날, DDD, CQS, 의존성 방향 판별.
+    TNEAR는 확장성 있는 웹 아키텍처를 요구한다. 레이어를 나누는 "이유"를 설명할 수 있어야 한다.
+  </div>
+</div>
+
+<!-- Q19 -->
+<div class="quiz-item" id="q19">
+  <span class="q-number">Q19</span>
+  <div class="q-text">클린 아키텍처에서 "의존성 규칙(Dependency Rule)"이란 무엇인가?</div>
+  <ul class="choices">
+    <li>A. 모든 레이어가 서로 자유롭게 의존할 수 있다</li>
+    <li>B. 외부(Infrastructure, Presentation)에서 내부(Domain)로만 의존해야 한다. Domain은 바깥 레이어를 알면 안 된다.</li>
+    <li>C. Domain이 Infrastructure에 의존하고, Infrastructure가 Presentation에 의존한다</li>
+    <li>D. 의존성 방향은 중요하지 않으며 편의에 따라 정한다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B</span>
+    <div class="explain">
+      클린 아키텍처의 핵심 원칙: <strong>"소스 코드 의존성은 항상 안쪽을 향해야 한다."</strong>
+      <br><br>
+      PR 1의 4레이어 구조로 보면:<br>
+      <strong>Domain</strong> (가장 안쪽) &larr; <strong>Application</strong> &larr; <strong>Infrastructure</strong> / <strong>Presentation</strong> (가장 바깥)<br><br>
+      <strong>Domain</strong>은 아무것도 import하지 않는다 (<code>Product.kt</code>, <code>Money.kt</code>, <code>Mall.kt</code>는 Spring이나 외부 라이브러리 import가 없다).<br>
+      <strong>Application</strong>은 Domain만 import한다 (<code>ParseResult.kt</code>는 <code>domain.entity.Product</code>를 import한다).<br>
+      <strong>Infrastructure/Presentation</strong>은 Application과 Domain을 import한다.<br><br>
+      이 규칙 덕분에 DB를 바꾸거나 웹 프레임워크를 바꿔도, Domain과 Application 레이어는 영향을 받지 않는다.
+      <span class="tnear-tag">TNEAR: "확장성 있는 웹 아키텍처"의 근간. 가장 중요한 아키텍처 원칙.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q20 -->
+<div class="quiz-item" id="q20">
+  <span class="q-number">Q20</span>
+  <div class="q-text">헥사고날 아키텍처에서 Port와 Adapter의 역할을 PR 1 코드로 설명한 것 중 올바른 것은?</div>
+  <pre><code><span class="cm">// application/port/ProductParser.kt</span>
+<span class="kw">interface</span> <span class="tp">ProductParser</span> {
+    <span class="kw">fun</span> <span class="fn">canParse</span>(url: <span class="tp">String</span>): <span class="tp">Boolean</span>
+    <span class="kw">fun</span> <span class="fn">parse</span>(url: <span class="tp">String</span>): <span class="tp">ParseResult</span>
+}
+
+<span class="cm">// application/port/ProductRepository.kt</span>
+<span class="kw">interface</span> <span class="tp">ProductRepository</span> {
+    <span class="kw">fun</span> <span class="fn">save</span>(product: <span class="tp">Product</span>)
+    <span class="kw">fun</span> <span class="fn">findByUrl</span>(url: <span class="tp">String</span>): <span class="tp">Product?</span>
+}</code></pre>
+  <ul class="choices">
+    <li>A. Port는 "무엇을 할 수 있는가"를 정의하는 인터페이스이고, Adapter는 그 인터페이스의 실제 구현체다. <code>ProductParser</code>와 <code>ProductRepository</code>는 Port이고, 이후에 만들 <code>JsoupParser</code>, <code>JpaProductRepository</code> 등이 Adapter다.</li>
+    <li>B. Port는 Infrastructure에 있고, Adapter는 Domain에 있다</li>
+    <li>C. Port와 Adapter는 같은 것의 다른 이름이다</li>
+    <li>D. Port는 Controller를 의미하고, Adapter는 Service를 의미한다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      <strong>Port (인터페이스)</strong>: Application 레이어에 위치. "외부 세계와 어떻게 소통할 것인가"의 <strong>계약</strong>만 정의한다.
+      구현 방법은 모른다. PR 1의 <code>ProductParser</code>, <code>ProductRepository</code>가 Port이다.
+      <br><br>
+      <strong>Adapter (구현체)</strong>: Infrastructure 레이어에 위치. Port의 실제 구현이다.
+      예를 들어:
+      <br>&bull; <code>JsoupParser implements ProductParser</code> &mdash; Jsoup 라이브러리로 OG 태그 파싱<br>
+      &bull; <code>CoupangApiClient implements ProductParser</code> &mdash; 쿠팡 API 호출<br>
+      &bull; <code>JpaProductRepository implements ProductRepository</code> &mdash; JPA로 DB 접근<br><br>
+      <strong>Django로 비유하면:</strong> Django ORM은 Port와 Adapter가 합쳐져 있다.
+      <code>Product.objects.filter(...)</code>라고 쓰면 이미 "어떤 DB를 쓰는지"까지 결정된 것이다.
+      헥사고날에서는 이를 분리하여, "저장한다"는 계약과 "MySQL로 저장한다"를 별도 레이어에 둔다.
+      <span class="tnear-tag">TNEAR: 외부 시스템(DB, API, 캐시) 교체가 잦은 서비스에서 핵심 패턴.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q21 -->
+<div class="quiz-item" id="q21">
+  <span class="q-number">Q21</span>
+  <div class="q-text">DDD에서 Entity와 Value Object의 차이를 PR 1 코드로 설명한 것 중 올바른 것은?</div>
+  <ul class="choices">
+    <li>A. <code>Product</code>는 Entity (고유 식별자로 구별), <code>Money</code>와 <code>Mall</code>은 Value Object (값 자체로 동등성 판단)</li>
+    <li>B. <code>Product</code>와 <code>Money</code> 모두 Entity이다</li>
+    <li>C. Value Object는 반드시 불변이어야 하고, Entity는 반드시 변경 가능해야 한다</li>
+    <li>D. Entity와 Value Object는 같으며, 패키지 위치만 다르다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      <strong>Entity</strong>: 고유한 식별자(ID)로 구별되는 객체. 같은 속성이라도 ID가 다르면 다른 객체다.
+      <code>Product</code>는 나중에 <code>id</code> 필드가 추가될 것이다. "이름과 가격이 같은 두 상품"도 서로 다른 상품이 될 수 있다.
+      패키지: <code>domain/entity/</code>
+      <br><br>
+      <strong>Value Object</strong>: 값 자체로 동등성을 판단하는 객체. 식별자가 없다.
+      <code>Money(10000, "KRW")</code>와 <code>Money(10000, "KRW")</code>는 완전히 같은 것이다.
+      <code>Mall.COUPANG</code>은 항상 같은 의미이다.
+      패키지: <code>domain/vo/</code>
+      <br><br>
+      <strong>PR 1의 패키지 구조가 이를 반영한다:</strong><br>
+      <code>domain/entity/Product.kt</code> &mdash; Entity<br>
+      <code>domain/vo/Money.kt</code>, <code>domain/vo/Mall.kt</code> &mdash; Value Object<br><br>
+      C는 부분적으로 맞지만 "반드시"라는 표현이 과하다. Entity도 불변으로 설계할 수 있다 (현재 PR 1의 Product는 모든 필드가 val이다).
+      <span class="tnear-tag">TNEAR: DDD 용어는 면접에서 정확하게 쓸 수 있어야 한다. "왜 나눴는가"가 핵심.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q22 -->
+<div class="quiz-item" id="q22">
+  <span class="q-number">Q22</span>
+  <div class="q-text">CQS(Command-Query Separation) 패턴에서 Command와 Query의 차이는?</div>
+  <pre><code><span class="cm">// 이 메서드는 Command일까, Query일까?</span>
+<span class="kw">fun</span> <span class="fn">save</span>(product: <span class="tp">Product</span>)              <span class="cm">// (1)</span>
+<span class="kw">fun</span> <span class="fn">findByUrl</span>(url: <span class="tp">String</span>): <span class="tp">Product?</span>   <span class="cm">// (2)</span></code></pre>
+  <ul class="choices">
+    <li>A. Command는 상태를 변경하고 값을 반환하지 않는다. Query는 상태를 변경하지 않고 값을 반환한다. (1)은 Command, (2)는 Query.</li>
+    <li>B. Command는 읽기 전용, Query는 쓰기 전용이다</li>
+    <li>C. Command와 Query는 같은 메서드에서 동시에 수행해야 한다</li>
+    <li>D. CQS는 데이터베이스 전용 개념이고 API에는 적용되지 않는다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      <strong>Command</strong>: 시스템의 상태를 변경한다. 반환값이 없거나 성공/실패만 반환한다.
+      <code>save(product)</code>는 DB에 저장하므로 Command이다.
+      <br><br>
+      <strong>Query</strong>: 시스템의 상태를 변경하지 않고, 데이터를 조회만 한다.
+      <code>findByUrl(url)</code>은 DB를 읽기만 하고 변경하지 않으므로 Query이다.
+      <br><br>
+      <strong>CQS 원칙:</strong> "질문을 한다고 답이 바뀌면 안 된다." 즉, Query가 상태를 변경하면 안 된다.
+      이 원칙을 따르면 코드의 예측 가능성이 높아진다.
+      <br><br>
+      <strong>CQRS</strong>는 CQS를 아키텍처 레벨로 확장한 것으로, Command와 Query를 아예 다른 모델/DB로 분리한다.
+      대규모 서비스에서는 읽기 부하와 쓰기 부하가 다르므로 CQRS가 유용하다.
+      <span class="tnear-tag">TNEAR: 대규모 트래픽에서 읽기/쓰기 분리는 확장성의 핵심. CQRS까지 설명하면 가산점.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q23 -->
+<div class="quiz-item" id="q23">
+  <span class="q-number q-code">Q23 Code</span>
+  <div class="q-text">아래 import 문이 클린 아키텍처의 의존성 규칙에 <strong>위반되는지</strong> 판별하시오.</div>
+  <pre><code><span class="cm">// 파일: domain/entity/Product.kt</span>
+<span class="kw">import</span> com.linkcart.infrastructure.config.WebConfig  <span class="cm">// (1)</span>
+
+<span class="cm">// 파일: application/dto/ParseResult.kt</span>
+<span class="kw">import</span> com.linkcart.domain.entity.Product             <span class="cm">// (2)</span>
+
+<span class="cm">// 파일: presentation/api/HealthController.kt</span>
+<span class="kw">import</span> org.springframework.web.bind.annotation.*      <span class="cm">// (3)</span>
+
+<span class="cm">// 파일: domain/vo/Money.kt</span>
+<span class="kw">import</span> com.linkcart.application.dto.ParseResult        <span class="cm">// (4)</span></code></pre>
+  <ul class="choices">
+    <li>A. (1)만 위반</li>
+    <li>B. (1)과 (4) 위반</li>
+    <li>C. (2)와 (3) 위반</li>
+    <li>D. 모두 합법</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B &mdash; (1)과 (4) 위반</span>
+    <div class="explain">
+      의존성 규칙: <strong>안쪽 레이어는 바깥 레이어를 알면 안 된다.</strong>
+      <br><br>
+      <strong>(1) 위반</strong>: Domain(<code>Product.kt</code>)이 Infrastructure(<code>WebConfig</code>)를 import.
+      가장 안쪽이 가장 바깥을 아는 것은 심각한 위반이다.<br><br>
+      <strong>(2) 합법</strong>: Application(<code>ParseResult.kt</code>)이 Domain(<code>Product</code>)을 import.
+      바깥에서 안쪽으로의 의존이므로 OK.<br><br>
+      <strong>(3) 합법</strong>: Presentation(<code>HealthController</code>)이 Spring 프레임워크를 사용.
+      Presentation은 가장 바깥 레이어이므로 프레임워크 의존이 허용된다.<br><br>
+      <strong>(4) 위반</strong>: Domain(<code>Money.kt</code>)이 Application(<code>ParseResult</code>)을 import.
+      Domain은 Application보다 안쪽이므로 Application을 알면 안 된다.
+      <span class="tnear-tag">TNEAR: 코드 리뷰에서 의존성 방향 위반을 잡아내는 능력은 시니어 역량.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q24 -->
+<div class="quiz-item" id="q24">
+  <span class="q-number q-code">Q24 Code</span>
+  <div class="q-text">아래 코드가 클린 아키텍처에서 <strong>문제가 되는</strong> 이유를 고르시오.</div>
+  <pre><code><span class="cm">// domain/entity/Product.kt에 이렇게 작성했다면?</span>
+<span class="kw">package</span> com.linkcart.domain.entity
+
+<span class="kw">import</span> jakarta.persistence.Entity      <span class="cm">// JPA 어노테이션</span>
+<span class="kw">import</span> jakarta.persistence.Id
+<span class="kw">import</span> jakarta.persistence.GeneratedValue
+
+<span class="an">@Entity</span>
+<span class="kw">data class</span> <span class="tp">Product</span>(
+    <span class="an">@Id</span> <span class="an">@GeneratedValue</span>
+    <span class="kw">val</span> id: <span class="tp">Long</span> = <span class="num">0</span>,
+    <span class="kw">val</span> name: <span class="tp">String</span>,
+    <span class="cm">// ...</span>
+)</code></pre>
+  <ul class="choices">
+    <li>A. 문제 없다. JPA Entity와 Domain Entity는 같은 것이다.</li>
+    <li>B. Domain 레이어가 JPA(Infrastructure 기술)에 의존하게 된다. DB를 JPA가 아닌 다른 것으로 바꾸면 Domain 코드까지 수정해야 한다.</li>
+    <li>C. <code>data class</code>에는 <code>@Entity</code>를 붙일 수 없어서 컴파일 에러가 발생한다.</li>
+    <li>D. <code>@Id</code>는 Spring Security 전용 어노테이션이므로 맥락이 맞지 않는다.</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">B</span>
+    <div class="explain">
+      Domain 레이어에 <code>jakarta.persistence</code> import가 들어오면, Domain이 JPA라는 특정 기술에 결합된다.
+      <br><br>
+      <strong>현재 PR 1의 Product.kt에는 JPA 어노테이션이 없다.</strong>
+      순수한 Kotlin <code>data class</code>만 있다. 이것이 의도적인 설계이다.
+      <br><br>
+      <strong>올바른 구조:</strong><br>
+      &bull; <code>domain/entity/Product.kt</code> &mdash; 순수 도메인 모델 (JPA 의존 없음)<br>
+      &bull; <code>infrastructure/persistence/ProductJpaEntity.kt</code> &mdash; JPA용 엔티티 (매핑 전용)<br>
+      &bull; <code>infrastructure/persistence/ProductJpaRepository.kt</code> &mdash; JPA Repository 구현체<br><br>
+      이렇게 하면 DB를 MongoDB로 바꿔도 Domain은 그대로이고, Infrastructure만 바뀐다.
+      Django에서는 <code>models.Model</code>이 Domain과 DB가 합쳐져 있어서, DB 변경 시 모델 전체를 수정해야 하는 것과 대조된다.
+      <span class="tnear-tag">TNEAR: "DB를 바꿀 때 영향받는 레이어는?" 면접 질문의 정답이 바로 이 구조.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q25 -->
+<div class="quiz-item" id="q25">
+  <span class="q-number q-essay">Q25 Essay</span>
+  <div class="q-text">의존성 역전(Dependency Inversion)이 왜 필요한지, PR 1의 <code>ProductRepository</code> 인터페이스를 예시로 설명하시오.</div>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">Model Answer</span>
+    <div class="explain">
+      <strong>의존성 역전 원칙(DIP):</strong> "고수준 모듈(비즈니스 로직)이 저수준 모듈(DB, 외부 API)에 직접 의존하지 말고,
+      추상(인터페이스)에 의존해야 한다."
+      <br><br>
+      <strong>PR 1 예시:</strong><br>
+      <code>ProductRepository</code> 인터페이스는 Application 레이어에 있다.
+      Application의 Use Case는 이 인터페이스에만 의존한다:
+      <pre><code><span class="cm">// Application 레이어 (고수준)</span>
+<span class="kw">class</span> <span class="tp">ProductParseUseCase</span>(
+    <span class="kw">private val</span> repository: <span class="tp">ProductRepository</span>  <span class="cm">// 인터페이스에 의존</span>
+)</code></pre>
+      구현체는 Infrastructure에 위치한다:
+      <pre><code><span class="cm">// Infrastructure 레이어 (저수준)</span>
+<span class="kw">class</span> <span class="tp">JpaProductRepository</span> : <span class="tp">ProductRepository</span> {
+    <span class="kw">override fun</span> <span class="fn">save</span>(product: <span class="tp">Product</span>) { <span class="cm">/* JPA 사용 */</span> }
+    <span class="kw">override fun</span> <span class="fn">findByUrl</span>(url: <span class="tp">String</span>): <span class="tp">Product?</span> { <span class="cm">/* ... */</span> }
+}</code></pre>
+      <strong>왜 필요한가?</strong><br>
+      1. <strong>테스트:</strong> 테스트에서는 <code>InMemoryProductRepository</code>를 주입하면 DB 없이도 테스트 가능<br>
+      2. <strong>교체:</strong> JPA에서 MongoDB로 바꿔도 Use Case 코드는 수정 없음<br>
+      3. <strong>병렬 개발:</strong> 인터페이스만 합의하면 Use Case 개발과 Repository 구현을 동시에 진행 가능<br><br>
+      Django에서 <code>Product.objects.filter(...)</code>를 직접 호출하는 것은 의존성 역전이 없는 상태다.
+      DB를 바꾸려면 그 코드를 전부 찾아서 수정해야 한다.
+      <span class="tnear-tag">TNEAR: DI + DIP 조합은 "테스트하기 쉬운 코드"의 기반. 면접에서 반드시 나온다.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q26 -->
+<div class="quiz-item" id="q26">
+  <span class="q-number">Q26</span>
+  <div class="q-text">아래 요소들을 올바른 레이어에 배치한 것을 고르시오.</div>
+  <p style="color: var(--dim); font-size: 0.9rem;">
+    요소: <code>OgParser</code>(HTML에서 OG 태그 파싱), <code>ProductParseUseCase</code>(파싱 비즈니스 로직 조합),
+    <code>ParseController</code>(HTTP 요청 처리), <code>Category</code>(상품 카테고리 값 객체)
+  </p>
+  <ul class="choices">
+    <li>A. Domain: <code>Category</code> / Application: <code>ProductParseUseCase</code> / Infrastructure: <code>OgParser</code> / Presentation: <code>ParseController</code></li>
+    <li>B. Domain: <code>OgParser</code> / Application: <code>ParseController</code> / Infrastructure: <code>ProductParseUseCase</code> / Presentation: <code>Category</code></li>
+    <li>C. Domain: <code>Category</code>, <code>OgParser</code> / Application: <code>ProductParseUseCase</code>, <code>ParseController</code></li>
+    <li>D. 모두 Application에 넣으면 된다</li>
+  </ul>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">A</span>
+    <div class="explain">
+      <strong>Domain:</strong> <code>Category</code> &mdash; 비즈니스 개념을 표현하는 Value Object. 외부 의존 없음.<br>
+      <strong>Application:</strong> <code>ProductParseUseCase</code> &mdash; "어떤 파서를 선택하고, 결과를 어떻게 조합할지"의 비즈니스 흐름을 조율(orchestrate)한다. 직접 파싱하지는 않는다.<br>
+      <strong>Infrastructure:</strong> <code>OgParser</code> &mdash; Jsoup 라이브러리를 사용하여 실제 HTML을 파싱한다. <code>ProductParser</code> 인터페이스(Port)의 구현체(Adapter)이다.<br>
+      <strong>Presentation:</strong> <code>ParseController</code> &mdash; HTTP 요청을 받아 Use Case를 호출하고, 결과를 JSON으로 반환한다.<br><br>
+      <strong>핵심 구분 기준:</strong><br>
+      &bull; "이게 없어도 비즈니스 로직이 돌아가는가?" &rarr; 돌아가면 Infrastructure 또는 Presentation<br>
+      &bull; "비즈니스 규칙 그 자체인가?" &rarr; 맞으면 Domain<br>
+      &bull; "여러 요소를 조합하여 시나리오를 실행하는가?" &rarr; 맞으면 Application
+      <span class="tnear-tag">TNEAR: 새 기능을 어디에 넣을지 즉시 판단할 수 있어야 팀에서 일할 수 있다.</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- =============================================================== -->
+<!-- SECTION 4: INTERVIEW SIMULATION -->
+<!-- =============================================================== -->
+<h2 id="s4">Section 4: Interview Simulation</h2>
+<div class="section-header">
+  <span class="count">6 Problems</span>
+  <div class="desc">
+    TNEAR 면접관이 실제로 물을 수 있는 질문들. 서술형으로 소리 내서 연습하자.
+    각 질문에는 "모범 답변의 핵심 포인트"가 포함되어 있다.
+  </div>
+</div>
+
+<!-- Q27 -->
+<div class="quiz-item" id="q27">
+  <span class="q-number q-interview">Q27 Interview</span>
+  <div class="q-text">"Kotlin의 null safety가 Java와 어떻게 다른가요? 실제로 어떤 이점이 있나요?"</div>
+  <p style="color: var(--dim); font-size: 0.9rem;">4-6 sentence answer. PR 1의 코드를 예시로 사용하세요.</p>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">Key Points</span>
+    <div class="explain">
+      <strong>1. 타입 시스템 레벨 구분:</strong>
+      Java에서는 모든 참조 타입이 null이 될 수 있다. <code>String name = null;</code>이 합법이다.
+      Kotlin은 <code>String</code>(non-null)과 <code>String?</code>(nullable)을 타입 시스템에서 구분한다.
+      <code>val name: String = null</code>은 컴파일 에러다.
+      <br><br>
+      <strong>2. 컴파일 시점 방지:</strong>
+      Java에서는 NPE가 런타임에 터진다. 프로덕션에서 발견되면 장애다.
+      Kotlin은 nullable 타입에 안전하지 않은 접근을 컴파일 시점에 잡는다.
+      <br><br>
+      <strong>3. PR 1 예시:</strong>
+      <code>ProductRepository.findByUrl(url: String): Product?</code>에서 반환 타입이 <code>Product?</code>다.
+      호출하는 쪽은 반드시 null 체크를 해야 한다. <code>?.</code>, <code>?:</code>, <code>let</code> 등의 안전한 연산자를 강제한다.
+      <br><br>
+      <strong>4. 운영 이점:</strong>
+      24/7 운영되는 글로벌 서비스에서 NPE로 인한 장애는 치명적이다.
+      Kotlin의 null safety는 이런 유형의 장애를 구조적으로 줄여준다.
+      Java에서는 <code>@Nullable</code>, <code>Optional</code> 등으로 부분적으로 대응하지만 강제성이 없다.
+      <span class="tnear-tag">TNEAR: "24시간 365일 장애 없는 환경"을 언어 레벨에서 지원하는 사례로 연결.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q28 -->
+<div class="quiz-item" id="q28">
+  <span class="q-number q-interview">Q28 Interview</span>
+  <div class="q-text">"클린 아키텍처에서 데이터베이스를 MySQL에서 MongoDB로 바꿀 때, 영향받는 레이어는 어디인가요?"</div>
+  <p style="color: var(--dim); font-size: 0.9rem;">PR 1의 레이어 구조를 기반으로 답변하세요.</p>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">Key Points</span>
+    <div class="explain">
+      <strong>영향받는 레이어: Infrastructure만.</strong>
+      <br><br>
+      PR 1의 구조에서:<br>
+      &bull; <strong>Domain</strong> (<code>Product.kt</code>, <code>Money.kt</code>, <code>Mall.kt</code>): 변경 없음. DB가 뭔지 모른다.<br>
+      &bull; <strong>Application</strong> (<code>ParseResult.kt</code>, <code>ProductRepository</code> 인터페이스): 변경 없음.
+      <code>save()</code>, <code>findByUrl()</code>이라는 계약은 DB 종류와 무관하다.<br>
+      &bull; <strong>Infrastructure</strong>: <code>JpaProductRepository</code> 구현체를 <code>MongoProductRepository</code>로 교체한다.
+      이 레이어만 변경된다.<br>
+      &bull; <strong>Presentation</strong> (<code>HealthController.kt</code>): 변경 없음. HTTP 처리는 DB와 무관하다.<br><br>
+      <strong>이것이 가능한 이유:</strong> Application 레이어의 <code>ProductRepository</code>가 인터페이스(Port)이기 때문이다.
+      Use Case는 "저장한다"는 계약에만 의존하고, "JPA로 저장한다"는 구현에 의존하지 않는다.
+      <br><br>
+      <strong>Django와 비교:</strong> Django에서는 <code>models.Model</code>이 ORM에 결합되어 있어서,
+      DB를 바꾸면 모델 정의, 쿼리셋, 마이그레이션 전반에 영향이 간다.
+      <span class="tnear-tag">TNEAR: "확장성 있는 아키텍처"를 코드 레벨에서 증명할 수 있는 핵심 답변.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q29 -->
+<div class="quiz-item" id="q29">
+  <span class="q-number q-interview">Q29 Interview</span>
+  <div class="q-text">"외부 API 호출 시 fail-fast를 어떻게 구현하시나요? 실무 경험이 있으시면 설명해주세요."</div>
+  <p style="color: var(--dim); font-size: 0.9rem;">이전 경력(외부 결제 API 지연 개선)과 LinkCart를 연결하세요.</p>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">Key Points</span>
+    <div class="explain">
+      <strong>1. 실무 경험 연결 (Buzzvil):</strong>
+      "외부 결제 API의 응답 지연이 내부 서비스까지 전파되어 전체 요청 처리 시간이 증가하는 문제가 있었습니다.
+      타임아웃을 설정하고, 일정 횟수 이상 실패하면 빠르게 실패를 반환하는 패턴을 적용하여
+      전체 시스템의 응답성을 보호했습니다."
+      <br><br>
+      <strong>2. LinkCart 설계:</strong><br>
+      <code>ParseResult.kt</code>의 <code>Failure</code> 케이스가 fail-fast의 결과 표현이다:
+      <pre><code><span class="kw">data class</span> <span class="tp">Failure</span>(
+    <span class="kw">val</span> reason: <span class="tp">String</span>,       <span class="cm">// "timeout", "connection_refused" 등</span>
+    <span class="kw">val</span> parserUsed: <span class="tp">String</span>,  <span class="cm">// 어떤 파서에서 실패했는지</span>
+)</code></pre>
+      <strong>3. 구체적 구현 전략:</strong><br>
+      &bull; <strong>Timeout</strong>: OkHttp/RestTemplate에 connect/read timeout 설정 (예: 3초)<br>
+      &bull; <strong>Circuit Breaker</strong>: Resilience4j 등으로 연속 N회 실패 시 일정 시간 동안 요청 차단<br>
+      &bull; <strong>Fallback</strong>: 주 파서 실패 시 OG 태그 파서로 대체 (<code>fallbackUsed: Boolean</code>)<br>
+      &bull; <strong>Bulkhead</strong>: 쇼핑몰별로 스레드풀/커넥션풀 분리하여 한 곳의 장애가 다른 곳에 전파되지 않도록<br><br>
+      <strong>4. 모니터링:</strong>
+      <code>parserUsed</code>와 <code>reason</code>을 로그에 남겨서, 어떤 외부 서비스가 불안정한지 추적한다.
+      <span class="tnear-tag">TNEAR: "안정적인 운영과 장애 대응"의 핵심. 이력서 경험과 직접 연결.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q30 -->
+<div class="quiz-item" id="q30">
+  <span class="q-number q-interview">Q30 Interview</span>
+  <div class="q-text">"글로벌 서비스에서 API 응답 포맷을 어떻게 설계하시나요?"</div>
+  <p style="color: var(--dim); font-size: 0.9rem;">PR 1의 snake_case 설정과 TypeScript 타입 정의를 참고하세요.</p>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">Key Points</span>
+    <div class="explain">
+      <strong>1. 네이밍 컨벤션 통일:</strong>
+      PR 1에서 <code>property-naming-strategy: SNAKE_CASE</code>를 설정한 이유가 있다.
+      JSON API의 업계 관례는 snake_case이다 (Google, Twitter, Stripe 등).
+      Kotlin 내부는 camelCase로 작성하되, Jackson이 자동 변환한다.
+      <br><br>
+      <strong>2. 타입 정의 공유:</strong>
+      PR 1의 <code>packages/shared/src/types/product.ts</code>에서 프론트엔드와 백엔드가 같은 타입을 공유한다:
+      <pre><code><span class="kw">export interface</span> <span class="tp">Product</span> {
+  name: <span class="tp">string</span>;
+  price: <span class="tp">Money</span>;
+  image_url: <span class="tp">string</span>;   <span class="cm">// snake_case</span>
+  source_url: <span class="tp">string</span>;  <span class="cm">// snake_case</span>
+  mall: <span class="tp">string</span>;
+}</code></pre>
+      <strong>3. 에러 응답 표준화:</strong>
+      PR 1의 <code>ApiError</code> 타입이 에러 코드를 구조화한다:
+      <code>NETWORK</code>, <code>PARSE_FAILED</code>, <code>TIMEOUT</code>, <code>UNKNOWN</code>으로 분류.
+      클라이언트가 에러 유형별로 다른 UX를 보여줄 수 있다.
+      <br><br>
+      <strong>4. 글로벌 고려사항:</strong><br>
+      &bull; 다국어: 에러 메시지를 코드로 전달하고, 클라이언트에서 지역화<br>
+      &bull; 통화: <code>Money</code>에 <code>currency</code> 필드를 포함하여 KRW, USD 등 구분<br>
+      &bull; 버전 관리: <code>/api/v1/</code> prefix로 하위 호환성 유지<br>
+      &bull; 페이징: cursor-based pagination으로 대량 데이터 처리
+      <span class="tnear-tag">TNEAR: "글로벌 멀티 플랫폼 API 설계"를 구체적 코드로 증명할 수 있는 답변.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q31 -->
+<div class="quiz-item" id="q31">
+  <span class="q-number q-interview">Q31 Interview</span>
+  <div class="q-text">"테스트하기 쉬운 코드를 어떻게 작성하시나요?"</div>
+  <p style="color: var(--dim); font-size: 0.9rem;">DI와 인터페이스 분리를 중심으로 설명하세요.</p>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">Key Points</span>
+    <div class="explain">
+      <strong>1. 인터페이스에 의존:</strong>
+      PR 1의 <code>ProductParser</code>는 인터페이스다. 테스트에서는 실제 HTTP 호출 대신
+      Mock 구현체를 주입할 수 있다:
+      <pre><code><span class="kw">class</span> <span class="tp">FakeParser</span> : <span class="tp">ProductParser</span> {
+    <span class="kw">override fun</span> <span class="fn">canParse</span>(url: <span class="tp">String</span>) = <span class="kw">true</span>
+    <span class="kw">override fun</span> <span class="fn">parse</span>(url: <span class="tp">String</span>) =
+        ParseResult.Success(testProduct, <span class="str">"fake"</span>)
+}</code></pre>
+      <strong>2. 외부 의존성 격리:</strong>
+      <code>ProductRepository</code>도 인터페이스이므로, 테스트에서는 <code>InMemoryRepository</code>를 사용한다.
+      DB 연결 없이 비즈니스 로직만 테스트할 수 있다.
+      <br><br>
+      <strong>3. 순수 도메인 모델:</strong>
+      <code>Product</code>, <code>Money</code>, <code>Mall</code>은 Spring, JPA 등 프레임워크에 의존하지 않는다.
+      단위 테스트에서 Spring 컨텍스트를 띄울 필요 없이 바로 테스트 가능하다:
+      <pre><code><span class="kw">val</span> money = Money(<span class="num">10000</span>)
+<span class="fn">assertEquals</span>(Money(<span class="num">10000</span>), money)  <span class="cm">// data class의 equals</span></code></pre>
+      <strong>4. 이전 경험 연결:</strong>
+      "Django에서는 ORM이 비즈니스 로직과 결합되어 있어서, DB 없이 테스트하기 어려웠습니다.
+      Spring + 클린 아키텍처에서는 인터페이스 분리 덕분에 빠른 단위 테스트가 가능합니다."
+      <span class="tnear-tag">TNEAR: "코드 리뷰, 테스트, 클린 코드"를 구체적으로 설명하는 핵심 답변.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Q32 -->
+<div class="quiz-item" id="q32">
+  <span class="q-number q-interview">Q32 Interview</span>
+  <div class="q-text">"Python 기반 경력인데, 왜 Kotlin/Spring 회사로 오고 싶으신가요?"</div>
+  <p style="color: var(--dim); font-size: 0.9rem;">방어적이 아닌, 강점을 살린 공격적 답변을 연습하세요.</p>
+  <div class="answer-toggle" onclick="toggleAnswer(this)">Show Answer</div>
+  <div class="answer-box">
+    <span class="correct-label">Key Points</span>
+    <div class="explain">
+      <strong>핵심 프레임:</strong> "언어를 바꾸는 게 아니라, 이미 가진 역량을 더 강한 타입 시스템 위에서 발전시키는 것"
+      <br><br>
+      <strong>1. 이전 가능한 역량 강조:</strong>
+      "외부 API 장애 격리, 대용량 배치 성능 개선, DB 모델 재설계 등은 언어와 무관한 설계/운영 역량입니다.
+      이 역량을 Python에서 검증했고, Kotlin/Spring에서도 동일하게 적용할 수 있습니다."
+      <br><br>
+      <strong>2. Kotlin 선택 이유:</strong>
+      "Python으로 3년간 실무를 하면서, 타입 안전성의 한계를 느꼈습니다.
+      Kotlin은 null safety, sealed class 등 타입 시스템이 강력해서, 대규모 서비스에서 더 안전한 코드를 쓸 수 있습니다.
+      LinkCart 프로젝트로 직접 학습하며 이를 확인했습니다."
+      <br><br>
+      <strong>3. 구체적 증거:</strong>
+      "LinkCart에서 클린 아키텍처 + Kotlin으로 4레이어 구조를 직접 설계했습니다.
+      Domain, Application, Infrastructure, Presentation을 분리하고,
+      Port/Adapter 패턴으로 외부 의존성을 격리했습니다."
+      <br><br>
+      <strong>4. 티니어와의 연결:</strong>
+      "티니어의 글로벌 앱은 24/7 안정성, 확장성, 다국어 지원이 핵심입니다.
+      제가 Buzzvil에서 경험한 장애 격리, 성능 최적화와 정확히 겹치고,
+      Kotlin/Spring은 이를 더 안전하게 구현할 수 있는 도구라고 생각합니다."
+      <span class="tnear-tag">TNEAR: 면접의 마지막 질문으로 자주 나온다. 자신감 있되 겸손하게.</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- =============================================================== -->
+<!-- FOOTER -->
+<!-- =============================================================== -->
+<div style="margin-top: 4rem; padding: 2rem; background: var(--surface); border-radius: 12px; border: 1px solid var(--border);">
+  <h3 style="margin-top: 0;">Next Steps</h3>
+  <p style="color: var(--dim); font-size: 0.9rem;">
+    1. 1차 풀이: 답 보지 않고 전체를 풀어보기<br>
+    2. 2차 학습: 해설을 읽고 틀린 부분만 guide.html에서 재학습<br>
+    3. 3차 연습: Section 4 면접 시뮬레이션 문제를 <strong>소리 내서</strong> 답변 연습 (60초 이내)<br>
+    4. LinkCart PR 2 이후: 실제 코드를 작성하면서 개념을 체화시키기
+  </p>
+</div>
+
+</main>
+</div>
+
+<script>
+function toggleAnswer(btn) {
+  const box = btn.nextElementSibling;
+  const isShowing = box.classList.contains('show');
+  box.classList.toggle('show');
+  btn.textContent = isShowing ? 'Show Answer' : 'Hide Answer';
+  updateProgress();
+}
+
+function updateProgress() {
+  const total = document.querySelectorAll('.answer-box').length;
+  const shown = document.querySelectorAll('.answer-box.show').length;
+  document.getElementById('progress-text').textContent = shown + ' / ' + total + ' answered';
+  document.getElementById('progress-fill').style.width = (shown / total * 100) + '%';
+}
+</script>
+</body>
+</html>

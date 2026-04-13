@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR #1 학습 문서 — 프로젝트 초기 세팅</title>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --border: #475569;
+  --text: #e2e8f0; --dim: #94a3b8; --accent: #38bdf8; --green: #4ade80;
+  --yellow: #fbbf24; --pink: #f472b6; --purple: #a78bfa; --orange: #fb923c;
+  --red: #f87171; --cyan: #22d3ee;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.7;
+}
+
+/* --- Layout --- */
+.layout { display: flex; min-height: 100vh; }
+nav {
+  width: 280px; min-width: 280px; background: var(--surface);
+  border-right: 1px solid var(--border); position: sticky; top: 0;
+  height: 100vh; overflow-y: auto; padding: 1.5rem 0;
+}
+nav h2 { font-size: 1rem; color: var(--accent); padding: 0 1.2rem; margin-bottom: 1rem; }
+nav a {
+  display: block; padding: 0.4rem 1.2rem; color: var(--dim); text-decoration: none;
+  font-size: 0.85rem; border-left: 3px solid transparent; transition: all 0.15s;
+}
+nav a:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+nav a.sub { padding-left: 2rem; font-size: 0.8rem; }
+nav .sep { height: 1px; background: var(--border); margin: 0.8rem 1.2rem; }
+main { flex: 1; max-width: 920px; padding: 2rem 3rem 4rem; }
+
+/* --- Typography --- */
+h1 { font-size: 2.2rem; margin-bottom: 0.3rem; }
+h1 span { color: var(--accent); }
+.subtitle { color: var(--dim); margin-bottom: 2.5rem; }
+h2 {
+  font-size: 1.6rem; margin: 3rem 0 1rem; padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+h2 .emoji { margin-right: 0.5rem; }
+h3 { font-size: 1.15rem; margin: 2rem 0 0.8rem; color: var(--accent); }
+h4 { font-size: 1rem; margin: 1.5rem 0 0.5rem; color: var(--yellow); }
+p { margin-bottom: 1rem; }
+ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+li { margin-bottom: 0.3rem; }
+
+/* --- Code --- */
+pre {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1.2rem 1.5rem; overflow-x: auto; margin: 0.8rem 0 1.2rem;
+  font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace; font-size: 0.85rem;
+  line-height: 1.6;
+}
+code {
+  font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace;
+  background: var(--surface2); padding: 0.15rem 0.4rem; border-radius: 4px;
+  font-size: 0.88rem;
+}
+pre code { background: none; padding: 0; }
+.kw { color: var(--pink); }        /* keyword */
+.fn { color: var(--accent); }      /* function */
+.str { color: var(--green); }      /* string */
+.cm { color: var(--dim); }         /* comment */
+.tp { color: var(--yellow); }      /* type */
+.num { color: var(--orange); }     /* number */
+.an { color: var(--purple); }      /* annotation */
+
+/* --- Boxes --- */
+.box {
+  border-radius: 10px; padding: 1.2rem 1.5rem; margin: 1rem 0 1.5rem;
+  border-left: 4px solid;
+}
+.box-info { background: rgba(56,189,248,0.08); border-color: var(--accent); }
+.box-warn { background: rgba(251,146,60,0.08); border-color: var(--orange); }
+.box-tip { background: rgba(74,222,128,0.08); border-color: var(--green); }
+.box-compare { background: rgba(167,139,250,0.08); border-color: var(--purple); }
+.box strong { display: block; margin-bottom: 0.3rem; }
+.box-info strong { color: var(--accent); }
+.box-warn strong { color: var(--orange); }
+.box-tip strong { color: var(--green); }
+.box-compare strong { color: var(--purple); }
+
+/* --- Tables --- */
+table { width: 100%; border-collapse: collapse; margin: 0.8rem 0 1.5rem; }
+th, td { text-align: left; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+th { color: var(--accent); background: var(--surface); }
+td code { font-size: 0.82rem; }
+
+/* --- Visual Diagrams --- */
+.diagram {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.5rem; margin: 1rem 0 1.5rem; text-align: center;
+}
+.layer-stack { display: flex; flex-direction: column; gap: 0; max-width: 600px; margin: 0 auto; }
+.lyr {
+  border: 2px solid; border-radius: 10px; padding: 0.8rem 1.2rem;
+  text-align: left; position: relative;
+}
+.lyr + .lyr { margin-top: -1px; }
+.lyr-p { border-color: var(--accent); background: rgba(56,189,248,0.1); }
+.lyr-a { border-color: var(--purple); background: rgba(167,139,250,0.1); }
+.lyr-i { border-color: var(--orange); background: rgba(251,146,60,0.1); }
+.lyr-d { border-color: var(--green); background: rgba(74,222,128,0.1); }
+.lyr strong { font-size: 0.95rem; }
+.lyr-p strong { color: var(--accent); }
+.lyr-a strong { color: var(--purple); }
+.lyr-i strong { color: var(--orange); }
+.lyr-d strong { color: var(--green); }
+.lyr .desc { color: var(--dim); font-size: 0.82rem; }
+.arrow-d { text-align: center; color: var(--dim); font-size: 1.1rem; padding: 0.15rem 0; }
+
+.flow-v { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.flow-box {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 0.6rem 1.2rem; max-width: 500px; width: 100%; text-align: center;
+  font-size: 0.88rem;
+}
+.flow-box strong { color: var(--accent); }
+.flow-arr { color: var(--dim); font-size: 1.2rem; padding: 0.1rem 0; }
+.flow-branch { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+.flow-branch .flow-box { flex: 1; min-width: 140px; }
+
+/* --- Tree Diagram --- */
+.tree { font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace; font-size: 0.85rem; text-align: left; line-height: 1.5; color: var(--dim); }
+.tree .dir { color: var(--accent); font-weight: bold; }
+.tree .file { color: var(--text); }
+.tree .note { color: var(--dim); font-style: italic; }
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  nav { display: none; }
+  main { padding: 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+<!-- ============ SIDEBAR ============ -->
+<nav>
+  <h2>PR #1 학습 문서</h2>
+  <a href="#overview">PR 개요</a>
+  <a href="#overview-what" class="sub">무엇을 했는가</a>
+  <a href="#overview-why" class="sub">왜 했는가</a>
+  <div class="sep"></div>
+  <a href="#monorepo">1. 모노레포 구조</a>
+  <a href="#mr-what" class="sub">Turborepo란</a>
+  <a href="#mr-why" class="sub">왜 모노레포인가</a>
+  <a href="#mr-package" class="sub">package.json 해부</a>
+  <a href="#mr-turbo" class="sub">turbo.json 해부</a>
+  <a href="#mr-tree" class="sub">전체 디렉토리 트리</a>
+  <div class="sep"></div>
+  <a href="#spring-project">2. Spring Boot 프로젝트</a>
+  <a href="#sp-gradle" class="sub">build.gradle.kts 해부</a>
+  <a href="#sp-yml" class="sub">application.yml 해부</a>
+  <a href="#sp-entry" class="sub">진입점 (main)</a>
+  <div class="sep"></div>
+  <a href="#clean-arch">3. 클린 아키텍처</a>
+  <a href="#ca-why" class="sub">왜 이렇게 나누는가</a>
+  <a href="#ca-layers" class="sub">4개 레이어</a>
+  <a href="#ca-dep" class="sub">의존성 규칙</a>
+  <div class="sep"></div>
+  <a href="#domain">4. Domain 코드</a>
+  <a href="#d-product" class="sub">Product (엔티티)</a>
+  <a href="#d-money" class="sub">Money (VO)</a>
+  <a href="#d-mall" class="sub">Mall (enum)</a>
+  <div class="sep"></div>
+  <a href="#application">5. Application 코드</a>
+  <a href="#app-parser" class="sub">ProductParser (port)</a>
+  <a href="#app-repo" class="sub">ProductRepository (port)</a>
+  <a href="#app-result" class="sub">ParseResult (sealed)</a>
+  <div class="sep"></div>
+  <a href="#presentation">6. Presentation 코드</a>
+  <a href="#pres-health" class="sub">HealthController</a>
+  <a href="#pres-webconfig" class="sub">WebConfig (CORS)</a>
+  <div class="sep"></div>
+  <a href="#shared">7. shared 패키지</a>
+  <a href="#sh-types" class="sub">TypeScript 타입</a>
+  <a href="#sh-client" class="sub">API 클라이언트</a>
+  <a href="#sh-validate" class="sub">URL 검증</a>
+  <div class="sep"></div>
+  <a href="#review">8. 리뷰에서 배운 것</a>
+  <a href="#rv-money" class="sub">Money Int -> Long</a>
+  <a href="#rv-sealed" class="sub">sealed class vs interface</a>
+  <a href="#rv-webconfig" class="sub">WebConfig 위치</a>
+  <a href="#rv-snake" class="sub">Jackson snake_case</a>
+</nav>
+
+<!-- ============ MAIN CONTENT ============ -->
+<main>
+
+<!-- ============================= -->
+<!-- PR 개요                        -->
+<!-- ============================= -->
+<h1 id="overview"><span>PR #1</span> 프로젝트 초기 세팅</h1>
+<p class="subtitle">모노레포 + 프론트엔드 + 백엔드 + 공유 패키지를 한방에 세팅한 PR</p>
+
+<div class="box box-info">
+  <strong>이 문서의 목표</strong>
+  PR #1에서 만든 모든 파일을 한 줄씩 해부합니다. Java/Kotlin/Gradle/Spring Boot를 전혀 모르는 사람도
+  이해할 수 있도록, 모든 개념을 Python/Django와 비교하며 설명합니다.
+</div>
+
+<h3 id="overview-what">무엇을 했는가</h3>
+<p>이 PR에서 만든 것들을 한눈에 정리하면:</p>
+
+<table>
+<tr><th>영역</th><th>무엇</th><th>Django 비유</th></tr>
+<tr><td>모노레포</td><td>Turborepo로 프론트/백엔드/공유코드를 하나의 저장소에 묶음</td><td>Django 프로젝트에 여러 앱이 있는 것과 비슷하지만, 완전히 다른 언어/프레임워크를 함께 관리</td></tr>
+<tr><td>웹 앱</td><td>Next.js 15 (React) 스캐폴딩</td><td>Django 템플릿 대신 별도 프론트엔드</td></tr>
+<tr><td>모바일 앱</td><td>Expo (React Native) 스캐폴딩</td><td>Django에는 대응하는 것이 없음 (모바일 네이티브 앱)</td></tr>
+<tr><td>백엔드</td><td>Spring Boot 3.5 + Kotlin</td><td>Django + Python에 대응</td></tr>
+<tr><td>공유 패키지</td><td>TypeScript 타입 + API 클라이언트</td><td>없음 (Django는 서버 하나니까 공유할 필요 없음)</td></tr>
+</table>
+
+<h3 id="overview-why">왜 했는가</h3>
+<p>프로젝트를 시작하려면 <b>뼈대(scaffold)</b>가 필요합니다. Django에서 <code>django-admin startproject</code>를 실행하듯이,
+각 기술 스택의 초기 구조를 잡아야 합니다. 이 PR은 말 그대로 "빈 집을 짓고, 방을 나누고, 기둥을 세운 것"입니다.
+아직 실제 기능은 없지만, 이 뼈대 위에 모든 기능이 올라갑니다.</p>
+
+
+<!-- ============================= -->
+<!-- 1. 모노레포 구조                -->
+<!-- ============================= -->
+<h2 id="monorepo">1. 모노레포 구조</h2>
+
+<h3 id="mr-what">Turborepo란</h3>
+<p>보통 프로젝트는 <b>하나의 저장소 = 하나의 앱</b>입니다. 하지만 LinkCart는 웹, 모바일, 백엔드, 공유 코드까지
+4개의 프로젝트가 있습니다. 이것들을 각각 별도 Git 저장소로 관리하면:</p>
+<ul>
+  <li>타입을 고치면 3개 저장소를 다 고쳐야 합니다</li>
+  <li>공유 코드 버전 맞추기가 지옥입니다</li>
+  <li>PR 하나로 프론트+백엔드를 동시에 바꿀 수 없습니다</li>
+</ul>
+<p><b>모노레포(monorepo)</b>는 이 모든 프로젝트를 <b>하나의 Git 저장소</b>에 넣는 방식입니다.
+<b>Turborepo</b>는 모노레포를 효율적으로 관리해주는 도구입니다.</p>
+
+<div class="box box-compare">
+  <strong>Django와 비교</strong>
+  Django 프로젝트 안에 여러 앱(<code>users</code>, <code>products</code>, <code>orders</code>)이 있듯이,
+  모노레포 안에 여러 프로젝트(<code>web</code>, <code>mobile</code>, <code>backend</code>)가 있습니다.
+  차이점은 Django 앱들은 같은 Python 프로젝트지만, 모노레포의 프로젝트들은 <b>완전히 다른 언어/프레임워크</b>일 수 있습니다.
+</div>
+
+<h3 id="mr-why">왜 모노레포인가</h3>
+<div class="diagram">
+  <div class="flow-v">
+    <div class="flow-box"><strong>모노레포의 핵심 장점 3가지</strong></div>
+    <div class="flow-arr">&darr;</div>
+    <div class="flow-branch">
+      <div class="flow-box">타입/인터페이스를<br><b>한 곳에서 정의</b><br>프론트/백엔드 동기화</div>
+      <div class="flow-box">하나의 PR로<br><b>프론트+백엔드</b><br>동시 변경 가능</div>
+      <div class="flow-box">공유 패키지를<br><b>npm publish 없이</b><br>바로 참조</div>
+    </div>
+  </div>
+</div>
+
+<h3 id="mr-package">package.json 해부</h3>
+<p>루트 <code>package.json</code>은 모노레포의 "총괄 설정"입니다. 개별 앱의 package.json이 아닙니다.</p>
+
+<pre><code>{
+  <span class="str">"name"</span>: <span class="str">"linkcart"</span>,              <span class="cm">// 프로젝트 이름</span>
+  <span class="str">"private"</span>: <span class="kw">true</span>,                <span class="cm">// npm에 공개하지 않는다는 뜻. 회사 프로젝트니까 true</span>
+  <span class="str">"workspaces"</span>: [
+    <span class="str">"apps/*"</span>,                     <span class="cm">// apps/ 아래의 모든 폴더를 "워크스페이스"로 등록</span>
+    <span class="str">"packages/*"</span>                  <span class="cm">// packages/ 아래도 마찬가지</span>
+  ],
+  <span class="str">"scripts"</span>: {
+    <span class="str">"build"</span>: <span class="str">"turbo run build"</span>,    <span class="cm">// 모든 워크스페이스의 build를 실행 (turbo가 병렬+캐시 관리)</span>
+    <span class="str">"dev"</span>: <span class="str">"turbo run dev"</span>,        <span class="cm">// 모든 워크스페이스의 dev 서버를 동시에 실행</span>
+    <span class="str">"lint"</span>: <span class="str">"turbo run lint"</span>,      <span class="cm">// 전체 린트 (코드 스타일 검사)</span>
+    <span class="str">"test"</span>: <span class="str">"turbo run test"</span>,      <span class="cm">// 전체 테스트</span>
+    <span class="str">"codegen"</span>: <span class="str">"turbo run codegen"</span> <span class="cm">// OpenAPI에서 타입 자동 생성</span>
+  },
+  <span class="str">"devDependencies"</span>: {
+    <span class="str">"turbo"</span>: <span class="str">"^2"</span>                  <span class="cm">// Turborepo 자체를 개발 의존성으로 설치</span>
+  },
+  <span class="str">"packageManager"</span>: <span class="str">"npm@11.11.1"</span>  <span class="cm">// 팀원 모두 같은 npm 버전 사용을 강제</span>
+}</code></pre>
+
+<div class="box box-tip">
+  <strong>workspaces가 하는 일</strong>
+  <code>"workspaces": ["apps/*", "packages/*"]</code>라고 쓰면, npm은 <code>apps/web</code>,
+  <code>apps/mobile</code>, <code>packages/shared</code>를 각각 독립된 패키지로 인식합니다.
+  그러면서도 <code>npm install</code> 한 번이면 전부 설치됩니다.
+  Python으로 비유하면 <code>pip install -e ./apps/web ./apps/mobile ./packages/shared</code>를
+  한꺼번에 하는 것과 비슷합니다.
+</div>
+
+<h3 id="mr-turbo">turbo.json 해부</h3>
+<p><code>turbo.json</code>은 Turborepo에게 "각 태스크를 어떻게 실행할지" 알려주는 설정 파일입니다.</p>
+
+<pre><code>{
+  <span class="str">"$schema"</span>: <span class="str">"https://turbo.build/schema.json"</span>,  <span class="cm">// IDE 자동완성용 스키마</span>
+  <span class="str">"tasks"</span>: {
+
+    <span class="str">"build"</span>: {
+      <span class="str">"dependsOn"</span>: [<span class="str">"^build"</span>],     <span class="cm">// ^는 "의존하는 패키지의 build를 먼저 실행"</span>
+                                    <span class="cm">// 예: web이 shared에 의존하면, shared build &rarr; web build 순서</span>
+      <span class="str">"outputs"</span>: [<span class="str">".next/**"</span>, <span class="str">"!.next/cache/**"</span>, <span class="str">"dist/**"</span>]
+                                    <span class="cm">// 빌드 결과물 경로. turbo가 이걸 캐시해서 다음에 안 바뀌면 스킵</span>
+    },
+
+    <span class="str">"dev"</span>: {
+      <span class="str">"cache"</span>: <span class="kw">false</span>,              <span class="cm">// 개발 서버는 캐시하면 안 됨 (항상 새로 실행)</span>
+      <span class="str">"persistent"</span>: <span class="kw">true</span>           <span class="cm">// dev 서버는 종료하지 않고 계속 실행 (watch 모드)</span>
+    },
+
+    <span class="str">"lint"</span>: {
+      <span class="str">"dependsOn"</span>: [<span class="str">"^build"</span>]      <span class="cm">// 린트 전에 의존 패키지를 먼저 빌드</span>
+                                    <span class="cm">// (타입 체크를 위해 .d.ts가 필요하므로)</span>
+    },
+
+    <span class="str">"test"</span>: {
+      <span class="str">"dependsOn"</span>: [<span class="str">"^build"</span>]      <span class="cm">// 테스트도 마찬가지</span>
+    },
+
+    <span class="str">"codegen"</span>: {
+      <span class="str">"cache"</span>: <span class="kw">false</span>               <span class="cm">// 코드 자동 생성은 항상 새로 실행 (서버 스펙이 바뀌었을 수 있으니)</span>
+    }
+  }
+}</code></pre>
+
+<div class="box box-compare">
+  <strong>Django와 비교: dependsOn</strong>
+  Django에서는 앱 간 의존성을 <code>INSTALLED_APPS</code> 순서로 관리합니다.
+  Turborepo는 <code>dependsOn: ["^build"]</code>로 "이 패키지가 의존하는 패키지를 먼저 빌드해라"를 명시합니다.
+  <code>^</code>는 "상위 의존성(upstream)"을 의미합니다.
+  예를 들어 <code>web</code>이 <code>shared</code>를 사용하면, <code>shared</code>의 build가 먼저 끝난 후 <code>web</code>의 build가 시작됩니다.
+</div>
+
+<h3 id="mr-tree">전체 디렉토리 트리</h3>
+<div class="diagram">
+<pre class="tree" style="text-align: left; display: inline-block;">
+<span class="dir">linkcart/</span>                        <span class="note">&larr; 모노레포 루트</span>
+&#9500;&#9472;&#9472; <span class="file">package.json</span>                 <span class="note">&larr; 모노레포 총괄 설정</span>
+&#9500;&#9472;&#9472; <span class="file">turbo.json</span>                   <span class="note">&larr; Turborepo 태스크 설정</span>
+&#9500;&#9472;&#9472; <span class="dir">apps/</span>
+&#9474;   &#9500;&#9472;&#9472; <span class="dir">web/</span>                     <span class="note">&larr; Next.js 15 (React 웹앱)</span>
+&#9474;   &#9474;   &#9500;&#9472;&#9472; <span class="file">package.json</span>
+&#9474;   &#9474;   &#9500;&#9472;&#9472; <span class="file">next.config.ts</span>
+&#9474;   &#9474;   &#9492;&#9472;&#9472; <span class="dir">src/</span>
+&#9474;   &#9492;&#9472;&#9472; <span class="dir">mobile/</span>                  <span class="note">&larr; Expo (React Native 모바일앱)</span>
+&#9474;       &#9500;&#9472;&#9472; <span class="file">package.json</span>
+&#9474;       &#9492;&#9472;&#9472; <span class="file">App.tsx</span>
+&#9500;&#9472;&#9472; <span class="dir">packages/</span>
+&#9474;   &#9492;&#9472;&#9472; <span class="dir">shared/</span>                  <span class="note">&larr; 프론트 공유 코드 (타입, API 클라이언트)</span>
+&#9474;       &#9500;&#9472;&#9472; <span class="file">package.json</span>
+&#9474;       &#9492;&#9472;&#9472; <span class="dir">src/</span>
+&#9474;           &#9500;&#9472;&#9472; <span class="dir">types/</span>           <span class="note">&larr; Product, Money 등 TS 타입</span>
+&#9474;           &#9500;&#9472;&#9472; <span class="dir">api/</span>             <span class="note">&larr; API 클라이언트 (fetch 래퍼)</span>
+&#9474;           &#9492;&#9472;&#9472; <span class="dir">validation/</span>      <span class="note">&larr; URL 검증 유틸</span>
+&#9492;&#9472;&#9472; <span class="dir">backend/</span>                     <span class="note">&larr; Spring Boot + Kotlin 백엔드</span>
+    &#9500;&#9472;&#9472; <span class="file">build.gradle.kts</span>         <span class="note">&larr; 빌드 설정 (Python의 requirements.txt + setup.py)</span>
+    &#9492;&#9472;&#9472; <span class="dir">src/main/kotlin/com/linkcart/</span>
+        &#9500;&#9472;&#9472; <span class="dir">domain/</span>              <span class="note">&larr; 핵심 비즈니스 모델</span>
+        &#9500;&#9472;&#9472; <span class="dir">application/</span>         <span class="note">&larr; 유스케이스, 포트(인터페이스)</span>
+        &#9500;&#9472;&#9472; <span class="dir">infrastructure/</span>      <span class="note">&larr; 외부 연동 구현체</span>
+        &#9492;&#9472;&#9472; <span class="dir">presentation/</span>        <span class="note">&larr; HTTP 컨트롤러 (Django의 views.py)</span>
+</pre>
+</div>
+
+
+<!-- ============================= -->
+<!-- 2. Spring Boot 프로젝트         -->
+<!-- ============================= -->
+<h2 id="spring-project">2. Spring Boot 프로젝트 구조</h2>
+
+<h3 id="sp-gradle">build.gradle.kts 해부</h3>
+<p>Django에서 <code>requirements.txt</code>로 라이브러리를 관리하듯, Spring Boot는 <code>build.gradle.kts</code>로 관리합니다.
+다만 Gradle은 "빌드 도구"이기 때문에 의존성 관리 외에 컴파일, 테스트, 패키징까지 전부 담당합니다.</p>
+
+<div class="box box-compare">
+  <strong>Django와 비교: build.gradle.kts의 정체</strong>
+  <code>build.gradle.kts</code>는 Python 세계의 <code>requirements.txt</code> + <code>setup.py</code> + <code>Makefile</code>을 하나로 합친 것입니다.
+  <code>.kts</code>는 "Kotlin Script"라는 뜻으로, 이 파일 자체가 Kotlin 코드입니다 (단순 텍스트 파일이 아님).
+</div>
+
+<h4>플러그인 블록 (상단)</h4>
+<pre><code><span class="kw">plugins</span> {
+    <span class="fn">kotlin</span>(<span class="str">"jvm"</span>) <span class="fn">version</span> <span class="str">"1.9.25"</span>
+    <span class="fn">kotlin</span>(<span class="str">"plugin.spring"</span>) <span class="fn">version</span> <span class="str">"1.9.25"</span>
+    <span class="fn">id</span>(<span class="str">"org.springframework.boot"</span>) <span class="fn">version</span> <span class="str">"3.5.3"</span>
+    <span class="fn">id</span>(<span class="str">"io.spring.dependency-management"</span>) <span class="fn">version</span> <span class="str">"1.1.7"</span>
+}</code></pre>
+
+<table>
+<tr><th>플러그인</th><th>하는 일</th><th>Python 비유</th></tr>
+<tr>
+  <td><code>kotlin("jvm")</code></td>
+  <td>Kotlin 코드를 JVM 바이트코드로 컴파일</td>
+  <td>Python은 인터프리터가 알아서 하지만, Kotlin은 컴파일이 필요</td>
+</tr>
+<tr>
+  <td><code>kotlin("plugin.spring")</code></td>
+  <td>Kotlin 클래스에 자동으로 <code>open</code> 키워드를 추가. Spring이 프록시를 만들 수 있게 해줌</td>
+  <td>Python은 모든 클래스가 기본적으로 상속 가능하지만, Kotlin은 기본이 <code>final</code>(상속 불가)이라 이 플러그인이 열어줌</td>
+</tr>
+<tr>
+  <td><code>org.springframework.boot</code></td>
+  <td>Spring Boot의 빌드 기능: 실행 가능한 JAR 생성, 버전 관리 등</td>
+  <td><code>gunicorn</code> + <code>setuptools</code>의 역할</td>
+</tr>
+<tr>
+  <td><code>io.spring.dependency-management</code></td>
+  <td>Spring Boot가 권장하는 라이브러리 버전을 자동으로 맞춰줌 (BOM)</td>
+  <td><code>pip-compile</code>이 의존성 버전을 맞춰주는 것과 비슷</td>
+</tr>
+</table>
+
+<h4>프로젝트 메타데이터</h4>
+<pre><code><span class="kw">group</span> = <span class="str">"com.linkcart"</span>         <span class="cm">// Java 세계의 패키지 네이밍 규칙: 도메인 역순</span>
+                                <span class="cm">// Python의 패키지 이름과 같은 역할</span>
+<span class="kw">version</span> = <span class="str">"0.0.1-SNAPSHOT"</span>    <span class="cm">// SNAPSHOT = 아직 개발 중인 버전이라는 뜻</span></code></pre>
+
+<h4>Java 툴체인</h4>
+<pre><code><span class="kw">java</span> {
+    <span class="fn">toolchain</span> {
+        <span class="fn">languageVersion</span> = <span class="tp">JavaLanguageVersion</span>.<span class="fn">of</span>(<span class="num">21</span>)   <span class="cm">// JDK 21 사용</span>
+    }
+}</code></pre>
+
+<div class="box box-info">
+  <strong>JDK 21을 쓰는 이유</strong>
+  JDK 21은 LTS(Long Term Support) 버전입니다. Python 3.12 같은 안정 버전이라고 보면 됩니다.
+  Kotlin은 JVM 위에서 돌아가기 때문에 JDK가 필요합니다.
+  Django 프로젝트에서 Python 3.12를 지정하는 것과 같은 맥락입니다.
+</div>
+
+<h4>저장소 (repositories)</h4>
+<pre><code><span class="kw">repositories</span> {
+    <span class="fn">mavenCentral</span>()   <span class="cm">// Java/Kotlin 패키지의 PyPI 같은 곳</span>
+                     <span class="cm">// Python: pip install X &rarr; PyPI에서 가져옴</span>
+                     <span class="cm">// Kotlin: mavenCentral()에서 가져옴</span>
+}</code></pre>
+
+<h4>의존성 블록 (핵심!)</h4>
+<pre><code><span class="kw">dependencies</span> {
+    <span class="cm">// --- 런타임 의존성 (implementation = pip install X) ---</span>
+
+    <span class="fn">implementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-cache"</span>)
+    <span class="cm">// 캐싱 기능. Django의 django.core.cache에 해당</span>
+
+    <span class="fn">implementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-validation"</span>)
+    <span class="cm">// 입력값 검증. Django의 Form/Serializer validation에 해당</span>
+
+    <span class="fn">implementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-web"</span>)
+    <span class="cm">// 웹 서버 + REST API. Django 자체에 해당 (내장 서버 + URL 라우팅 + 요청/응답 처리)</span>
+
+    <span class="fn">implementation</span>(<span class="str">"com.fasterxml.jackson.module:jackson-module-kotlin"</span>)
+    <span class="cm">// JSON 직렬화. Django의 json.dumps() 또는 DRF Serializer에 해당</span>
+    <span class="cm">// Jackson은 Java/Kotlin 세계의 표준 JSON 라이브러리</span>
+
+    <span class="fn">implementation</span>(<span class="str">"org.jetbrains.kotlin:kotlin-reflect"</span>)
+    <span class="cm">// Kotlin 리플렉션. Spring이 런타임에 클래스 정보를 읽을 때 필요</span>
+    <span class="cm">// Python은 기본 내장이지만, Kotlin은 별도 라이브러리</span>
+
+    <span class="fn">implementation</span>(<span class="str">"org.jsoup:jsoup:1.18.3"</span>)
+    <span class="cm">// HTML 파싱. Python의 BeautifulSoup에 해당</span>
+    <span class="cm">// 상품 페이지의 OG 태그를 파싱할 때 사용 (폴백용)</span>
+
+    <span class="fn">implementation</span>(<span class="str">"com.github.ben-manes.caffeine:caffeine:3.1.8"</span>)
+    <span class="cm">// 고성능 인메모리 캐시. Django의 LocMemCache보다 훨씬 좋은 것</span>
+    <span class="cm">// TTL(만료 시간), 최대 크기 제한 등 지원</span>
+
+    <span class="fn">implementation</span>(<span class="str">"org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6"</span>)
+    <span class="cm">// API 문서 자동 생성 (Swagger UI). DRF의 drf-spectacular에 해당</span>
+    <span class="cm">// /docs로 접속하면 Swagger UI가 뜸</span>
+
+    <span class="cm">// --- 테스트 전용 의존성 ---</span>
+
+    <span class="fn">testImplementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-test"</span>)
+    <span class="cm">// 테스트 프레임워크. Django의 django.test + pytest에 해당</span>
+
+    <span class="fn">testImplementation</span>(<span class="str">"org.jetbrains.kotlin:kotlin-test-junit5"</span>)
+    <span class="cm">// Kotlin 테스트 유틸 + JUnit 5. pytest와 비슷한 역할</span>
+
+    <span class="fn">testRuntimeOnly</span>(<span class="str">"org.junit.platform:junit-platform-launcher"</span>)
+    <span class="cm">// 테스트 실행기. pytest 자체가 실행기인 것처럼, JUnit에도 실행기가 필요</span>
+}</code></pre>
+
+<div class="box box-warn">
+  <strong>implementation vs testImplementation</strong>
+  <ul style="margin:0; padding-left: 1.2rem;">
+    <li><code>implementation</code>: 실제 서비스 코드에서 사용. Python의 <code>pip install X</code></li>
+    <li><code>testImplementation</code>: 테스트 코드에서만 사용. Python의 <code>pip install pytest</code> (dev dependencies)</li>
+    <li><code>testRuntimeOnly</code>: 테스트 실행할 때만 필요하고, 코드에서 직접 import하지 않음</li>
+  </ul>
+</div>
+
+<h4>Kotlin 컴파일러 옵션</h4>
+<pre><code><span class="kw">kotlin</span> {
+    <span class="fn">compilerOptions</span> {
+        <span class="fn">freeCompilerArgs</span>.<span class="fn">addAll</span>(<span class="str">"-Xjsr305=strict"</span>)
+        <span class="cm">// null 안전성을 엄격하게 체크하라는 옵션</span>
+        <span class="cm">// Java 라이브러리의 @Nullable/@NonNull 어노테이션을 Kotlin이 존중하게 함</span>
+        <span class="cm">// Python의 mypy --strict와 비슷한 느낌</span>
+    }
+}</code></pre>
+
+<h4>테스트 프레임워크 설정</h4>
+<pre><code><span class="kw">tasks</span>.<span class="fn">withType</span>&lt;<span class="tp">Test</span>&gt; {
+    <span class="fn">useJUnitPlatform</span>()   <span class="cm">// JUnit 5를 테스트 프레임워크로 사용</span>
+                         <span class="cm">// Django의 pytest.ini에서 pytest를 지정하는 것과 같음</span>
+}</code></pre>
+
+<h3 id="sp-yml">application.yml 해부</h3>
+<p>Spring Boot의 설정 파일입니다. Django의 <code>settings.py</code>에 해당합니다.
+단, Python 코드가 아니라 YAML 형식입니다.</p>
+
+<pre><code><span class="kw">spring</span>:
+  <span class="kw">application</span>:
+    <span class="fn">name</span>: <span class="str">linkcart-backend</span>      <span class="cm"># 앱 이름. 로그에 표시됨</span>
+
+  <span class="kw">jackson</span>:
+    <span class="fn">property-naming-strategy</span>: <span class="str">SNAKE_CASE</span>
+    <span class="cm"># JSON 응답의 필드명을 snake_case로 변환</span>
+    <span class="cm"># Kotlin: imageUrl &rarr; JSON: image_url</span>
+    <span class="cm"># Django DRF는 기본이 snake_case지만, Spring은 기본이 camelCase라서 이 설정이 필요</span>
+
+  <span class="kw">cache</span>:
+    <span class="fn">type</span>: <span class="str">caffeine</span>              <span class="cm"># 캐시 백엔드로 Caffeine 사용</span>
+    <span class="kw">caffeine</span>:
+      <span class="fn">spec</span>: <span class="str">maximumSize=100,expireAfterWrite=300s</span>
+      <span class="cm"># 최대 100개 항목, 쓴 후 5분(300초) 뒤에 만료</span>
+      <span class="cm"># Django의 CACHES 설정에 해당:</span>
+      <span class="cm"># CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',</span>
+      <span class="cm">#                       'TIMEOUT': 300, 'OPTIONS': {'MAX_ENTRIES': 100}}}</span>
+
+<span class="kw">server</span>:
+  <span class="fn">port</span>: <span class="num">8080</span>                   <span class="cm"># 서버 포트. Django의 manage.py runserver 8080과 같음</span>
+
+<span class="kw">springdoc</span>:
+  <span class="kw">api-docs</span>:
+    <span class="fn">path</span>: <span class="str">/openapi.json</span>        <span class="cm"># OpenAPI 스펙 JSON이 생성되는 경로</span>
+                               <span class="cm"># shared 패키지의 codegen이 이 URL에서 스펙을 가져감</span>
+  <span class="kw">swagger-ui</span>:
+    <span class="fn">path</span>: <span class="str">/docs</span>                <span class="cm"># Swagger UI 경로. 브라우저에서 http://localhost:8080/docs</span>
+                               <span class="cm"># DRF의 /api/docs/ (drf-spectacular)와 같은 역할</span></code></pre>
+
+<div class="box box-compare">
+  <strong>Django settings.py vs application.yml</strong>
+  Django의 <code>settings.py</code>는 Python 코드라서 로직을 넣을 수 있지만, Spring의 <code>application.yml</code>은 순수 데이터입니다.
+  조건부 로직이 필요하면 별도 <code>@Configuration</code> 클래스를 만듭니다 (이 PR의 <code>WebConfig.kt</code>처럼).
+</div>
+
+<h3 id="sp-entry">진입점 (main)</h3>
+<p>Spring Boot 앱의 시작 지점입니다. Django의 <code>manage.py</code> + <code>wsgi.py</code>에 해당합니다.</p>
+
+<pre><code><span class="kw">package</span> com.linkcart               <span class="cm">// Python의 from com.linkcart import ...와 비슷한 패키지 선언</span>
+
+<span class="kw">import</span> org.springframework.boot.autoconfigure.SpringBootApplication
+<span class="kw">import</span> org.springframework.boot.runApplication
+
+<span class="an">@SpringBootApplication</span>             <span class="cm">// "이 클래스가 Spring Boot 앱의 시작점이다"</span>
+                                    <span class="cm">// 이 하나의 어노테이션이 아래 3가지를 한꺼번에 활성화:</span>
+                                    <span class="cm">// 1. @Configuration: 설정 클래스로 등록</span>
+                                    <span class="cm">// 2. @EnableAutoConfiguration: 의존성에 맞게 자동 설정</span>
+                                    <span class="cm">// 3. @ComponentScan: 같은 패키지 하위의 모든 컴포넌트를 자동 등록</span>
+<span class="kw">class</span> <span class="tp">LinkcartBackendApplication</span>    <span class="cm">// 클래스 본문이 비어있어도 됨. 어노테이션이 일을 함</span>
+
+<span class="kw">fun</span> <span class="fn">main</span>(args: <span class="tp">Array</span>&lt;<span class="tp">String</span>&gt;) {      <span class="cm">// Kotlin의 main 함수 (프로그램 진입점)</span>
+    <span class="fn">runApplication</span>&lt;<span class="tp">LinkcartBackendApplication</span>&gt;(*args)
+                                    <span class="cm">// Spring Boot 서버를 시작</span>
+                                    <span class="cm">// Django: python manage.py runserver</span>
+}</code></pre>
+
+<div class="box box-compare">
+  <strong>Django와 비교: 자동 설정(Auto Configuration)</strong>
+  Django는 <code>settings.py</code>에 <code>INSTALLED_APPS</code>를 직접 나열해야 합니다.
+  Spring Boot의 <code>@SpringBootApplication</code>은 <b>classpath에 있는 라이브러리를 보고 자동으로 설정</b>합니다.
+  예: <code>spring-boot-starter-web</code>이 의존성에 있으면 자동으로 웹 서버가 켜지고,
+  <code>caffeine</code>이 있으면 자동으로 캐시가 설정됩니다. "Convention over Configuration"의 극치입니다.
+</div>
+
+
+<!-- ============================= -->
+<!-- 3. 클린 아키텍처                -->
+<!-- ============================= -->
+<h2 id="clean-arch">3. 클린 아키텍처</h2>
+
+<h3 id="ca-why">왜 이렇게 나누는가</h3>
+<p>Django 프로젝트의 전형적인 구조를 떠올려보세요:</p>
+<pre><code><span class="cm"># Django의 전형적 구조</span>
+products/
+  models.py      <span class="cm"># DB 모델 + 비즈니스 로직이 섞여있음</span>
+  views.py       <span class="cm"># HTTP 처리 + 비즈니스 로직이 섞여있음</span>
+  serializers.py <span class="cm"># 직렬화 + 검증이 섞여있음</span>
+  urls.py</code></pre>
+
+<p>이 구조의 문제: <b>모든 것이 Django에 묶여있습니다.</b>
+DB를 바꾸면 models.py와 views.py를 다 고쳐야 하고, 테스트할 때도 DB가 필요합니다.</p>
+
+<p>클린 아키텍처는 이렇게 바꿉니다: <b>"비즈니스 로직은 프레임워크를 모르게 하자."</b></p>
+
+<h3 id="ca-layers">4개 레이어</h3>
+
+<div class="diagram">
+<div class="layer-stack">
+  <div class="lyr lyr-p">
+    <strong>Presentation (표현 계층)</strong>
+    <div class="desc">HTTP 요청/응답 처리. Django의 views.py + urls.py</div>
+    <div class="desc" style="margin-top:0.3rem;"><code>presentation/api/</code> &mdash; HealthController</div>
+  </div>
+  <div class="arrow-d">&darr; 호출</div>
+  <div class="lyr lyr-a">
+    <strong>Application (응용 계층)</strong>
+    <div class="desc">"무엇을 할 것인가" 정의. 유스케이스 + 인터페이스(포트)</div>
+    <div class="desc" style="margin-top:0.3rem;"><code>application/port/</code> &mdash; ProductParser, ProductRepository</div>
+    <div class="desc"><code>application/dto/</code> &mdash; ParseResult</div>
+  </div>
+  <div class="arrow-d">&darr; 구현</div>
+  <div class="lyr lyr-i">
+    <strong>Infrastructure (인프라 계층)</strong>
+    <div class="desc">"어떻게 할 것인가" 구현. 외부 연동의 실체</div>
+    <div class="desc" style="margin-top:0.3rem;"><code>infrastructure/config/</code> &mdash; WebConfig (CORS)</div>
+    <div class="desc"><code>infrastructure/parser/</code>, <code>client/</code>, <code>cache/</code> &mdash; 아직 비어있음 (Phase 2~)</div>
+  </div>
+  <div class="arrow-d">&darr; 사용</div>
+  <div class="lyr lyr-d">
+    <strong>Domain (도메인 계층)</strong>
+    <div class="desc">핵심 비즈니스 개념. 프레임워크에 의존하지 않는 순수 Kotlin</div>
+    <div class="desc" style="margin-top:0.3rem;"><code>domain/entity/</code> &mdash; Product</div>
+    <div class="desc"><code>domain/vo/</code> &mdash; Money, Mall</div>
+  </div>
+</div>
+</div>
+
+<table>
+<tr><th>레이어</th><th>역할</th><th>Django 비유</th><th>이 PR의 파일</th></tr>
+<tr>
+  <td style="color:var(--accent);">Presentation</td>
+  <td>HTTP 요청을 받고 응답을 돌려줌</td>
+  <td><code>views.py</code> + <code>urls.py</code></td>
+  <td><code>HealthController.kt</code></td>
+</tr>
+<tr>
+  <td style="color:var(--purple);">Application</td>
+  <td>유스케이스 정의 + 외부 시스템 인터페이스</td>
+  <td><code>services.py</code> (비즈니스 로직 분리한 경우)</td>
+  <td><code>ProductParser.kt</code>, <code>ProductRepository.kt</code>, <code>ParseResult.kt</code></td>
+</tr>
+<tr>
+  <td style="color:var(--orange);">Infrastructure</td>
+  <td>DB, 외부 API 등 구체적 기술 구현</td>
+  <td><code>models.py</code> (ORM), 외부 API 클라이언트</td>
+  <td><code>WebConfig.kt</code></td>
+</tr>
+<tr>
+  <td style="color:var(--green);">Domain</td>
+  <td>비즈니스 핵심 개념. 프레임워크 무관</td>
+  <td>Django에는 해당 레이어가 없음 (models.py에 다 넣음)</td>
+  <td><code>Product.kt</code>, <code>Money.kt</code>, <code>Mall.kt</code></td>
+</tr>
+</table>
+
+<h3 id="ca-dep">의존성 규칙</h3>
+
+<div class="box box-warn">
+  <strong>핵심 규칙: 안쪽은 바깥쪽을 몰라야 한다</strong>
+  <ul style="margin:0; padding-left:1.2rem;">
+    <li><code>Domain</code>은 아무것도 import하지 않음 (순수 Kotlin)</li>
+    <li><code>Application</code>은 Domain만 import (Spring을 모름)</li>
+    <li><code>Infrastructure</code>는 Application의 인터페이스를 구현 (Spring 사용 가능)</li>
+    <li><code>Presentation</code>은 Application을 호출 (Spring 어노테이션 사용)</li>
+  </ul>
+</div>
+
+<div class="box box-compare">
+  <strong>Django와 비교: 왜 Django에는 이런 구조가 없는가</strong>
+  Django의 ORM(<code>models.py</code>)은 비즈니스 모델과 DB 스키마가 하나로 결합되어 있습니다.
+  <code>Product</code>를 정의하면 그게 곧 DB 테이블입니다. 이건 편리하지만,
+  "DB를 바꾸면 비즈니스 로직도 고쳐야 하는" 커플링이 생깁니다.
+  클린 아키텍처에서는 <code>Product</code>(Domain)와 "Product를 DB에 저장하는 방법"(Infrastructure)을 분리합니다.
+</div>
+
+
+<!-- ============================= -->
+<!-- 4. Domain 코드                 -->
+<!-- ============================= -->
+<h2 id="domain">4. Domain 코드</h2>
+<p>Domain 레이어는 프로젝트의 <b>핵심 비즈니스 개념</b>을 정의합니다. Spring, DB, HTTP 같은
+외부 기술에 일절 의존하지 않는 <b>순수 Kotlin 코드</b>입니다.</p>
+
+<h3 id="d-product">Product (엔티티)</h3>
+<p>파일: <code>domain/entity/Product.kt</code></p>
+
+<pre><code><span class="kw">package</span> com.linkcart.domain.entity   <span class="cm">// 이 파일이 속한 패키지 (Python의 모듈 경로)</span>
+
+<span class="kw">import</span> com.linkcart.domain.vo.Mall   <span class="cm">// 같은 domain 레이어의 Mall을 가져옴</span>
+<span class="kw">import</span> com.linkcart.domain.vo.Money   <span class="cm">// 같은 domain 레이어의 Money를 가져옴</span>
+
+<span class="kw">data class</span> <span class="tp">Product</span>(                   <span class="cm">// data class = Python의 @dataclass</span>
+    <span class="kw">val</span> name: <span class="tp">String</span>,                  <span class="cm">// val = 읽기 전용 (Python의 Final 힌트)</span>
+    <span class="kw">val</span> price: <span class="tp">Money</span>,                  <span class="cm">// 가격은 단순 숫자가 아니라 Money 타입 (값 객체)</span>
+    <span class="kw">val</span> imageUrl: <span class="tp">String</span>,              <span class="cm">// 상품 이미지 URL</span>
+    <span class="kw">val</span> sourceUrl: <span class="tp">String</span>,             <span class="cm">// 원본 상품 페이지 URL</span>
+    <span class="kw">val</span> mall: <span class="tp">Mall</span>,                    <span class="cm">// 어느 쇼핑몰인지 (enum)</span>
+)</code></pre>
+
+<div class="box box-compare">
+  <strong>Python @dataclass와 비교</strong>
+<pre><code><span class="cm"># Python 등가 코드</span>
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+
+<span class="an">@dataclass</span>(<span class="fn">frozen</span>=<span class="kw">True</span>)  <span class="cm"># frozen=True가 Kotlin val과 같은 효과 (불변)</span>
+<span class="kw">class</span> <span class="tp">Product</span>:
+    name: <span class="tp">str</span>
+    price: <span class="tp">Money</span>
+    image_url: <span class="tp">str</span>
+    source_url: <span class="tp">str</span>
+    mall: <span class="tp">Mall</span></code></pre>
+</div>
+
+<div class="box box-tip">
+  <strong>data class가 자동으로 만들어주는 것</strong>
+  Kotlin의 <code>data class</code>는 선언만 하면 아래를 전부 자동 생성합니다:
+  <ul style="margin:0.3rem 0 0; padding-left:1.2rem;">
+    <li><code>equals()</code>: 값이 같으면 같은 객체로 취급 (Python의 <code>__eq__</code>)</li>
+    <li><code>hashCode()</code>: 해시값 자동 계산 (Python의 <code>__hash__</code>)</li>
+    <li><code>toString()</code>: 예쁜 출력 (Python의 <code>__repr__</code>)</li>
+    <li><code>copy()</code>: 일부 필드만 바꿔서 복사 (Python의 <code>dataclasses.replace()</code>)</li>
+  </ul>
+  Python의 <code>@dataclass</code>와 거의 동일합니다.
+</div>
+
+<h3 id="d-money">Money (Value Object)</h3>
+<p>파일: <code>domain/vo/Money.kt</code></p>
+
+<pre><code><span class="kw">package</span> com.linkcart.domain.vo
+
+<span class="kw">data class</span> <span class="tp">Money</span>(
+    <span class="kw">val</span> amount: <span class="tp">Long</span>,               <span class="cm">// 금액. Long = 64비트 정수 (Python의 int와 비슷하지만 범위 한정)</span>
+    <span class="kw">val</span> currency: <span class="tp">String</span> = <span class="str">"KRW"</span>,  <span class="cm">// 통화. 기본값 "KRW" (한국 원)</span>
+)</code></pre>
+
+<div class="box box-info">
+  <strong>Value Object(VO)란?</strong>
+  <b>값으로 비교</b>하는 객체입니다. 1000원짜리 Money 두 개는 같은 객체입니다 (누가 만들었든 상관없음).
+  반대로 Entity는 <b>ID로 비교</b>합니다 (같은 이름의 상품이라도 ID가 다르면 다른 상품).
+  <br><br>
+  "왜 그냥 <code>Int</code> 대신 <code>Money</code> 클래스를 만들었나?" &mdash;
+  나중에 <code>amount</code>가 의미하는 게 "원"인지 "달러"인지 헷갈리지 않도록,
+  <b>currency를 항상 함께 묶어서</b> 다니게 하려는 것입니다.
+  <code>price = 1000</code>보다 <code>price = Money(1000, "KRW")</code>가 의미가 명확합니다.
+</div>
+
+<div class="box box-compare">
+  <strong>Python 등가 코드</strong>
+<pre><code><span class="an">@dataclass</span>(<span class="fn">frozen</span>=<span class="kw">True</span>)
+<span class="kw">class</span> <span class="tp">Money</span>:
+    amount: <span class="tp">int</span>                 <span class="cm"># Python의 int는 크기 제한 없음</span>
+    currency: <span class="tp">str</span> = <span class="str">"KRW"</span></code></pre>
+</div>
+
+<h4>val vs var</h4>
+<table>
+<tr><th>Kotlin</th><th>의미</th><th>Python 비유</th></tr>
+<tr><td><code>val</code></td><td>한 번 정해지면 변경 불가 (immutable)</td><td><code>Final[str]</code> 타입 힌트. 또는 <code>frozen=True</code> dataclass</td></tr>
+<tr><td><code>var</code></td><td>나중에 바꿀 수 있음 (mutable)</td><td>일반 변수</td></tr>
+</table>
+<p>Domain의 모든 필드가 <code>val</code>인 이유: <b>불변 객체</b>가 더 안전합니다.
+값을 바꾸고 싶으면 기존 객체를 수정하는 게 아니라 <code>copy()</code>로 새 객체를 만듭니다.</p>
+
+<h3 id="d-mall">Mall (enum)</h3>
+<p>파일: <code>domain/vo/Mall.kt</code></p>
+
+<pre><code><span class="kw">package</span> com.linkcart.domain.vo
+
+<span class="kw">enum class</span> <span class="tp">Mall</span>(<span class="kw">val</span> displayName: <span class="tp">String</span>) {  <span class="cm">// enum 생성자에 프로퍼티를 줄 수 있음</span>
+    <span class="fn">COUPANG</span>(<span class="str">"쿠팡"</span>),                         <span class="cm">// 각 상수가 displayName을 가짐</span>
+    <span class="fn">ELEVENST</span>(<span class="str">"11번가"</span>),
+    <span class="fn">GENERIC</span>(<span class="str">"기타"</span>),
+}</code></pre>
+
+<div class="box box-compare">
+  <strong>Python 등가 코드</strong>
+<pre><code><span class="kw">from</span> enum <span class="kw">import</span> Enum
+
+<span class="kw">class</span> <span class="tp">Mall</span>(<span class="tp">Enum</span>):
+    COUPANG = <span class="str">"쿠팡"</span>
+    ELEVENST = <span class="str">"11번가"</span>
+    GENERIC = <span class="str">"기타"</span>
+
+<span class="cm"># 사용: Mall.COUPANG.value &rarr; "쿠팡"</span>
+<span class="cm"># Kotlin: Mall.COUPANG.displayName &rarr; "쿠팡"</span></code></pre>
+  Kotlin의 enum은 Python과 거의 같지만, <b>프로퍼티와 메서드</b>를 가질 수 있어서 더 강력합니다.
+  Python에서는 <code>.value</code>로 접근하지만, Kotlin에서는 원하는 이름(<code>.displayName</code>)을 줄 수 있습니다.
+</div>
+
+
+<!-- ============================= -->
+<!-- 5. Application 코드            -->
+<!-- ============================= -->
+<h2 id="application">5. Application 코드</h2>
+<p>Application 레이어는 <b>"무엇을 해야 하는지"를 정의</b>합니다. 하지만 <b>"어떻게 하는지"는 정의하지 않습니다.</b>
+"상품을 파싱해라"라는 인터페이스는 있지만, "Jsoup으로 HTML을 긁어서 파싱한다"는 구현은 Infrastructure에 맡깁니다.</p>
+
+<h3 id="app-parser">ProductParser (Port / Interface)</h3>
+<p>파일: <code>application/port/ProductParser.kt</code></p>
+
+<pre><code><span class="kw">package</span> com.linkcart.application.port  <span class="cm">// port = "외부와 연결되는 접점"이라는 뜻</span>
+
+<span class="kw">import</span> com.linkcart.application.dto.ParseResult
+
+<span class="kw">interface</span> <span class="tp">ProductParser</span> {              <span class="cm">// interface = Python의 ABC (추상 클래스)</span>
+    <span class="kw">fun</span> <span class="fn">canParse</span>(url: <span class="tp">String</span>): <span class="tp">Boolean</span>  <span class="cm">// "이 URL을 파싱할 수 있는가?" - 쿠팡 파서는 쿠팡 URL만 가능</span>
+    <span class="kw">fun</span> <span class="fn">parse</span>(url: <span class="tp">String</span>): <span class="tp">ParseResult</span> <span class="cm">// "이 URL을 파싱해서 결과를 돌려줘"</span>
+}</code></pre>
+
+<div class="box box-compare">
+  <strong>Python ABC와 비교</strong>
+<pre><code><span class="kw">from</span> abc <span class="kw">import</span> ABC, abstractmethod
+
+<span class="kw">class</span> <span class="tp">ProductParser</span>(<span class="tp">ABC</span>):
+    <span class="an">@abstractmethod</span>
+    <span class="kw">def</span> <span class="fn">can_parse</span>(self, url: <span class="tp">str</span>) -> <span class="tp">bool</span>: ...
+
+    <span class="an">@abstractmethod</span>
+    <span class="kw">def</span> <span class="fn">parse</span>(self, url: <span class="tp">str</span>) -> <span class="tp">ParseResult</span>: ...</code></pre>
+  Kotlin의 <code>interface</code>는 Python의 <code>ABC</code>와 같은 역할입니다.
+  "이 메서드들을 반드시 구현해라"라고 계약(contract)을 정의합니다.
+  이후 <code>infrastructure/parser/</code>에 <code>CoupangParser</code>, <code>ElevenStParser</code> 등이 이 인터페이스를 구현할 것입니다.
+</div>
+
+<div class="box box-tip">
+  <strong>"Port"라는 이름의 의미</strong>
+  헥사고날 아키텍처에서 "Port"는 "외부 세계와 연결되는 접점"입니다.
+  USB 포트를 생각하세요 &mdash; 포트 규격(interface)만 맞으면 어떤 기기든 꽂을 수 있습니다.
+  <code>ProductParser</code>라는 포트에 <code>CoupangParser</code>를 꽂든, <code>MockParser</code>를 꽂든 상관없습니다.
+  이것이 테스트할 때 큰 장점이 됩니다: 실제 HTTP 요청 대신 가짜 파서를 꽂으면 됩니다.
+</div>
+
+<h3 id="app-repo">ProductRepository (Port, Phase 2)</h3>
+<p>파일: <code>application/port/ProductRepository.kt</code></p>
+
+<pre><code><span class="kw">package</span> com.linkcart.application.port
+
+<span class="kw">import</span> com.linkcart.domain.entity.Product
+
+<span class="cm">/** Phase 2용 &mdash; 현재는 인터페이스만 정의 */</span>
+<span class="kw">interface</span> <span class="tp">ProductRepository</span> {
+    <span class="kw">fun</span> <span class="fn">save</span>(product: <span class="tp">Product</span>)            <span class="cm">// 상품 저장 (Phase 2에서 DB 연동 시 구현)</span>
+    <span class="kw">fun</span> <span class="fn">findByUrl</span>(url: <span class="tp">String</span>): <span class="tp">Product</span>?  <span class="cm">// URL로 상품 조회. ?는 null 가능(없을 수도 있음)</span>
+}</code></pre>
+
+<div class="box box-compare">
+  <strong>Django ORM과의 결정적 차이</strong>
+  Django에서는 <code>Product.objects.filter(url=url).first()</code>처럼 모델 클래스가 곧 DB 접근 방법입니다.
+  클린 아키텍처에서는 <code>ProductRepository</code>라는 인터페이스만 정의하고,
+  실제 DB 접근 코드는 Infrastructure에서 구현합니다. 이렇게 하면:
+  <ul style="margin:0.3rem 0 0; padding-left:1.2rem;">
+    <li>DB를 PostgreSQL에서 MongoDB로 바꿔도 Domain/Application 코드는 안 건드림</li>
+    <li>테스트할 때 인메모리 구현체를 넣으면 DB 없이 테스트 가능</li>
+  </ul>
+</div>
+
+<div class="box box-info">
+  <strong>Kotlin의 <code>?</code> (null safety)</strong>
+  <code>Product?</code>는 "Product이거나 null일 수 있다"는 뜻입니다.
+  Python의 <code>Optional[Product]</code>과 같습니다. 하지만 Python은 힌트일 뿐이고 런타임에 체크하지 않는 반면,
+  Kotlin은 <b>컴파일 시점에 강제</b>합니다. <code>Product?</code> 타입을 <code>Product</code>처럼 쓰면 컴파일 에러가 납니다.
+</div>
+
+<h3 id="app-result">ParseResult (sealed interface)</h3>
+<p>파일: <code>application/dto/ParseResult.kt</code></p>
+
+<pre><code><span class="kw">package</span> com.linkcart.application.dto
+
+<span class="kw">import</span> com.linkcart.domain.entity.Product
+
+<span class="kw">sealed interface</span> <span class="tp">ParseResult</span> {        <span class="cm">// sealed = "이 파일에서만 구현 가능" (경우의 수 한정)</span>
+
+    <span class="kw">data class</span> <span class="tp">Success</span>(               <span class="cm">// 파싱 성공: 완전한 Product를 담고 있음</span>
+        <span class="kw">val</span> product: <span class="tp">Product</span>,
+        <span class="kw">val</span> parserUsed: <span class="tp">String</span>,        <span class="cm">// 어떤 파서가 파싱했는지 ("coupang", "og-tag" 등)</span>
+        <span class="kw">val</span> fallbackUsed: <span class="tp">Boolean</span> = <span class="kw">false</span>,  <span class="cm">// OG 태그 폴백을 사용했는지</span>
+    ) : <span class="tp">ParseResult</span>                  <span class="cm">// ParseResult를 구현한다는 선언</span>
+
+    <span class="kw">data class</span> <span class="tp">Partial</span>(              <span class="cm">// 파싱 부분 성공: 일부 필드만 추출됨</span>
+        <span class="kw">val</span> fields: <span class="tp">Map</span>&lt;<span class="tp">String</span>, <span class="tp">Any</span>&gt;, <span class="cm">// 추출된 필드들 (Python의 dict[str, Any])</span>
+        <span class="kw">val</span> parserUsed: <span class="tp">String</span>,
+        <span class="kw">val</span> fallbackUsed: <span class="tp">Boolean</span> = <span class="kw">false</span>,
+    ) : <span class="tp">ParseResult</span>
+
+    <span class="kw">data class</span> <span class="tp">Failure</span>(              <span class="cm">// 파싱 완전 실패</span>
+        <span class="kw">val</span> reason: <span class="tp">String</span>,            <span class="cm">// 실패 이유</span>
+        <span class="kw">val</span> parserUsed: <span class="tp">String</span>,
+    ) : <span class="tp">ParseResult</span>
+}</code></pre>
+
+<div class="box box-info">
+  <strong>sealed interface가 뭔가</strong>
+  <code>sealed</code>는 "밀봉된"이라는 뜻입니다. <b>이 파일 안에서만 구현체를 만들 수 있습니다.</b>
+  다른 파일에서 <code>class MyResult : ParseResult</code>를 하면 컴파일 에러!
+  <br><br>
+  왜 이렇게 하냐면, 컴파일러가 <b>"모든 경우를 빠짐없이 처리했는지"</b> 확인할 수 있기 때문입니다.
+  <code>when(result)</code>에서 Success, Partial, Failure 중 하나라도 빠지면 컴파일 에러가 납니다.
+</div>
+
+<div class="box box-compare">
+  <strong>Python 등가 코드 (여러 방법)</strong>
+<pre><code><span class="cm"># 방법 1: Union 타입 (Python 3.10+)</span>
+<span class="an">@dataclass</span>(<span class="fn">frozen</span>=<span class="kw">True</span>)
+<span class="kw">class</span> <span class="tp">Success</span>:
+    product: <span class="tp">Product</span>
+    parser_used: <span class="tp">str</span>
+    fallback_used: <span class="tp">bool</span> = <span class="kw">False</span>
+
+<span class="an">@dataclass</span>(<span class="fn">frozen</span>=<span class="kw">True</span>)
+<span class="kw">class</span> <span class="tp">Partial</span>:
+    fields: <span class="tp">dict</span>[<span class="tp">str</span>, <span class="tp">Any</span>]
+    parser_used: <span class="tp">str</span>
+    fallback_used: <span class="tp">bool</span> = <span class="kw">False</span>
+
+<span class="an">@dataclass</span>(<span class="fn">frozen</span>=<span class="kw">True</span>)
+<span class="kw">class</span> <span class="tp">Failure</span>:
+    reason: <span class="tp">str</span>
+    parser_used: <span class="tp">str</span>
+
+<span class="tp">ParseResult</span> = <span class="tp">Success</span> | <span class="tp">Partial</span> | <span class="tp">Failure</span>
+
+<span class="cm"># 사용:</span>
+<span class="kw">match</span> result:
+    <span class="kw">case</span> <span class="tp">Success</span>(product=p):
+        <span class="fn">print</span>(p.name)
+    <span class="kw">case</span> <span class="tp">Partial</span>(fields=f):
+        <span class="fn">print</span>(f)
+    <span class="kw">case</span> <span class="tp">Failure</span>(reason=r):
+        <span class="fn">print</span>(<span class="str">f"실패: </span>{r}<span class="str">"</span>)</code></pre>
+  Kotlin의 <code>sealed interface</code> + <code>when</code>은 Python의 <code>Union</code> + <code>match</code>와 같은 패턴입니다.
+  차이점은 Kotlin은 <b>컴파일러가 모든 케이스를 빠짐없이 처리했는지 검증</b>한다는 것입니다.
+  Python의 <code>match</code>는 빠진 케이스가 있어도 런타임에야 알 수 있습니다.
+</div>
+
+<div class="box box-tip">
+  <strong>왜 예외(Exception) 대신 sealed interface를 쓰는가</strong>
+  파싱이 실패하는 것은 "예외적 상황"이 아니라 "충분히 예상되는 정상 흐름"입니다.
+  잘못된 URL을 넣으면 당연히 실패합니다. 이런 경우에 Exception을 던지면:
+  <ul style="margin:0.3rem 0 0; padding-left:1.2rem;">
+    <li>호출하는 쪽에서 try-catch를 깜빡하면 프로그램이 죽음</li>
+    <li>어떤 Exception이 올지 코드만 봐서는 알 수 없음</li>
+  </ul>
+  <code>sealed interface</code>를 쓰면 반환 타입에 모든 경우가 명시되어 있고, 처리를 강제할 수 있습니다.
+  이것은 Rust의 <code>Result&lt;T, E&gt;</code>이나 Go의 <code>(value, error)</code> 패턴과 같은 철학입니다.
+</div>
+
+
+<!-- ============================= -->
+<!-- 6. Presentation 코드           -->
+<!-- ============================= -->
+<h2 id="presentation">6. Presentation 코드</h2>
+<p>Presentation 레이어는 <b>HTTP 요청을 받아서 응답을 돌려주는</b> 역할만 합니다.
+Django의 <code>views.py</code> + <code>urls.py</code>에 해당합니다.</p>
+
+<h3 id="pres-health">HealthController</h3>
+<p>파일: <code>presentation/api/HealthController.kt</code></p>
+
+<pre><code><span class="kw">package</span> com.linkcart.presentation.api
+
+<span class="kw">import</span> org.springframework.web.bind.annotation.GetMapping
+<span class="kw">import</span> org.springframework.web.bind.annotation.RestController
+
+<span class="an">@RestController</span>                      <span class="cm">// "이 클래스는 REST API 컨트롤러다"</span>
+                                      <span class="cm">// = Django의 @api_view 또는 APIView 클래스</span>
+                                      <span class="cm">// 반환값을 자동으로 JSON으로 변환해줌</span>
+<span class="kw">class</span> <span class="tp">HealthController</span> {
+
+    <span class="an">@GetMapping</span>(<span class="str">"/health"</span>)              <span class="cm">// GET /health 요청을 이 메서드로 라우팅</span>
+                                      <span class="cm">// Django: @api_view(['GET'])</span>
+                                      <span class="cm">// Django urls.py: path('health', health_view)</span>
+    <span class="kw">fun</span> <span class="fn">health</span>(): <span class="tp">Map</span>&lt;<span class="tp">String</span>, <span class="tp">String</span>&gt; = <span class="fn">mapOf</span>(<span class="str">"status"</span> <span class="fn">to</span> <span class="str">"ok"</span>)
+                                      <span class="cm">// Map&lt;String, String&gt;을 반환하면 Jackson이 자동으로</span>
+                                      <span class="cm">// {"status": "ok"} JSON으로 변환</span>
+}</code></pre>
+
+<div class="box box-compare">
+  <strong>Django 등가 코드</strong>
+<pre><code><span class="cm"># Django REST Framework</span>
+<span class="kw">from</span> rest_framework.decorators <span class="kw">import</span> api_view
+<span class="kw">from</span> rest_framework.response <span class="kw">import</span> Response
+
+<span class="an">@api_view</span>([<span class="str">'GET'</span>])
+<span class="kw">def</span> <span class="fn">health</span>(request):
+    <span class="kw">return</span> <span class="tp">Response</span>({<span class="str">"status"</span>: <span class="str">"ok"</span>})
+
+<span class="cm"># urls.py</span>
+urlpatterns = [
+    <span class="fn">path</span>(<span class="str">'health'</span>, health),
+]</code></pre>
+  Django에서는 view 함수와 URL 라우팅이 별도 파일(<code>urls.py</code>)에 있지만,
+  Spring에서는 <code>@GetMapping("/health")</code>로 <b>메서드 위에 직접 URL을 선언</b>합니다.
+  별도 urls.py가 필요 없습니다.
+</div>
+
+<h4>어노테이션 정리</h4>
+<table>
+<tr><th>Spring 어노테이션</th><th>하는 일</th><th>Django 비유</th></tr>
+<tr>
+  <td><code>@RestController</code></td>
+  <td>이 클래스가 REST API 컨트롤러임을 선언. 반환값을 자동으로 JSON 변환</td>
+  <td><code>APIView</code> 클래스 또는 <code>@api_view</code> 데코레이터</td>
+</tr>
+<tr>
+  <td><code>@GetMapping("/path")</code></td>
+  <td>GET 요청을 이 메서드에 매핑</td>
+  <td><code>urls.py</code>의 <code>path()</code> + <code>@api_view(['GET'])</code></td>
+</tr>
+<tr>
+  <td><code>@PostMapping("/path")</code></td>
+  <td>POST 요청을 이 메서드에 매핑</td>
+  <td><code>@api_view(['POST'])</code></td>
+</tr>
+<tr>
+  <td><code>@RequestBody</code></td>
+  <td>HTTP body를 객체로 자동 파싱 (역직렬화)</td>
+  <td>DRF의 <code>request.data</code> (자동 파싱)</td>
+</tr>
+</table>
+
+<h3 id="pres-webconfig">WebConfig (CORS 설정)</h3>
+<p>파일: <code>infrastructure/config/WebConfig.kt</code></p>
+
+<pre><code><span class="kw">package</span> com.linkcart.infrastructure.config
+
+<span class="kw">import</span> org.springframework.context.annotation.Configuration
+<span class="kw">import</span> org.springframework.web.servlet.config.annotation.CorsRegistry
+<span class="kw">import</span> org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+
+<span class="an">@Configuration</span>                       <span class="cm">// "이 클래스는 Spring 설정 클래스다"</span>
+                                      <span class="cm">// Spring이 시작할 때 이 클래스를 찾아서 실행</span>
+<span class="kw">class</span> <span class="tp">WebConfig</span> : <span class="tp">WebMvcConfigurer</span> {   <span class="cm">// WebMvcConfigurer를 구현(implements)하면</span>
+                                      <span class="cm">// Spring MVC의 동작을 커스텀할 수 있음</span>
+
+    <span class="kw">override fun</span> <span class="fn">addCorsMappings</span>(registry: <span class="tp">CorsRegistry</span>) {
+        registry.<span class="fn">addMapping</span>(<span class="str">"/**"</span>)     <span class="cm">// 모든 경로에 CORS 적용</span>
+            .<span class="fn">allowedOrigins</span>(<span class="str">"http://localhost:3000"</span>)  <span class="cm">// Next.js 개발 서버만 허용</span>
+            .<span class="fn">allowedMethods</span>(<span class="str">"GET"</span>, <span class="str">"POST"</span>, <span class="str">"OPTIONS"</span>)  <span class="cm">// 허용 HTTP 메서드</span>
+            .<span class="fn">allowedHeaders</span>(<span class="str">"*"</span>)                      <span class="cm">// 모든 헤더 허용</span>
+            .<span class="fn">allowCredentials</span>(<span class="kw">true</span>)                   <span class="cm">// 쿠키 포함 요청 허용</span>
+    }
+}</code></pre>
+
+<div class="box box-compare">
+  <strong>Django의 CORS 설정과 비교</strong>
+<pre><code><span class="cm"># Django: settings.py (django-cors-headers 패키지)</span>
+CORS_ALLOWED_ORIGINS = [
+    <span class="str">"http://localhost:3000"</span>,
+]
+CORS_ALLOW_METHODS = [<span class="str">"GET"</span>, <span class="str">"POST"</span>, <span class="str">"OPTIONS"</span>]
+CORS_ALLOW_CREDENTIALS = <span class="kw">True</span></code></pre>
+  Django는 <code>settings.py</code>에 변수로 선언하지만, Spring은 코드(Configuration 클래스)로 설정합니다.
+  이 방식의 장점은 조건부 로직을 넣기 쉽다는 것입니다
+  (예: 프로덕션에서는 다른 origin을 허용하는 등).
+</div>
+
+<div class="box box-info">
+  <strong>CORS란?</strong>
+  브라우저의 보안 정책입니다. Next.js 앱(<code>localhost:3000</code>)에서 백엔드(<code>localhost:8080</code>)로 API를 호출하면,
+  포트가 다르기 때문에 브라우저가 차단합니다. CORS 설정은 "이 origin에서 오는 요청은 허용해"라고 서버가 브라우저에 알려주는 것입니다.
+  프론트엔드와 백엔드가 다른 서버(포트)에서 돌아가는 경우 반드시 필요합니다.
+</div>
+
+<div class="box box-tip">
+  <strong>왜 presentation/이 아니라 infrastructure/config/에 있는가?</strong>
+  처음에는 <code>presentation/</code>에 있었지만, 리뷰에서 위치를 옮겼습니다.
+  CORS는 "HTTP 요청/응답의 비즈니스 로직"이 아니라 <b>"웹 서버의 인프라 설정"</b>이기 때문입니다.
+  Django에서도 CORS 설정이 <code>views.py</code>가 아니라 <code>settings.py</code>에 있는 것과 같은 논리입니다.
+  이 부분은 <a href="#rv-webconfig">리뷰에서 배운 것</a> 섹션에서 더 자세히 다룹니다.
+</div>
+
+
+<!-- ============================= -->
+<!-- 7. shared 패키지               -->
+<!-- ============================= -->
+<h2 id="shared">7. shared 패키지</h2>
+<p><code>packages/shared</code>는 <b>웹 앱과 모바일 앱이 공통으로 쓰는 TypeScript 코드</b>입니다.
+백엔드 API의 타입 정의, API 클라이언트, URL 검증 로직을 공유합니다.</p>
+
+<div class="box box-info">
+  <strong>왜 shared 패키지가 필요한가</strong>
+  웹(Next.js)과 모바일(Expo)이 같은 백엔드 API를 호출합니다.
+  각자 타입을 따로 정의하면 불일치가 생깁니다.
+  shared 패키지에 한 번만 정의하면 양쪽 다 <code>import { Product } from '@linkcart/shared'</code>로 가져다 씁니다.
+  Django에는 대응 개념이 없습니다 (서버가 하나니까 공유할 필요 없음).
+</div>
+
+<h3 id="sh-types">TypeScript 타입 정의</h3>
+<p>파일: <code>packages/shared/src/types/product.ts</code></p>
+
+<pre><code><span class="cm">/**
+ * 상품 정보 타입 -- OpenAPI codegen으로 자동 생성될 예정.
+ * PR 4(API 엔드포인트) 완성 후 codegen으로 대체됨.
+ * 현재는 개발 편의를 위한 수동 정의.
+ */</span>
+
+<span class="kw">export interface</span> <span class="tp">Money</span> {
+  amount: <span class="tp">number</span>;       <span class="cm">// Kotlin의 Money.amount에 대응</span>
+  currency: <span class="tp">string</span>;     <span class="cm">// Kotlin의 Money.currency에 대응</span>
+}
+
+<span class="kw">export interface</span> <span class="tp">Product</span> {
+  name: <span class="tp">string</span>;
+  price: <span class="tp">Money</span>;
+  image_url: <span class="tp">string</span>;    <span class="cm">// snake_case! (Jackson의 SNAKE_CASE 설정 덕분에 이 이름으로 옴)</span>
+  source_url: <span class="tp">string</span>;
+  mall: <span class="tp">string</span>;
+}
+
+<span class="kw">export interface</span> <span class="tp">ParseResponse</span> <span class="kw">extends</span> <span class="tp">Product</span> {  <span class="cm">// Product를 상속(확장)</span>
+  partial: <span class="tp">Record</span>&lt;<span class="tp">string</span>, <span class="tp">unknown</span>&gt; | <span class="kw">null</span>;       <span class="cm">// 부분 파싱 결과 (또는 null)</span>
+  parser_used: <span class="tp">string</span>;                            <span class="cm">// 사용된 파서 이름</span>
+  fallback_used: <span class="tp">boolean</span>;                          <span class="cm">// OG 태그 폴백 사용 여부</span>
+}</code></pre>
+
+<div class="box box-compare">
+  <strong>백엔드 Kotlin과 프론트엔드 TypeScript 타입 매핑</strong>
+  <table style="margin:0.5rem 0 0;">
+  <tr><th>Kotlin (백엔드)</th><th>TypeScript (프론트)</th><th>설명</th></tr>
+  <tr><td><code>data class Money</code></td><td><code>interface Money</code></td><td>같은 구조, 다른 언어</td></tr>
+  <tr><td><code>val imageUrl: String</code></td><td><code>image_url: string</code></td><td>camelCase -> snake_case (Jackson이 변환)</td></tr>
+  <tr><td><code>sealed interface ParseResult</code></td><td><code>interface ParseResponse</code></td><td>프론트에서는 성공 응답만 타입으로 정의 (실패는 ApiError로 처리)</td></tr>
+  </table>
+</div>
+
+<div class="box box-tip">
+  <strong>OpenAPI codegen이란</strong>
+  지금은 이 타입들을 수동으로 작성했지만, 나중에는 <b>백엔드가 자동 생성한 OpenAPI 스펙(JSON)에서 타입을 자동으로 뽑아냅니다.</b>
+  <code>npm run codegen</code>을 실행하면 <code>http://localhost:8080/openapi.json</code>에서 스펙을 가져와서
+  TypeScript 타입을 자동 생성합니다. 프론트/백엔드 타입 불일치를 원천적으로 방지하는 기법입니다.
+</div>
+
+<h3 id="sh-client">API 클라이언트 (createApiClient)</h3>
+<p>파일: <code>packages/shared/src/api/client.ts</code></p>
+
+<h4>ApiResult 타입</h4>
+<pre><code><span class="kw">export type</span> <span class="tp">ApiResult</span>&lt;<span class="tp">T</span>&gt; =
+  | { ok: <span class="kw">true</span>; data: <span class="tp">T</span> }        <span class="cm">// 성공: data에 실제 데이터</span>
+  | { ok: <span class="kw">false</span>; error: <span class="tp">ApiError</span> }; <span class="cm">// 실패: error에 에러 정보</span></code></pre>
+
+<div class="box box-info">
+  <strong>ApiResult&lt;T&gt;의 의미</strong>
+  <code>&lt;T&gt;</code>는 제네릭(generic)입니다. "어떤 타입이든 들어올 수 있다"는 뜻입니다.
+  <code>ApiResult&lt;Product&gt;</code>이면 성공 시 <code>data</code>가 <code>Product</code> 타입이고,
+  <code>ApiResult&lt;User&gt;</code>이면 <code>data</code>가 <code>User</code> 타입입니다.
+  Python의 <code>Generic[T]</code>과 같은 개념입니다.
+  <br><br>
+  이 패턴은 앞서 본 Kotlin의 <code>sealed interface ParseResult</code>와 같은 철학입니다:
+  <b>예외를 던지는 대신, 성공/실패를 타입으로 표현</b>합니다.
+</div>
+
+<h4>ApiError 타입</h4>
+<pre><code><span class="kw">export type</span> <span class="tp">ApiError</span> =
+  | { code: <span class="str">"NETWORK"</span>; message: <span class="tp">string</span> }      <span class="cm">// 네트워크 연결 실패</span>
+  | { code: <span class="str">"PARSE_FAILED"</span>; message: <span class="tp">string</span> } <span class="cm">// 서버가 파싱 실패 응답</span>
+  | { code: <span class="str">"TIMEOUT"</span>; message: <span class="tp">string</span> }      <span class="cm">// 15초 초과</span>
+  | { code: <span class="str">"UNKNOWN"</span>; message: <span class="tp">string</span> };     <span class="cm">// 그 외</span></code></pre>
+<p>TypeScript의 <b>유니온 타입</b>(Union Type)으로 에러 종류를 한정합니다.
+<code>error.code</code>를 보고 분기 처리할 수 있습니다.</p>
+
+<h4>createApiClient 함수</h4>
+<pre><code><span class="kw">const</span> DEFAULT_BASE_URL = <span class="str">"http://localhost:8080"</span>;
+<span class="kw">const</span> TIMEOUT_MS = <span class="num">15_000</span>;            <span class="cm">// 15초 타임아웃</span>
+
+<span class="kw">export function</span> <span class="fn">createApiClient</span>(baseUrl: <span class="tp">string</span> = DEFAULT_BASE_URL) {
+
+  <span class="kw">async function</span> <span class="fn">parseProduct</span>(url: <span class="tp">string</span>): <span class="tp">Promise</span>&lt;<span class="tp">ApiResult</span>&lt;<span class="tp">ParseResponse</span>&gt;&gt; {
+    <span class="kw">const</span> controller = <span class="kw">new</span> <span class="tp">AbortController</span>();    <span class="cm">// 타임아웃 제어용</span>
+    <span class="kw">const</span> timeoutId = <span class="fn">setTimeout</span>(() => controller.<span class="fn">abort</span>(), TIMEOUT_MS);
+
+    <span class="kw">try</span> {
+      <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`${baseUrl}/api/v1/products/parse`</span>, {
+        method: <span class="str">"POST"</span>,
+        headers: { <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span> },
+        body: <span class="tp">JSON</span>.<span class="fn">stringify</span>({ url }),   <span class="cm">// { "url": "https://..." }</span>
+        signal: controller.signal,       <span class="cm">// abort 시그널 연결</span>
+      });
+
+      <span class="kw">if</span> (!response.ok) {                <span class="cm">// HTTP 4xx, 5xx 응답</span>
+        <span class="kw">const</span> body = <span class="kw">await</span> response.<span class="fn">json</span>().<span class="fn">catch</span>(() => ({}));
+        <span class="cm">// 에러 응답의 body에서 detail 필드를 추출 시도</span>
+        <span class="kw">const</span> detail = <span class="kw">typeof</span> body === <span class="str">"object"</span> && body !== <span class="kw">null</span> && <span class="str">"detail"</span> <span class="kw">in</span> body
+          ? <span class="tp">String</span>(body.detail)
+          : <span class="str">`HTTP ${response.status} ${response.statusText}`</span>;
+        <span class="kw">return</span> { ok: <span class="kw">false</span>, error: { code: <span class="str">"PARSE_FAILED"</span>, message: detail } };
+      }
+
+      <span class="kw">const</span> data = (<span class="kw">await</span> response.<span class="fn">json</span>()) <span class="kw">as</span> <span class="tp">ParseResponse</span>;
+      <span class="kw">return</span> { ok: <span class="kw">true</span>, data };            <span class="cm">// 성공!</span>
+
+    } <span class="kw">catch</span> (err) {
+      <span class="kw">if</span> (err <span class="kw">instanceof</span> <span class="tp">DOMException</span> && err.name === <span class="str">"AbortError"</span>) {
+        <span class="kw">return</span> { ok: <span class="kw">false</span>, error: { code: <span class="str">"TIMEOUT"</span>, message: <span class="str">"요청 시간이 초과되었습니다"</span> } };
+      }
+      <span class="kw">return</span> { ok: <span class="kw">false</span>, error: {
+        code: <span class="str">"NETWORK"</span>,
+        message: err <span class="kw">instanceof</span> <span class="tp">Error</span> ? err.message : <span class="str">"네트워크 오류가 발생했습니다"</span>,
+      }};
+    } <span class="kw">finally</span> {
+      <span class="fn">clearTimeout</span>(timeoutId);            <span class="cm">// 타이머 정리 (메모리 누수 방지)</span>
+    }
+  }
+
+  <span class="kw">function</span> <span class="fn">imageProxyUrl</span>(originalUrl: <span class="tp">string</span>): <span class="tp">string</span> {
+    <span class="kw">return</span> <span class="str">`${baseUrl}/api/v1/images/proxy?url=${</span><span class="fn">encodeURIComponent</span>(originalUrl)<span class="str">}`</span>;
+  }                                      <span class="cm">// 이미지 프록시 URL 생성 헬퍼</span>
+
+  <span class="kw">return</span> { parseProduct, imageProxyUrl };  <span class="cm">// 팩토리 패턴: 함수들을 객체로 반환</span>
+}</code></pre>
+
+<div class="box box-tip">
+  <strong>팩토리 패턴 (createApiClient)</strong>
+  <code>createApiClient</code>는 <b>클래스가 아니라 함수</b>인데, 내부에 함수들을 만들어서 객체로 반환합니다.
+  이것을 "팩토리 패턴"이라고 합니다. 사용하는 쪽에서는:
+<pre><code><span class="kw">const</span> api = <span class="fn">createApiClient</span>(<span class="str">"http://localhost:8080"</span>);
+<span class="kw">const</span> result = <span class="kw">await</span> api.<span class="fn">parseProduct</span>(<span class="str">"https://www.coupang.com/..."</span>);
+
+<span class="kw">if</span> (result.ok) {
+  <span class="fn">console.log</span>(result.data.name);   <span class="cm">// 성공: Product 사용</span>
+} <span class="kw">else</span> {
+  <span class="fn">console.error</span>(result.error.code); <span class="cm">// 실패: 에러 코드 확인</span>
+}</code></pre>
+  <code>baseUrl</code>을 다르게 주면 테스트 서버나 프로덕션 서버용 클라이언트를 쉽게 만들 수 있습니다.
+</div>
+
+<h3 id="sh-validate">URL 검증 유틸</h3>
+<p>파일: <code>packages/shared/src/validation/url.ts</code></p>
+
+<pre><code><span class="kw">const</span> URL_PATTERN = <span class="str">/^https?:\/\/.+/</span>;   <span class="cm">// http:// 또는 https://로 시작하는지 정규식 체크</span>
+
+<span class="kw">export function</span> <span class="fn">validateUrl</span>(input: <span class="tp">string</span>): { valid: <span class="tp">boolean</span>; error?: <span class="tp">string</span> } {
+  <span class="kw">const</span> trimmed = input.<span class="fn">trim</span>();          <span class="cm">// 앞뒤 공백 제거</span>
+
+  <span class="kw">if</span> (!trimmed) {
+    <span class="kw">return</span> { valid: <span class="kw">false</span>, error: <span class="str">"URL을 입력해주세요"</span> };  <span class="cm">// 빈 입력</span>
+  }
+
+  <span class="kw">if</span> (!URL_PATTERN.<span class="fn">test</span>(trimmed)) {
+    <span class="kw">return</span> { valid: <span class="kw">false</span>, error: <span class="str">"올바른 URL 형식이 아닙니다 (http:// 또는 https://)"</span> };
+  }
+
+  <span class="kw">try</span> {
+    <span class="kw">new</span> <span class="tp">URL</span>(trimmed);                    <span class="cm">// 브라우저의 URL 파서로 최종 검증</span>
+    <span class="kw">return</span> { valid: <span class="kw">true</span> };
+  } <span class="kw">catch</span> {
+    <span class="kw">return</span> { valid: <span class="kw">false</span>, error: <span class="str">"올바른 URL 형식이 아닙니다"</span> };
+  }
+}</code></pre>
+
+<div class="box box-compare">
+  <strong>Django의 URLValidator와 비교</strong>
+<pre><code><span class="cm"># Django에서는 이렇게 합니다</span>
+<span class="kw">from</span> django.core.validators <span class="kw">import</span> URLValidator
+<span class="kw">from</span> django.core.exceptions <span class="kw">import</span> ValidationError
+
+validator = <span class="tp">URLValidator</span>()
+<span class="kw">try</span>:
+    <span class="fn">validator</span>(<span class="str">"https://..."</span>)
+<span class="kw">except</span> <span class="tp">ValidationError</span>:
+    <span class="fn">print</span>(<span class="str">"잘못된 URL"</span>)</code></pre>
+  Django는 예외를 던지지만, shared의 <code>validateUrl</code>은 <code>{ valid, error }</code> 객체를 반환합니다.
+  프론트엔드에서는 예외보다 이 방식이 더 다루기 쉽습니다 (UI에 에러 메시지를 바로 보여줄 수 있음).
+</div>
+
+
+<!-- ============================= -->
+<!-- 8. 리뷰에서 배운 것            -->
+<!-- ============================= -->
+<h2 id="review">8. 리뷰에서 배운 것</h2>
+<p>PR 1은 초기 세팅이지만, 코드 리뷰를 통해 몇 가지 중요한 수정이 있었습니다.
+각 수정의 이유를 상세히 설명합니다.</p>
+
+<h3 id="rv-money">Money: Int에서 Long으로 변경</h3>
+
+<h4>Before</h4>
+<pre><code><span class="kw">data class</span> <span class="tp">Money</span>(
+    <span class="kw">val</span> amount: <span class="tp">Int</span>,    <span class="cm">// 32비트 정수: 최대 약 21억 (2,147,483,647)</span>
+)</code></pre>
+
+<h4>After</h4>
+<pre><code><span class="kw">data class</span> <span class="tp">Money</span>(
+    <span class="kw">val</span> amount: <span class="tp">Long</span>,   <span class="cm">// 64비트 정수: 최대 약 922경 (9,223,372,036,854,775,807)</span>
+)</code></pre>
+
+<div class="box box-warn">
+  <strong>왜 Long으로 바꿨나</strong>
+  <code>Int</code>의 최대값은 약 21억입니다. 한국 원(KRW) 기준으로 21억 원이 넘는 상품은 드물지만,
+  만약 <b>외화 처리</b>나 <b>총액 계산</b>을 하게 되면 쉽게 넘어갈 수 있습니다.
+  <br><br>
+  Python은 <code>int</code>가 크기 제한이 없어서(arbitrary precision) 이 문제를 겪지 않지만,
+  JVM 언어에서는 <code>Int</code>(32비트)와 <code>Long</code>(64비트)이 다릅니다. 금액에는 항상 <code>Long</code>을 쓰는 것이 안전합니다.
+</div>
+
+<table>
+<tr><th>타입</th><th>크기</th><th>최대값</th><th>Python 비유</th></tr>
+<tr><td><code>Int</code></td><td>32비트</td><td>2,147,483,647 (약 21억)</td><td>해당 없음 (Python int는 무제한)</td></tr>
+<tr><td><code>Long</code></td><td>64비트</td><td>9,223,372,036,854,775,807 (약 922경)</td><td>해당 없음 (Python int는 무제한)</td></tr>
+<tr><td><code>BigDecimal</code></td><td>가변</td><td>사실상 무제한 + 소수점 정밀</td><td>Python의 <code>decimal.Decimal</code></td></tr>
+</table>
+
+<div class="box box-tip">
+  <strong>실무에서는 BigDecimal?</strong>
+  달러/유로 등 소수점이 필요한 통화를 다루면 <code>BigDecimal</code>을 쓰기도 합니다.
+  하지만 KRW만 다루고, 정수 연산이면 <code>Long</code>으로 충분합니다. 성능도 훨씬 좋습니다.
+</div>
+
+<h3 id="rv-sealed">sealed class에서 sealed interface로 변경</h3>
+
+<h4>Before</h4>
+<pre><code><span class="kw">sealed class</span> <span class="tp">ParseResult</span>      <span class="cm">// class: 상태(필드)를 가질 수 있음</span></code></pre>
+
+<h4>After</h4>
+<pre><code><span class="kw">sealed interface</span> <span class="tp">ParseResult</span>  <span class="cm">// interface: 계약(contract)만 정의</span></code></pre>
+
+<div class="box box-info">
+  <strong>class vs interface, 왜 중요한가</strong>
+  Kotlin(그리고 Java)에서 클래스는 <b>단일 상속만</b> 됩니다.
+  <code>class A : B()</code>이면, A는 다른 클래스를 상속받을 수 없습니다.
+  하지만 인터페이스는 <b>다중 구현이 가능</b>합니다.
+  <code>class A : InterfaceB, InterfaceC</code>처럼 여러 개를 구현할 수 있습니다.
+  <br><br>
+  <code>ParseResult</code>는 공통 필드나 상태가 없습니다 (Success, Partial, Failure가 각자 다른 필드를 가짐).
+  그러므로 <code>class</code>일 이유가 없고, <code>interface</code>가 더 유연합니다.
+</div>
+
+<div class="box box-compare">
+  <strong>Python에서의 비유</strong>
+<pre><code><span class="cm"># sealed class = ABC (상속을 통한 구현)</span>
+<span class="kw">class</span> <span class="tp">ParseResult</span>(<span class="tp">ABC</span>): ...        <span class="cm"># 상태를 가질 수 있지만, 단일 상속만 가능</span>
+
+<span class="cm"># sealed interface = Protocol (구조적 타이핑)</span>
+<span class="kw">class</span> <span class="tp">ParseResult</span>(<span class="tp">Protocol</span>): ...    <span class="cm"># 상태 없이 계약만 정의, 더 유연</span></code></pre>
+  <b>규칙</b>: 공통 상태(필드)가 필요하면 <code>sealed class</code>, 없으면 <code>sealed interface</code>.
+  <code>ParseResult</code>는 공통 필드가 없으므로 <code>interface</code>가 맞습니다.
+</div>
+
+<h3 id="rv-webconfig">WebConfig 위치 이동</h3>
+
+<h4>Before</h4>
+<pre><code><span class="cm">// presentation/config/WebConfig.kt  -- 잘못된 위치</span></code></pre>
+
+<h4>After</h4>
+<pre><code><span class="cm">// infrastructure/config/WebConfig.kt  -- 올바른 위치</span></code></pre>
+
+<div class="box box-warn">
+  <strong>왜 옮겼나</strong>
+  <b>Presentation</b> 레이어는 "HTTP 요청을 받아서 비즈니스 로직을 호출하고 응답을 돌려주는" 역할입니다.
+  컨트롤러(<code>HealthController</code>)가 여기에 있는 게 맞습니다.
+  <br><br>
+  반면 CORS 설정은 <b>"웹 서버의 인프라 수준 설정"</b>입니다. 비즈니스 로직과 무관하고,
+  어떤 origin을 허용할지는 배포 환경에 따라 달라지는 인프라 설정입니다.
+  그래서 <b>Infrastructure</b> 레이어의 <code>config/</code>에 있는 것이 맞습니다.
+  <br><br>
+  Django로 비유하면: <code>views.py</code>에 CORS 설정을 넣지 않고, <code>settings.py</code>에 넣는 것과 같은 논리입니다.
+</div>
+
+<h4>레이어별 config 위치 판단 기준</h4>
+<table>
+<tr><th>설정 종류</th><th>올바른 레이어</th><th>이유</th></tr>
+<tr><td>CORS</td><td>infrastructure/config</td><td>웹 서버 인프라 설정</td></tr>
+<tr><td>Jackson (JSON 직렬화)</td><td>infrastructure/config</td><td>직렬화 방식은 인프라 결정</td></tr>
+<tr><td>캐시 설정</td><td>infrastructure/config</td><td>캐시 백엔드는 인프라</td></tr>
+<tr><td>API 응답 포맷 커스텀</td><td>presentation/config</td><td>HTTP 표현 계층의 관심사</td></tr>
+<tr><td>인증/인가 필터</td><td>infrastructure/config</td><td>보안은 인프라 (Spring Security)</td></tr>
+</table>
+
+<h3 id="rv-snake">Jackson snake_case 설정</h3>
+
+<h4>무엇이 바뀌었나</h4>
+<p><code>application.yml</code>에 아래 설정이 추가되었습니다:</p>
+
+<pre><code><span class="kw">spring</span>:
+  <span class="kw">jackson</span>:
+    <span class="fn">property-naming-strategy</span>: <span class="str">SNAKE_CASE</span></code></pre>
+
+<div class="box box-info">
+  <strong>이 설정이 하는 일</strong>
+  Kotlin 코드에서는 <b>camelCase</b>를 씁니다: <code>imageUrl</code>, <code>sourceUrl</code>, <code>parserUsed</code>.
+  하지만 REST API의 JSON 응답에서는 <b>snake_case</b>가 표준입니다: <code>image_url</code>, <code>source_url</code>, <code>parser_used</code>.
+  <br><br>
+  이 설정이 없으면 Jackson(JSON 라이브러리)이 Kotlin 필드명을 그대로 JSON 키로 씁니다:
+<pre><code><span class="cm">// 설정 없을 때 (camelCase)</span>
+{ <span class="str">"imageUrl"</span>: <span class="str">"..."</span>, <span class="str">"sourceUrl"</span>: <span class="str">"..."</span> }
+
+<span class="cm">// SNAKE_CASE 설정 후</span>
+{ <span class="str">"image_url"</span>: <span class="str">"..."</span>, <span class="str">"source_url"</span>: <span class="str">"..."</span> }</code></pre>
+</div>
+
+<div class="box box-compare">
+  <strong>Django DRF와 비교</strong>
+  Django는 Python 자체가 snake_case 관습이라 이런 변환이 필요 없습니다.
+  모델 필드 <code>image_url</code>이 그대로 JSON에 <code>"image_url"</code>로 나갑니다.
+  <br><br>
+  하지만 Spring/Kotlin은 camelCase 관습이므로, API를 통해 프론트엔드(TypeScript, snake_case 선호)와
+  통신하려면 이 변환이 필수입니다. 한 줄의 설정으로 프로젝트 전체에 적용되므로,
+  각 필드마다 <code>@JsonProperty("image_url")</code>를 붙일 필요가 없습니다.
+</div>
+
+<div class="box box-tip">
+  <strong>리뷰에서 배운 핵심 원칙들 정리</strong>
+  <ol style="margin:0.3rem 0 0; padding-left:1.2rem;">
+    <li><b>금액은 항상 Long</b>: JVM에서 돈을 다룰 때 Int는 위험. 오버플로우는 디버깅 지옥</li>
+    <li><b>공통 상태 없으면 interface</b>: sealed class 대신 sealed interface가 더 유연</li>
+    <li><b>인프라 설정은 infrastructure/config에</b>: Presentation은 비즈니스 관련 HTTP만 담당</li>
+    <li><b>네이밍 전략은 글로벌 설정으로</b>: 개별 어노테이션보다 application.yml 한 줄이 유지보수에 유리</li>
+  </ol>
+</div>
+
+</main>
+</div>
+
+</body>
+</html>
