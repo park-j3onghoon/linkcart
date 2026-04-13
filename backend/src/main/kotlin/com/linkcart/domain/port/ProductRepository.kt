@@ -1,4 +1,4 @@
-package com.linkcart.application.port
+package com.linkcart.domain.port
 
 import com.linkcart.domain.entity.Product
 
