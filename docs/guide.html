@@ -1100,46 +1100,288 @@ def execute(url):
 <div class="diagram">
   <div class="layer-stack">
     <div class="lyr lyr-p">
-      <strong>Presentation</strong> — HTTP 요청/응답 처리<br>
-      <span class="desc">@RestController, Request/Response DTO<br>Django의 views.py + serializers.py</span>
+      <strong>Presentation</strong> — "사용자와 만나는 곳"<br>
+      <span class="desc">Controller (URL/요청 처리), Request/Response DTO<br>Django의 views.py + urls.py</span>
     </div>
     <div class="arrow-d">▼ 호출</div>
     <div class="lyr lyr-a">
-      <strong>Application</strong> — 비즈니스 유스케이스<br>
-      <span class="desc">@Service, interface(Port), sealed class<br>Django의 services.py (만들어 쓴다면)</span>
+      <strong>Application</strong> — "비즈니스 로직"<br>
+      <span class="desc">UseCase (워크플로우 조합), Service (개별 비즈니스 로직)<br>UseCase는 여러 Service를 조합할 수 있음</span>
+    </div>
+    <div class="arrow-d">▼ 사용 (interface를 통해)</div>
+    <div class="lyr lyr-d">
+      <strong>Domain</strong> — "핵심 규칙 + 계약서"<br>
+      <span class="desc">Entity (data class), Value Object, <b>Interface (계약)</b><br>"상품이란 무엇인가" + "파서는 이런 규격을 따라야 한다"</span>
     </div>
     <div class="arrow-d">▲ 구현 (의존성 역전!)</div>
     <div class="lyr lyr-i">
-      <strong>Infrastructure</strong> — 외부 시스템 연동<br>
-      <span class="desc">@Component, API 호출, Jsoup, 캐시<br>"바깥 세상과 통신하는 모든 것"</span>
-    </div>
-    <div class="arrow-d">▼ 사용</div>
-    <div class="lyr lyr-d">
-      <strong>Domain</strong> — 핵심 비즈니스 규칙<br>
-      <span class="desc">data class, enum class (어노테이션 없음!)<br>"상품이란 무엇인가"를 정의</span>
+      <strong>Infrastructure</strong> — "외부 세계와 연결"<br>
+      <span class="desc">Domain의 interface를 구현하는 구현체<br>DB, API 호출, HTML 파싱, 캐시 등</span>
     </div>
   </div>
 </div>
 
-<h3 id="a-dep">의존성 규칙</h3>
+<h3 id="a-dep">의존성 규칙 (상세)</h3>
 
-<div class="box box-warn">
-  <strong>절대 규칙: 안쪽 레이어는 바깥쪽을 모른다</strong>
-  <b>Domain</b>은 Application, Infrastructure, Presentation을 import하면 안 됩니다.<br>
-  <b>Application</b>은 Infrastructure, Presentation을 import하면 안 됩니다.<br>
-  <b>Infrastructure</b>가 Application의 <code>interface</code>를 구현합니다 (의존성 역전).
+<p>
+  이것이 클린 아키텍처의 <b>가장 중요한 규칙</b>입니다.
+  코드를 잘 짜는 것보다 <b>의존성 방향을 지키는 것</b>이 더 중요합니다.
+</p>
+
+<h4>규칙: 안쪽 레이어는 바깥쪽을 절대 모른다</h4>
+
+<div class="diagram">
+<pre style="text-align:left;background:transparent;border:none;color:var(--text);font-size:0.88rem;line-height:1.8;">
+<span class="cm">누가 누구를 알 수 있는가? (→ = "알고 있다" = import 할 수 있다)</span>
+
+<span style="color:var(--accent);">Presentation</span> → <span style="color:var(--purple);">Application</span> → <span style="color:var(--green);">Domain</span> ← <span style="color:var(--orange);">Infrastructure</span>
+                                     <span style="color:var(--green);">  ↑</span>
+                                <span style="color:var(--orange);">Infrastructure가 Domain의</span>
+                                <span style="color:var(--orange);">interface를 구현 (의존성 역전)</span>
+
+<b>화살표 방향 = import 방향 = 의존성 방향</b>
+
+<span style="color:var(--green);">✅ 허용</span>                          <span style="color:var(--red);">❌ 금지</span>
+Presentation → Application       Application → Infrastructure
+Presentation → Domain            Domain → Application
+Application → Domain             Domain → Presentation
+Infrastructure → Domain          Domain → Infrastructure
+</pre>
 </div>
 
-<pre><code><span class="cm">// ✅ 올바른 의존 방향</span>
-<span class="cm">// ProductController(Presentation) → ParseProductUseCase(Application) → Product(Domain)</span>
+<h4>구체적인 예시: "이 import가 왜 금지인가?"</h4>
 
-<span class="cm">// ✅ 의존성 역전</span>
-<span class="cm">// OgParser(Infrastructure) implements ProductParser(Application의 interface)</span>
+<div class="box box-tip">
+  <strong>✅ 올바른 의존: Application → Domain</strong>
+  <p>UseCase가 Domain의 엔티티와 인터페이스를 사용합니다.</p>
+<pre><code><span class="cm">// application/usecase/ParseProductUseCase.kt</span>
+<span class="kw">package</span> com.linkcart.application.usecase
 
-<span class="cm">// ❌ 금지!</span>
-<span class="cm">// Product(Domain)에서 Spring 어노테이션 사용</span>
-<span class="cm">// ParseProductUseCase(Application)에서 OgParser(Infrastructure) 직접 import</span>
+<span class="kw">import</span> com.linkcart.domain.entity.Product         <span class="cm">// ✅ Domain 엔티티 사용 OK</span>
+<span class="kw">import</span> com.linkcart.domain.port.ProductParser      <span class="cm">// ✅ Domain 인터페이스 사용 OK</span>
+
+<span class="an">@Service</span>
+<span class="kw">class</span> <span class="tp">ParseProductUseCase</span>(
+    <span class="kw">private val</span> parser: <span class="tp">ProductParser</span>,  <span class="cm">// interface! 구현체가 뭔지 모름</span>
+) {
+    <span class="kw">fun</span> <span class="fn">execute</span>(url: <span class="tp">String</span>): <span class="tp">Product</span> {
+        <span class="kw">return</span> parser.parse(url)  <span class="cm">// interface의 메서드 호출</span>
+    }
+}
 </code></pre>
+  <b>핵심</b>: UseCase는 <code>ProductParser</code>라는 <b>interface(계약)</b>만 알고 있습니다.
+  실제로 쿠팡 API를 호출하는지, OG 태그를 파싱하는지 <b>전혀 모릅니다</b>.
+</div>
+
+<div class="box box-tip">
+  <strong>✅ 올바른 의존 (의존성 역전): Infrastructure → Domain</strong>
+  <p>Infrastructure가 Domain에서 정의한 interface를 구현합니다.</p>
+<pre><code><span class="cm">// infrastructure/parser/OgParser.kt</span>
+<span class="kw">package</span> com.linkcart.infrastructure.parser
+
+<span class="kw">import</span> com.linkcart.domain.port.ProductParser      <span class="cm">// ✅ Domain 인터페이스 가져오기 OK</span>
+<span class="kw">import</span> com.linkcart.domain.entity.Product           <span class="cm">// ✅ Domain 엔티티 가져오기 OK</span>
+<span class="kw">import</span> org.jsoup.Jsoup                              <span class="cm">// ✅ 외부 라이브러리 사용 OK (Infrastructure니까)</span>
+
+<span class="an">@Component</span>
+<span class="kw">class</span> <span class="tp">OgParser</span> : <span class="tp">ProductParser</span> {       <span class="cm">// Domain의 interface를 구현!</span>
+    <span class="kw">override fun</span> <span class="fn">parse</span>(url: <span class="tp">String</span>): <span class="tp">Product</span> {
+        <span class="kw">val</span> doc = Jsoup.connect(url).get()  <span class="cm">// Jsoup은 Infrastructure에서만 사용</span>
+        <span class="cm">// ... OG 태그 파싱 로직 ...</span>
+    }
+}
+</code></pre>
+  <b>핵심</b>: OgParser는 Domain의 <code>ProductParser</code> interface를 <b>구현(implements)</b>합니다.
+  이것이 <b>"의존성 역전"</b>입니다 — 구현체(Infrastructure)가 계약(Domain)에 의존합니다.
+</div>
+
+<div class="box box-warn">
+  <strong>❌ 금지: Application → Infrastructure (직접 의존)</strong>
+<pre><code><span class="cm">// application/usecase/ParseProductUseCase.kt</span>
+<span class="kw">package</span> com.linkcart.application.usecase
+
+<span class="kw">import</span> com.linkcart.infrastructure.parser.OgParser  <span class="cm">// ❌ 절대 금지!!!</span>
+<span class="cm">//     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
+<span class="cm">//     Application이 Infrastructure를 직접 import하고 있음!</span>
+
+<span class="kw">class</span> <span class="tp">ParseProductUseCase</span> {
+    <span class="kw">private val</span> parser = OgParser()  <span class="cm">// ❌ 구현체를 직접 생성!</span>
+}
+</code></pre>
+  <b>왜 금지?</b><br>
+  UseCase가 "OgParser"라는 <b>구체적 구현</b>에 묶여버립니다.<br>
+  나중에 쿠팡 API 파서로 바꾸려면? UseCase 코드를 수정해야 합니다.<br>
+  테스트하려면? 진짜 HTTP 요청이 발생합니다.<br>
+  <b>→ interface를 통해 간접적으로 사용해야 합니다.</b>
+</div>
+
+<div class="box box-warn">
+  <strong>❌ 금지: Domain → 아무 바깥 레이어</strong>
+<pre><code><span class="cm">// domain/entity/Product.kt</span>
+<span class="kw">package</span> com.linkcart.domain.entity
+
+<span class="kw">import</span> org.springframework.stereotype.Component    <span class="cm">// ❌ Domain에서 Spring import 금지!</span>
+<span class="kw">import</span> com.linkcart.application.dto.ParseResult   <span class="cm">// ❌ Domain에서 Application import 금지!</span>
+<span class="kw">import</span> com.linkcart.infrastructure.parser.OgParser <span class="cm">// ❌ Domain에서 Infrastructure import 금지!</span>
+
+<span class="cm">// Domain은 순수 Kotlin만 사용. 프레임워크, 외부 라이브러리 의존 없음.</span>
+</code></pre>
+  <b>왜 금지?</b><br>
+  Domain은 "비즈니스의 핵심 규칙"입니다.<br>
+  Spring을 FastAPI로 바꿔도, Jsoup을 다른 라이브러리로 바꿔도<br>
+  <b>Domain은 한 글자도 바뀌면 안 됩니다.</b>
+</div>
+
+<h4>의존성 역전 — 왜 필요한가?</h4>
+
+<p>
+  "의존성 역전"이 어려운 이유는 <b>실행 흐름과 의존성 방향이 반대</b>이기 때문입니다.
+</p>
+
+<div class="diagram">
+<pre style="text-align:left;background:transparent;border:none;color:var(--text);font-size:0.88rem;line-height:2;">
+<b>실행 흐름 (런타임에 코드가 실행되는 순서)</b>
+<span style="color:var(--accent);">Controller</span> → <span style="color:var(--purple);">UseCase</span> → <span style="color:var(--orange);">OgParser</span> → 인터넷에서 HTML 가져옴
+<span class="cm">                          ↑ 실제로 실행되는 건 OgParser</span>
+
+<b>의존성 방향 (코드에서 import하는 방향)</b>
+<span style="color:var(--accent);">Controller</span> → <span style="color:var(--purple);">UseCase</span> → <span style="color:var(--green);">ProductParser (interface)</span> ← <span style="color:var(--orange);">OgParser</span>
+<span class="cm">                          ↑ UseCase가 아는 건 interface뿐!</span>
+<span class="cm">                                                        ↑ OgParser가 interface를 구현</span>
+
+<b>핵심: 실행은 → 방향이지만, OgParser의 의존성은 ← 방향 (역전!)</b>
+</pre>
+</div>
+
+<div class="box box-info">
+  <strong>비유: 콘센트와 플러그</strong>
+  <p>
+    <b>Domain의 interface = 콘센트(규격)</b>입니다.<br>
+    "이 구멍 모양에 맞는 플러그만 꽂을 수 있어"라는 계약.<br><br>
+    <b>Infrastructure의 구현체 = 플러그(제품)</b>입니다.<br>
+    삼성 충전기든, LG 충전기든, 콘센트 규격만 맞으면 꽂을 수 있습니다.<br><br>
+    <b>Application의 UseCase = 전자제품</b>입니다.<br>
+    "전기가 필요해"라고만 말하고, 어떤 충전기가 꽂혀있는지 신경 안 씁니다.<br><br>
+    <b>Spring DI = 누군가 알아서 플러그를 꽂아주는 사람</b>입니다.<br>
+    OgParser를 꽂을지, CoupangApiClient를 꽂을지 Spring이 결정해서 넣어줍니다.
+  </p>
+</div>
+
+<h4>이 프로젝트의 각 레이어와 역할</h4>
+
+<table>
+  <tr><th>레이어</th><th>뭐가 있는가</th><th>규칙</th></tr>
+  <tr>
+    <td style="color:var(--green);font-weight:bold;">Domain</td>
+    <td>
+      <b>Entity</b>: <code>Product</code> (상품)<br>
+      <b>Value Object</b>: <code>Money</code> (가격), <code>Mall</code> (쇼핑몰)<br>
+      <b>Interface</b>: <code>ProductParser</code> (파서 계약), <code>ProductRepository</code> (저장소 계약)
+    </td>
+    <td>
+      순수 Kotlin만. Spring 어노테이션 ❌<br>
+      외부 라이브러리 import ❌<br>
+      다른 레이어 import ❌
+    </td>
+  </tr>
+  <tr>
+    <td style="color:var(--purple);font-weight:bold;">Application</td>
+    <td>
+      <b>UseCase</b>: <code>ParseProductUseCase</code> (파싱 워크플로우)<br>
+      <b>Service</b>: 개별 비즈니스 로직 (UseCase가 조합)<br>
+      <b>DTO</b>: <code>ParseResult</code> (파싱 결과 sealed interface)
+    </td>
+    <td>
+      Domain만 import ✅<br>
+      Infrastructure import ❌<br>
+      UseCase는 여러 Service를 조합 가능<br>
+      <code>@Service</code> 어노테이션 사용
+    </td>
+  </tr>
+  <tr>
+    <td style="color:var(--orange);font-weight:bold;">Infrastructure</td>
+    <td>
+      <b>구현체</b>: <code>OgParser</code>, <code>CoupangApiClient</code>, <code>ElevenStApiClient</code><br>
+      <b>팩토리</b>: <code>ParserFactory</code><br>
+      <b>설정</b>: <code>WebConfig</code> (CORS), 캐시
+    </td>
+    <td>
+      Domain의 interface를 구현 ✅<br>
+      외부 라이브러리 사용 ✅ (Jsoup 등)<br>
+      Application import ❌<br>
+      <code>@Component</code> 어노테이션 사용
+    </td>
+  </tr>
+  <tr>
+    <td style="color:var(--accent);font-weight:bold;">Presentation</td>
+    <td>
+      <b>Controller</b>: <code>ProductController</code> (URL 라우팅)<br>
+      <b>DTO</b>: <code>ParseRequest</code>, <code>ParseResponse</code> (JSON 변환)
+    </td>
+    <td>
+      Application, Domain import ✅<br>
+      Infrastructure import ❌<br>
+      <code>@RestController</code> 어노테이션 사용
+    </td>
+  </tr>
+</table>
+
+<h4>Application의 UseCase와 Service 관계</h4>
+
+<pre><code><span class="cm">// UseCase = 워크플로우. 여러 Service를 조합하는 오케스트레이터</span>
+<span class="an">@Service</span>
+<span class="kw">class</span> <span class="tp">ParseProductUseCase</span>(
+    <span class="kw">private val</span> parserFactory: <span class="tp">ParserFactory</span>,   <span class="cm">// 파서 선택</span>
+    <span class="kw">private val</span> cacheService: <span class="tp">CacheService</span>,     <span class="cm">// 캐시 확인</span>
+) {
+    <span class="kw">fun</span> <span class="fn">execute</span>(url: <span class="tp">String</span>): <span class="tp">ParseResult</span> {
+        <span class="cm">// 1. 캐시 확인</span>
+        cacheService.get(url)?.let { <span class="kw">return</span> it }
+
+        <span class="cm">// 2. 파서 선택 + 파싱</span>
+        <span class="kw">val</span> parser = parserFactory.getParser(url)
+        <span class="kw">val</span> result = parser.parse(url)
+
+        <span class="cm">// 3. 캐시 저장</span>
+        cacheService.put(url, result)
+        <span class="kw">return</span> result
+    }
+}
+
+<span class="cm">// Service = 개별 비즈니스 로직 단위. UseCase에 의해 조합됨</span>
+<span class="cm">// 예: 가격 비교 Service, 알림 Service 등 (Phase 2+에서 추가 가능)</span>
+</code></pre>
+
+<h4>전체 의존성 지도 — 누가 누구를 import하는가</h4>
+
+<div class="diagram">
+<pre style="text-align:left;background:transparent;border:none;color:var(--text);font-size:0.82rem;line-height:1.9;">
+<span style="color:var(--accent);font-weight:bold;">Presentation</span>
+  <span style="color:var(--accent);">ProductController</span>
+    <span class="cm">import</span> <span style="color:var(--purple);">application</span>.usecase.ParseProductUseCase  <span style="color:var(--green);">✅ 바깥→안쪽</span>
+    <span class="cm">import</span> <span style="color:var(--green);">domain</span>.entity.Product                   <span style="color:var(--green);">✅ 바깥→안쪽</span>
+
+<span style="color:var(--purple);font-weight:bold;">Application</span>
+  <span style="color:var(--purple);">ParseProductUseCase</span>
+    <span class="cm">import</span> <span style="color:var(--green);">domain</span>.port.ProductParser               <span style="color:var(--green);">✅ 바깥→안쪽</span>
+    <span class="cm">import</span> <span style="color:var(--green);">domain</span>.entity.Product                   <span style="color:var(--green);">✅ 바깥→안쪽</span>
+    <span class="cm">import</span> <span style="color:var(--orange);">infrastructure</span>.parser.OgParser          <span style="color:var(--red);">❌ 금지! 바깥→바깥</span>
+
+<span style="color:var(--green);font-weight:bold;">Domain</span>
+  <span style="color:var(--green);">Product</span>
+    <span class="cm">import</span> <span style="color:var(--green);">domain</span>.vo.Money                         <span style="color:var(--green);">✅ 같은 레이어</span>
+    <span class="cm">import</span> org.springframework.xxx                   <span style="color:var(--red);">❌ 금지! 프레임워크 의존</span>
+  <span style="color:var(--green);">ProductParser (interface)</span>
+    <span class="cm">import</span> <span style="color:var(--green);">domain</span>.entity.Product                   <span style="color:var(--green);">✅ 같은 레이어</span>
+
+<span style="color:var(--orange);font-weight:bold;">Infrastructure</span>
+  <span style="color:var(--orange);">OgParser</span>
+    <span class="cm">import</span> <span style="color:var(--green);">domain</span>.port.ProductParser               <span style="color:var(--green);">✅ 안쪽 의존 (의존성 역전!)</span>
+    <span class="cm">import</span> <span style="color:var(--green);">domain</span>.entity.Product                   <span style="color:var(--green);">✅ 안쪽 의존</span>
+    <span class="cm">import</span> org.jsoup.Jsoup                          <span style="color:var(--green);">✅ 외부 라이브러리 OK</span>
+    <span class="cm">import</span> <span style="color:var(--purple);">application</span>.usecase.ParseProductUseCase  <span style="color:var(--red);">❌ 금지! 바깥→바깥</span>
+</pre>
+</div>
 
 <!-- ============================= -->
 <!-- 데이터 흐름                     -->
