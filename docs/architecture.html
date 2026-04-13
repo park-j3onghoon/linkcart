@@ -283,7 +283,7 @@
         </div>
         <div class="file">
           <div class="file-name">ParseResult.kt</div>
-          <div class="file-role">sealed class — 결과 표현</div>
+          <div class="file-role">sealed interface — 결과 표현</div>
         </div>
         <div class="file">
           <div class="file-name">ProductRepository.kt</div>
@@ -394,7 +394,7 @@
     </div>
     <div class="flow-arrow">▼</div>
     <div class="flow-step" style="border-color:var(--purple);">
-      <strong>ParseResult</strong> (sealed class)<br>
+      <strong>ParseResult</strong> (sealed interface)<br>
       <span style="color:var(--green);">Success</span> &middot;
       <span style="color:var(--yellow);">Partial</span> &middot;
       <span style="color:var(--red);">Failure</span>
@@ -434,21 +434,20 @@
   <div class="tree"><pre>
 <span class="dir">backend/src/main/kotlin/com/linkcart/</span>
 ├── <span class="kt">LinkcartBackendApplication.kt</span>  <span class="comment">← 앱 진입점</span>
-├── <span class="kt">WebConfig.kt</span>                    <span class="comment">← CORS 설정</span>
 │
 ├── <span class="dir">domain/</span>                         <span class="comment">← 순수 Kotlin (프레임워크 의존 없음)</span>
 │   ├── <span class="dir">entity/</span>
 │   │   └── <span class="kt">Product.kt</span>              <span class="comment">← data class Product(name, price, imageUrl, sourceUrl, mall)</span>
 │   └── <span class="dir">vo/</span>
-│       ├── <span class="kt">Money.kt</span>                <span class="comment">← data class Money(amount, currency)</span>
-│       └── <span class="kt">Mall.kt</span>                 <span class="comment">← enum class Mall { COUPANG, ELEVENST, GENERIC }</span>
+│       ├── <span class="kt">Money.kt</span>                <span class="comment">← data class Money(amount: Long, currency)</span>
+│       └── <span class="kt">Mall.kt</span>                 <span class="comment">← enum class Mall + @JsonValue 소문자 직렬화</span>
 │
 ├── <span class="dir">application/</span>                    <span class="comment">← 비즈니스 로직 (@Service, interface)</span>
 │   ├── <span class="dir">port/</span>
 │   │   ├── <span class="kt">ProductParser.kt</span>        <span class="comment">← interface: canParse(url), parse(url)</span>
 │   │   └── <span class="kt">ProductRepository.kt</span>    <span class="comment">← interface: save(), findByUrl() — Phase 2용</span>
 │   ├── <span class="dir">dto/</span>
-│   │   └── <span class="kt">ParseResult.kt</span>          <span class="comment">← sealed class: Success | Partial | Failure</span>
+│   │   └── <span class="kt">ParseResult.kt</span>          <span class="comment">← sealed interface: Success | Partial | Failure</span>
 │   └── <span class="dir">usecase/</span>
 │       └── <span class="kt">ParseProductUseCase.kt</span>  <span class="comment">← @Service: 파싱 + 폴백 체인</span>
 │
@@ -459,6 +458,8 @@
 │   ├── <span class="dir">parser/</span>
 │   │   ├── <span class="kt">OgParser.kt</span>             <span class="comment">← Jsoup으로 OG 태그 파싱 (폴백)</span>
 │   │   └── <span class="kt">ParserFactory.kt</span>        <span class="comment">← URL 도메인 → 파서 선택</span>
+│   ├── <span class="dir">config/</span>
+│   │   └── <span class="kt">WebConfig.kt</span>            <span class="comment">← CORS 설정</span>
 │   └── <span class="dir">cache/</span>
 │       └── <span class="comment">(Caffeine + @Cacheable — Spring이 자동 관리)</span>
 │

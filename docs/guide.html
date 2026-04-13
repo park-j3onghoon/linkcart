@@ -152,7 +152,7 @@ td code { font-size: 0.82rem; }
   <a href="#k-class" class="sub">클래스</a>
   <a href="#k-data" class="sub">data class</a>
   <a href="#k-enum" class="sub">enum class</a>
-  <a href="#k-sealed" class="sub">sealed class</a>
+  <a href="#k-sealed" class="sub">sealed class/interface</a>
   <a href="#k-interface" class="sub">interface</a>
   <a href="#k-when" class="sub">when 식</a>
   <a href="#k-collection" class="sub">컬렉션</a>
@@ -537,7 +537,7 @@ product = Product("iPhone", 1500000)
 </table>
 
 <pre><code><span class="kw">data class</span> <span class="tp">Money</span>(
-    <span class="kw">val</span> amount: <span class="tp">Int</span>,
+    <span class="kw">val</span> amount: <span class="tp">Long</span>,
     <span class="kw">val</span> currency: <span class="tp">String</span> = <span class="str">"KRW"</span>,
 )
 
@@ -583,7 +583,7 @@ class Mall(Enum):
 </div>
 
 <!-- sealed -->
-<h3 id="k-sealed">sealed class — "이 중 하나" (가장 강력한 기능)</h3>
+<h3 id="k-sealed">sealed class / sealed interface — "이 중 하나" (가장 강력한 기능)</h3>
 
 <p>
   <b>Python에는 완벽한 대응 개념이 없습니다.</b>
@@ -591,20 +591,22 @@ class Mall(Enum):
 </p>
 
 <pre><code><span class="cm">// 파싱 결과는 반드시 이 3가지 중 하나</span>
-<span class="kw">sealed class</span> <span class="tp">ParseResult</span> {
+<span class="cm">// sealed class 또는 sealed interface 둘 다 가능</span>
+<span class="cm">// 이 프로젝트에서는 sealed interface를 사용 (공유 상태가 없으므로)</span>
+<span class="kw">sealed interface</span> <span class="tp">ParseResult</span> {
     <span class="kw">data class</span> <span class="tp">Success</span>(
         <span class="kw">val</span> product: <span class="tp">Product</span>,
         <span class="kw">val</span> parserUsed: <span class="tp">String</span>,
-    ) : <span class="tp">ParseResult</span>()
+    ) : <span class="tp">ParseResult</span>
 
     <span class="kw">data class</span> <span class="tp">Partial</span>(
         <span class="kw">val</span> fields: <span class="tp">Map</span>&lt;<span class="tp">String</span>, <span class="tp">Any</span>&gt;,
         <span class="kw">val</span> parserUsed: <span class="tp">String</span>,
-    ) : <span class="tp">ParseResult</span>()
+    ) : <span class="tp">ParseResult</span>
 
     <span class="kw">data class</span> <span class="tp">Failure</span>(
         <span class="kw">val</span> reason: <span class="tp">String</span>,
-    ) : <span class="tp">ParseResult</span>()
+    ) : <span class="tp">ParseResult</span>
 }
 </code></pre>
 
@@ -1766,7 +1768,7 @@ def test_money_equality():
   <tr><td><code>val</code></td><td><code>CONST = ...</code> (관례)</td><td>불변 변수 (재할당 불가)</td></tr>
   <tr><td><code>var</code></td><td><code>x = ...</code></td><td>가변 변수</td></tr>
   <tr><td><code>data class</code></td><td><code>@dataclass</code></td><td>데이터 객체 (equals/hashCode/toString 자동)</td></tr>
-  <tr><td><code>sealed class</code></td><td><code>Union[A, B]</code> (근사치)</td><td>제한된 하위 타입 + 컴파일러 체크</td></tr>
+  <tr><td><code>sealed interface</code></td><td><code>Union[A, B]</code> (근사치)</td><td>제한된 하위 타입 + 컴파일러 체크</td></tr>
   <tr><td><code>enum class</code></td><td><code>Enum</code></td><td>열거형</td></tr>
   <tr><td><code>interface</code></td><td><code>Protocol</code> / <code>ABC</code></td><td>구현 계약</td></tr>
   <tr><td><code>when</code></td><td><code>match/case</code></td><td>패턴 매칭</td></tr>
