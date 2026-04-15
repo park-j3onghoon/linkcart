@@ -1,19 +1,15 @@
 package com.linkcart.infrastructure.adapter.parser
 
 import com.linkcart.domain.port.ProductParser
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 
 @Component
 class ParserFactory(
     private val parsers: List<ProductParser>,
+    @Qualifier("ogParser")
+    private val fallbackParser: ProductParser,
 ) {
-
-    private val fallbackParser: ProductParser
-
-    init {
-        fallbackParser = parsers.firstOrNull { it.canParse("") && it.canParse("https://any.com") }
-            ?: throw IllegalStateException("폴백 파서가 등록되어 있지 않습니다")
-    }
 
     fun getParser(url: String): ProductParser {
         return parsers
@@ -21,4 +17,6 @@ class ParserFactory(
             .firstOrNull { it.canParse(url) }
             ?: fallbackParser
     }
+
+    fun getFallback(): ProductParser = fallbackParser
 }

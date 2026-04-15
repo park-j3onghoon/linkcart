@@ -9,18 +9,18 @@ import kotlin.test.assertSame
 class ParserFactoryTest {
 
     private val ogParser = OgParser()
-    private val factory = ParserFactory(listOf(ogParser))
+    private val factory = ParserFactory(listOf(ogParser), ogParser)
 
     @Test
     fun `returns fallback parser for unknown domain`() {
         val parser = factory.getParser("https://example.com/product/123")
-        assertIs<OgParser>(parser)
+        assertSame(ogParser, parser)
     }
 
     @Test
     fun `returns fallback for coupang URL when no dedicated parser exists`() {
         val parser = factory.getParser("https://www.coupang.com/vp/products/123")
-        assertIs<OgParser>(parser)
+        assertSame(ogParser, parser)
     }
 
     @Test
@@ -29,7 +29,7 @@ class ParserFactoryTest {
             override fun canParse(url: String) = url.contains("coupang.com")
             override fun parse(url: String) = ParseResult.Failure("stub", "test")
         }
-        val factoryWithDedicated = ParserFactory(listOf(dedicated, ogParser))
+        val factoryWithDedicated = ParserFactory(listOf(dedicated, ogParser), ogParser)
 
         val parser = factoryWithDedicated.getParser("https://www.coupang.com/vp/products/123")
         assertSame(dedicated, parser)
@@ -41,9 +41,14 @@ class ParserFactoryTest {
             override fun canParse(url: String) = url.contains("coupang.com")
             override fun parse(url: String) = ParseResult.Failure("stub", "test")
         }
-        val factoryWithDedicated = ParserFactory(listOf(dedicated, ogParser))
+        val factoryWithDedicated = ParserFactory(listOf(dedicated, ogParser), ogParser)
 
         val parser = factoryWithDedicated.getParser("https://example.com/product/123")
-        assertIs<OgParser>(parser)
+        assertSame(ogParser, parser)
+    }
+
+    @Test
+    fun `getFallback returns configured fallback parser`() {
+        assertSame(ogParser, factory.getFallback())
     }
 }

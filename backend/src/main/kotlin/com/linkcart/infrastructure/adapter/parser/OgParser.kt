@@ -11,7 +11,7 @@ import java.io.IOException
 import java.net.InetAddress
 import java.net.URI
 
-@Component
+@Component("ogParser")
 class OgParser : ProductParser {
 
     override fun canParse(url: String): Boolean = true

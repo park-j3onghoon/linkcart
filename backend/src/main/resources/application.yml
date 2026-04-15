@@ -16,3 +16,11 @@ springdoc:
     path: /openapi.json
   swagger-ui:
     path: /docs
+
+linkcart:
+  coupang:
+    api-key: ${LINKCART_COUPANG_API_KEY:}
+    base-url: ${LINKCART_COUPANG_BASE_URL:https://api-gateway.coupang.com}
+  elevenst:
+    api-key: ${LINKCART_ELEVENST_API_KEY:}
+    base-url: ${LINKCART_ELEVENST_BASE_URL:https://openapi.11st.co.kr/openapi}
