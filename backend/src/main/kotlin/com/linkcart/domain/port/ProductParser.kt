@@ -1,6 +1,6 @@
-package com.linkcart.application.port
+package com.linkcart.domain.port
 
-import com.linkcart.application.dto.ParseResult
+import com.linkcart.domain.model.ParseResult
 
 interface ProductParser {
     fun canParse(url: String): Boolean

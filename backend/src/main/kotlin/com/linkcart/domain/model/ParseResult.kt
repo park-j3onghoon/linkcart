@@ -1,4 +1,4 @@
-package com.linkcart.application.dto
+package com.linkcart.domain.model
 
 import com.linkcart.domain.entity.Product
 
