@@ -1,11 +1,11 @@
 package com.linkcart.application.usecase
 
+import com.linkcart.application.parser.ParserFactory
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.port.ProductParser
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
-import com.linkcart.infrastructure.adapter.parser.ParserFactory
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

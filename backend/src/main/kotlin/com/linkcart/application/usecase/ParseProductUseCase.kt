@@ -1,7 +1,7 @@
 package com.linkcart.application.usecase
 
+import com.linkcart.application.parser.ParserFactory
 import com.linkcart.domain.model.ParseResult
-import com.linkcart.infrastructure.adapter.parser.ParserFactory
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 
@@ -10,7 +10,11 @@ class ParseProductUseCase(
     private val parserFactory: ParserFactory,
 ) {
 
-    @Cacheable("products", key = "#url")
+    @Cacheable(
+        cacheNames = ["products"],
+        key = "#url",
+        unless = "#result instanceof T(com.linkcart.domain.model.ParseResult\$Failure)",
+    )
     fun execute(url: String): ParseResult {
         val primaryParser = parserFactory.getParser(url)
         val primaryResult = primaryParser.parse(url)

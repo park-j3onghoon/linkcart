@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PR 3 - 전용 API 파서와 폴백 체인</title>
+  <style>
+    :root {
+      --bg: #f7f5ef;
+      --panel: #fffdf8;
+      --text: #1e1f1c;
+      --muted: #5d6158;
+      --line: #d7d1c2;
+      --accent: #1d5c4c;
+      --accent-soft: #e4f0eb;
+      --code: #f1ede2;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+      background: linear-gradient(180deg, #f3efe4 0%, #f9f7f0 100%);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 14px 40px rgba(37, 32, 22, 0.06);
+    }
+
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.3; }
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.35rem; color: var(--accent); }
+    p, li { margin: 0 0 12px; }
+    ul { margin: 0; padding-left: 20px; }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      background: #fffaf1;
+    }
+
+    code, pre {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: var(--code);
+      border-radius: 12px;
+    }
+
+    code {
+      padding: 2px 6px;
+      font-size: 0.95em;
+    }
+
+    pre {
+      padding: 16px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      margin: 0;
+    }
+
+    .flow {
+      padding: 18px;
+      border-radius: 16px;
+      background: #1f2b28;
+      color: #f8f5ef;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <div class="eyebrow">PR 3</div>
+      <h1>전용 API 파서와 OG 폴백 체인</h1>
+      <p>
+        이번 PR의 핵심은 "쇼핑몰마다 더 정확한 정보원을 먼저 시도하고, 실패하면 범용 OG 파서로 안전하게 내려온다"는 흐름을
+        백엔드에 고정하는 것이다. 그래서 쿠팡과 11번가는 전용 API 클라이언트를 두고, 그 외 URL이나 전용 API 실패는
+        <code>OgParser</code>가 받는다.
+      </p>
+      <div class="flow">URL 입력
+  -> ParserFactory가 도메인 보고 전용 파서 선택
+  -> 전용 API 시도
+  -> 실패하면 OgParser로 fallback
+  -> Success / Partial / Failure 반환</div>
+    </section>
+
+    <section>
+      <h2>왜 이렇게 나누나</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>전용 API</h3>
+          <p>가격, 재고 상태처럼 쇼핑몰이 공식으로 주는 값은 HTML보다 신뢰도가 높다. 따라서 지원몰은 API를 먼저 본다.</p>
+        </div>
+        <div class="card">
+          <h3>OG 파서</h3>
+          <p>지원하지 않는 몰도 받아야 하므로 범용 폴백이 필요하다. OG 태그는 완전하지 않아도 최소한의 제목/이미지를 얻을 수 있다.</p>
+        </div>
+        <div class="card">
+          <h3>UseCase의 역할</h3>
+          <p>파서 구현체 안에 분기 로직을 흩뿌리지 않고, <code>ParseProductUseCase</code>가 "시도 -> 실패 시 재시도" 정책을 소유한다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>쿠팡 클라이언트에서 중요한 점</h2>
+      <p>
+        쿠팡은 단순 API 키가 아니라 HMAC 서명 기반 인증을 쓴다. 그래서 <code>access key</code>, <code>secret key</code>,
+        요청 경로, 시각을 합쳐 <code>Authorization</code> 헤더를 만들어야 한다.
+      </p>
+      <pre><code>linkcart:
+  coupang:
+    access-key: ${LINKCART_COUPANG_ACCESS_KEY:}
+    secret-key: ${LINKCART_COUPANG_SECRET_KEY:}</code></pre>
+      <p>
+        이 구조의 장점은 시크릿이 코드에 박히지 않는다는 점이다. 로컬, 스테이징, 운영이 같은 코드로 가고,
+        환경변수만 다르게 주입하면 된다.
+      </p>
+    </section>
+
+    <section>
+      <h2>Fallback Chain 패턴</h2>
+      <p>
+        전용 파서가 실패했다고 해서 요청 전체를 즉시 실패시키면, 외부 API 장애가 곧 사용자 장애가 된다. 그래서
+        <code>ParseProductUseCase</code>는 전용 파서 실패를 감지하면 OG 파서를 한 번 더 시도한다.
+      </p>
+      <pre><code>@Cacheable(
+    cacheNames = ["products"],
+    key = "#url",
+    unless = "#result instanceof T(com.linkcart.domain.model.ParseResult$Failure)",
+)
+fun execute(url: String): ParseResult</code></pre>
+      <p>
+        실패 결과는 캐시하지 않는 것도 중요하다. 외부 API가 잠깐 흔들렸을 때 실패를 오래 보관하면, 실제 복구 뒤에도 계속 실패를
+        재사용하게 되기 때문이다.
+      </p>
+    </section>
+
+    <section>
+      <h2>ParserFactory를 application 레이어로 옮긴 이유</h2>
+      <p>
+        파서를 실제로 고르는 판단은 "이 유스케이스에서 어떤 전략을 먼저 쓸 것인가"에 가깝다. 그래서
+        <code>ParseProductUseCase</code>가 infrastructure 구현체에 직접 의존하지 않도록,
+        <code>ParserFactory</code>를 application 레이어로 올려 의존성 방향을 바로잡았다.
+      </p>
+    </section>
+
+    <section>
+      <h2>테스트가 검증하는 것</h2>
+      <ul>
+        <li><code>CoupangApiClientTest</code>: HMAC 헤더 생성, 정상 응답, HTTP 오류, 타임아웃, 삭제/품절 상품 처리</li>
+        <li><code>ElevenStApiClientTest</code>: XML 응답 파싱, 오류 응답, 상품 없음 처리</li>
+        <li><code>ParseProductUseCaseTest</code>: 전용 성공, OG 폴백 성공, Partial, 전체 실패, 타임아웃</li>
+        <li><code>ParseProductUseCaseCachingTest</code>: 성공 결과 캐시, 실패 결과 비캐시</li>
+      </ul>
+      <p>
+        여기서 핵심은 프레임워크 자체를 테스트하지 않고, 우리가 추가한 정책과 분기만 검증한다는 점이다.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

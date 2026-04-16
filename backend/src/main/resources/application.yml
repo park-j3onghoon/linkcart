@@ -19,7 +19,8 @@ springdoc:
 
 linkcart:
   coupang:
-    api-key: ${LINKCART_COUPANG_API_KEY:}
+    access-key: ${LINKCART_COUPANG_ACCESS_KEY:}
+    secret-key: ${LINKCART_COUPANG_SECRET_KEY:}
     base-url: ${LINKCART_COUPANG_BASE_URL:https://api-gateway.coupang.com}
   elevenst:
     api-key: ${LINKCART_ELEVENST_API_KEY:}

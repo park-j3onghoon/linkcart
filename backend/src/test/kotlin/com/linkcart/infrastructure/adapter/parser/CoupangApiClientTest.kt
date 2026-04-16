@@ -5,15 +5,20 @@ import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.vo.Mall
 import org.junit.jupiter.api.Test
 import org.springframework.boot.web.client.RestTemplateBuilder
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.client.MockRestServiceServer
+import org.springframework.test.web.client.match.MockRestRequestMatchers.header
 import org.springframework.test.web.client.match.MockRestRequestMatchers.method
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
 import org.springframework.test.web.client.response.MockRestResponseCreators.withStatus
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.ResourceAccessException
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -24,8 +29,14 @@ class CoupangApiClientTest {
     fun `normal API response returns Success`() {
         val parser = parser()
         val server = MockRestServiceServer.createServer(parser.restTemplate)
-        server.expect(requestTo("https://coupang.test/v1/affiliate/products/123456"))
+        server.expect(requestTo("https://coupang.test/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/123456"))
             .andExpect(method(HttpMethod.GET))
+            .andExpect(
+                header(
+                    HttpHeaders.AUTHORIZATION,
+                    "CEA algorithm=HmacSHA256, access-key=test-access, signed-date=240102T030405Z, signature=585cc27a40a213b6dbcc6786ddd544dd788ba14e3412f1166fcce3380d9043e9",
+                ),
+            )
             .andRespond(withSuccess(successBody(name = "아이패드 에어", price = 899000L), MediaType.APPLICATION_JSON))
 
         val result = parser.parse("https://www.coupang.com/vp/products/123456")
@@ -42,7 +53,7 @@ class CoupangApiClientTest {
     fun `HTTP error returns Failure`() {
         val parser = parser()
         val server = MockRestServiceServer.createServer(parser.restTemplate)
-        server.expect(requestTo("https://coupang.test/v1/affiliate/products/123456"))
+        server.expect(requestTo("https://coupang.test/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/123456"))
             .andRespond(withStatus(HttpStatus.NOT_FOUND))
 
         val result = parser.parse("https://www.coupang.com/vp/products/123456")
@@ -56,7 +67,7 @@ class CoupangApiClientTest {
     fun `timeout returns Failure`() {
         val parser = parser()
         val server = MockRestServiceServer.createServer(parser.restTemplate)
-        server.expect(requestTo("https://coupang.test/v1/affiliate/products/123456"))
+        server.expect(requestTo("https://coupang.test/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/123456"))
             .andRespond { _ -> throw ResourceAccessException("Read timed out") }
 
         val result = parser.parse("https://www.coupang.com/vp/products/123456")
@@ -70,7 +81,7 @@ class CoupangApiClientTest {
     fun `deleted product returns Failure`() {
         val parser = parser()
         val server = MockRestServiceServer.createServer(parser.restTemplate)
-        server.expect(requestTo("https://coupang.test/v1/affiliate/products/123456"))
+        server.expect(requestTo("https://coupang.test/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/123456"))
             .andRespond(withSuccess(successBody(name = "삭제된 상품", deleted = true), MediaType.APPLICATION_JSON))
 
         val result = parser.parse("https://www.coupang.com/vp/products/123456")
@@ -84,7 +95,7 @@ class CoupangApiClientTest {
     fun `sold out product returns Failure`() {
         val parser = parser()
         val server = MockRestServiceServer.createServer(parser.restTemplate)
-        server.expect(requestTo("https://coupang.test/v1/affiliate/products/123456"))
+        server.expect(requestTo("https://coupang.test/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/123456"))
             .andRespond(withSuccess(successBody(name = "품절 상품", soldOut = true), MediaType.APPLICATION_JSON))
 
         val result = parser.parse("https://www.coupang.com/vp/products/123456")
@@ -96,11 +107,14 @@ class CoupangApiClientTest {
 
     private fun parser(): CoupangApiClient =
         CoupangApiClient(
-            apiKey = "test-key",
+            accessKey = "test-access",
+            secretKey = "test-secret",
             baseUrl = "https://coupang.test",
             restTemplateBuilder = RestTemplateBuilder(),
             objectMapper = jacksonObjectMapper(),
-        )
+        ).also {
+            it.clock = Clock.fixed(Instant.parse("2024-01-02T03:04:05Z"), ZoneOffset.UTC)
+        }
 
     private fun successBody(
         name: String,
@@ -111,12 +125,21 @@ class CoupangApiClientTest {
         {
           "code": "SUCCESS",
           "data": {
-            "name": "$name",
-            "price": $price,
-            "currency": "KRW",
-            "imageUrl": "https://image.coupangcdn.com/test.jpg",
-            "soldOut": $soldOut,
-            "deleted": $deleted
+            "displayProductName": "$name",
+            "status": "${if (deleted) "DELETED" else "APPROVED"}",
+            "statusName": "${if (deleted) "상품삭제" else "승인완료"}",
+            "items": [
+              {
+                "salePrice": $price,
+                "maximumBuyCount": ${if (soldOut) 0 else 10},
+                "images": [
+                  {
+                    "imageType": "REPRESENTATION",
+                    "cdnPath": "https://image.coupangcdn.com/test.jpg"
+                  }
+                ]
+              }
+            ]
           }
         }
     """.trimIndent()

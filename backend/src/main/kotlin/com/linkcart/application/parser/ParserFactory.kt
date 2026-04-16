@@ -1,4 +1,4 @@
-package com.linkcart.infrastructure.adapter.parser
+package com.linkcart.application.parser
 
 import com.linkcart.domain.port.ProductParser
 import org.springframework.beans.factory.annotation.Qualifier

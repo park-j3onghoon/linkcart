@@ -1,5 +1,6 @@
 package com.linkcart.infrastructure.adapter.parser
 
+import com.linkcart.application.parser.ParserFactory
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.port.ProductParser
 import org.junit.jupiter.api.Test

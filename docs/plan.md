@@ -57,7 +57,7 @@ linkcart/                       # ~/git/linkcart (GitHub: park-j3onghoon/linkcar
 │   │   │       └── parse_product.py    # 파싱 유스케이스 + fallback chain
 │   │   ├── infrastructure/
 │   │   │   ├── clients/
-│   │   │   │   ├── coupang_api.py      # 쿠팡 Partners API 클라이언트
+│   │   │   │   ├── coupang_api.py      # 쿠팡 Seller Open API(HMAC) 클라이언트
 │   │   │   │   └── elevenst_api.py     # 11번가 Open API 클라이언트
 │   │   │   ├── parsers/
 │   │   │   │   ├── og_parser.py        # Open Graph 범용 파서 (폴백)
@@ -143,7 +143,7 @@ class ProductRepository(Protocol):
 
 | 클라이언트/파서 | 대상 | 방식 |
 |----------------|------|------|
-| CoupangApiClient | coupang.com | **쿠팡 Partners API** (어필리에이트) |
+| CoupangApiClient | coupang.com | **쿠팡 Seller Open API(HMAC)** |
 | ElevenStApiClient | 11st.co.kr | **11번가 Open API** (어필리에이트) |
 | OGParser | 모든 URL (폴백) | Open Graph meta 태그 파싱 (httpx + BS4) |
 | ParserFactory | URL 라우팅 | URL 도메인 기반으로 API 클라이언트 또는 OG 파서 선택 |
@@ -266,7 +266,7 @@ if (existing) {
 - TTL 캐시 구현 + 테스트
 
 ### PR 3: 백엔드 어필리에이트 API 클라이언트 (TDD)
-- CoupangApiClient (쿠팡 Partners API)
+- CoupangApiClient (쿠팡 Seller Open API(HMAC))
 - ElevenStApiClient (11번가 Open API)
 - 각 클라이언트 단위 테스트 (mock API 응답)
 - 에러 케이스 테스트: API 실패, 타임아웃, 상품 삭제됨, 품절

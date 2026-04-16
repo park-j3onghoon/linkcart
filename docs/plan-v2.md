@@ -80,10 +80,10 @@ cd backend && ./gradlew test
 ## PR 3: 어필리에이트 API 클라이언트 + Fallback Chain (TDD)
 
 ### PR 제목
-`쿠팡/11번가 어필리에이트 API 클라이언트 및 폴백 체인 구현`
+`쿠팡 Open API/11번가 Open API 클라이언트 및 폴백 체인 구현`
 
 ### 목적
-- 쿠팡 Partners API, 11번가 Open API 클라이언트를 구현하여 전용 쇼핑몰 파싱을 지원한다.
+- 쿠팡 Seller Open API(HMAC), 11번가 Open API 클라이언트를 구현하여 전용 쇼핑몰 파싱을 지원한다.
 - ParserFactory에 쿠팡/11번가 파서를 등록하고 URL 도메인 기반 라우팅을 완성한다.
 - ParseProductUseCase에서 전용 파서 실패 시 OgParser로 폴백하는 체인을 구현한다.
 
@@ -91,11 +91,11 @@ cd backend && ./gradlew test
 
 | # | 파일 | 내용 |
 |---|------|------|
-| 1 | `infrastructure/adapter/parser/CoupangApiClient.kt` | `@Component`, `ProductParser` 구현. 쿠팡 Partners API 호출. `canParse(url)`: coupang.com 도메인 매칭. API key는 `application.yml`에서 `@Value`로 주입. |
+| 1 | `infrastructure/adapter/parser/CoupangApiClient.kt` | `@Component`, `ProductParser` 구현. 쿠팡 Seller Open API(HMAC) 호출. `canParse(url)`: coupang.com 도메인 매칭. access key/secret key는 `application.yml`에서 `@Value`로 주입. |
 | 2 | `infrastructure/adapter/parser/ElevenStApiClient.kt` | `@Component`, `ProductParser` 구현. 11번가 Open API 호출. `canParse(url)`: 11st.co.kr 도메인 매칭. |
-| 3 | `infrastructure/adapter/parser/ParserFactory.kt` | 수정: 쿠팡/11번가 파서 등록. `getParser(url)` + `getFallback(): OgParser` 추가. |
+| 3 | `application/parser/ParserFactory.kt` | 수정: 쿠팡/11번가 파서 등록. `getParser(url)` + `getFallback(): OgParser` 추가. |
 | 4 | `application/usecase/ParseProductUseCase.kt` | `@Service`. ParserFactory에서 파서 선택 → 파싱 시도 → 실패 시 OgParser 폴백. `@Cacheable`로 TTL 캐시 적용. |
-| 5 | `application.yml` | 어필리에이트 API key placeholder 추가 (`linkcart.coupang.api-key`, `linkcart.elevenst.api-key`). |
+| 5 | `application.yml` | 외부 API 설정 placeholder 추가 (`linkcart.coupang.access-key`, `linkcart.coupang.secret-key`, `linkcart.elevenst.api-key`). |
 | 6 | `test/.../CoupangApiClientTest.kt` | Mock API 응답으로 단위 테스트: 정상 응답, API 실패(4xx/5xx), 타임아웃, 상품 삭제됨, 품절 상품. |
 | 7 | `test/.../ElevenStApiClientTest.kt` | Mock API 응답으로 단위 테스트: 정상 응답, API 실패, 타임아웃, 상품 없음. |
 | 8 | `test/.../ParseProductUseCaseTest.kt` | Fallback chain 통합 테스트 5개 시나리오: (1) 전용 파서 성공 (2) 전용 실패 → OG 폴백 성공 (3) 전용 실패 → OG 부분 성공 (4) 전용 + OG 모두 실패 (5) 타임아웃 처리. |
@@ -141,11 +141,11 @@ cd backend && ./gradlew test
 ### 학습 문서
 `docs/pr/pr3.html` 작성 -- 아래 개념 정리:
 - **RestTemplate vs WebClient**: Spring에서 HTTP 클라이언트 선택 기준, 동기/비동기 차이
-- **@Value와 외부 설정**: API key를 코드에 하드코딩하지 않고 application.yml에서 주입하는 패턴
+- **@Value와 외부 설정**: access key/secret key를 코드에 하드코딩하지 않고 application.yml에서 주입하는 패턴
 - **@Cacheable**: Spring Cache 추상화, Caffeine TTL 캐시와의 연동, 캐시 키 전략
 - **Fallback Chain 패턴**: 전용 파서 → 범용 폴백의 전략, 장애 격리 관점
 - **Mock 테스트**: interface 기반 의존성을 mock으로 교체하여 단위 테스트하는 방법
-- **어필리에이트 API 구조**: 쿠팡 Partners API / 11번가 Open API의 인증 방식과 응답 구조
+- **전용 API 구조**: 쿠팡 Seller Open API(HMAC) / 11번가 Open API의 인증 방식과 응답 구조
 
 ### 티니어 면접 매핑
 | 학습 내용 | 티니어 요구사항 |
