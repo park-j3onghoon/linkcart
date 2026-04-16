@@ -1687,7 +1687,7 @@ Infrastructure → Domain          Domain → Infrastructure
     <div class="flow-arr">▼</div>
     <div class="flow-box" style="border-color:var(--orange);">④ <strong>ParserFactory</strong> (Infrastructure)<br>URL에 "coupang.com" 포함? → <code>CoupangApiClient</code> 선택</div>
     <div class="flow-arr">▼</div>
-    <div class="flow-box" style="border-color:var(--pink);">⑤ <strong>CoupangApiClient</strong> (Infrastructure)<br>쿠팡 Partners API 호출 → 상품 정보 수신</div>
+    <div class="flow-box" style="border-color:var(--pink);">⑤ <strong>CoupangApiClient</strong> (Infrastructure)<br>쿠팡 Seller Open API(HMAC) 호출 → 상품 정보 수신</div>
     <div class="flow-arr">▼</div>
     <div class="flow-box" style="border-color:var(--green);">⑥ <strong>ParseResult.Success</strong> (Application DTO)<br><code>Product(name="iPhone 16", price=Money(1500000), ...)</code></div>
     <div class="flow-arr">▼</div>
