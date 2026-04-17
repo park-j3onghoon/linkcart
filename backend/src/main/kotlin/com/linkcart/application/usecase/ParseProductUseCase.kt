@@ -25,8 +25,7 @@ class ParseProductUseCase(
             return primaryResult
         }
 
-        val fallbackParser = parserResolver.fallbackParser
-        val fallbackResult = fallbackParser.parse(url)
+        val fallbackResult = parserResolver.fallbackParser.parse(url)
         return when (fallbackResult) {
             is ParseResult.Success -> fallbackResult.copy(fallbackUsed = true)
             is ParseResult.Partial -> fallbackResult.copy(fallbackUsed = true)
