@@ -9,7 +9,7 @@ import kotlin.test.assertSame
 
 class ParserFactoryTest {
 
-    private val ogParser = OgParser()
+    private val ogParser = OgParser(SafeUrlChecker())
     private val factory = ParserFactory(listOf(ogParser), ogParser)
 
     @Test
