@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PR 6 - Expo React Native 모바일 UI</title>
+  <style>
+    :root {
+      --bg: #091525;
+      --panel: #10213a;
+      --panel-light: #ffffff;
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --line: rgba(255,255,255,0.12);
+      --accent: #67e8f9;
+      --accent-soft: rgba(103,232,249,0.14);
+      --code: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(103,232,249,0.18), transparent 30%),
+        linear-gradient(180deg, #091525 0%, #10213a 100%);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+    section {
+      background: rgba(16, 33, 58, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 18px 44px rgba(2, 6, 23, 0.28);
+    }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.35; }
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.3rem; color: var(--accent); }
+    p, li { margin: 0 0 12px; }
+    ul { margin: 0; padding-left: 20px; }
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 18px;
+      background: rgba(255,255,255,0.04);
+    }
+    code, pre {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+    }
+    code { padding: 2px 6px; }
+    pre {
+      padding: 16px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      margin: 0;
+    }
+    .flow {
+      padding: 18px;
+      border-radius: 16px;
+      background: #020617;
+      color: #f8fafc;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <div class="eyebrow">PR 6</div>
+      <h1>Expo React Native 모바일 UI 구현</h1>
+      <p>
+        이번 PR은 PR 5에서 만든 웹 흐름을 모바일 앱으로 옮기는 단계다. 핵심은 UI를 새로 짜는 것이 아니라,
+        <code>@linkcart/shared</code>의 API 클라이언트와 URL 검증을 그대로 재사용하고, 저장소만
+        <code>AsyncStorage</code>로 바꿔 모바일 문법에 맞게 감싼다는 점이다.
+      </p>
+      <div class="flow">shared createApiClient / validateUrl
+  -> mobile useProducts
+  -> useAsyncStorage
+  -> UrlInput / ParseProgress / ProductList / ProductCard
+  -> App.tsx에서 SafeArea + StatusBar + FlatList 조합</div>
+    </section>
+
+    <section>
+      <h2>React Native는 왜 div 대신 View/Text/Image를 쓰나</h2>
+      <p>
+        React DOM은 브라우저 노드를 그리지만, React Native는 iOS/Android의 네이티브 위젯 트리를 그린다.
+        그래서 웹의 <code>div</code>, <code>p</code>, <code>img</code> 대신
+        <code>View</code>, <code>Text</code>, <code>Image</code>를 사용한다.
+      </p>
+      <p>
+        즉 JSX 문법은 비슷하지만 렌더링 타겟이 다르다. 이번 PR의 카드 컴포넌트도 구조는 웹과 유사하지만,
+        실제 구현은 <code>StyleSheet</code>와 RN 컴포넌트 조합으로 다시 작성했다.
+      </p>
+    </section>
+
+    <section>
+      <h2>AsyncStorage는 localStorage와 무엇이 다른가</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>비동기 API</h3>
+          <p>
+            브라우저의 <code>localStorage</code>는 동기 API지만,
+            <code>AsyncStorage</code>는 Promise 기반 비동기 저장소다.
+            그래서 hydration 단계 자체가 비동기 흐름이 된다.
+          </p>
+        </div>
+        <div class="card">
+          <h3>손상 데이터 복구</h3>
+          <p>
+            이번 PR의 <code>useAsyncStorage</code>는 JSON 파싱 실패 시 값을 지우고 초기값으로 복구한다.
+            저장 실패도 앱 전체 실패로 번지지 않게 메모리 상태만 유지한다.
+          </p>
+        </div>
+      </div>
+      <pre><code>useAsyncStorage
+  -> AsyncStorage.getItem(key)
+  -> JSON.parse
+  -> 실패 시 removeItem + initialValue fallback
+  -> 성공 시 state hydrate
+  -> 이후 state 변경분을 setItem으로 저장</code></pre>
+    </section>
+
+    <section>
+      <h2>FlatList를 왜 중심에 두나</h2>
+      <p>
+        모바일에서 목록이 길어지면 모든 카드를 한 번에 그리는 방식은 메모리와 스크롤 성능에 불리하다.
+        <code>FlatList</code>는 화면에 필요한 아이템만 가상화해서 렌더링한다.
+      </p>
+      <p>
+        그래서 App 전체를 <code>ScrollView</code>로 감싸지 않고, 헤더를
+        <code>FlatList.ListHeaderComponent</code>로 붙여서 리스트가 스크롤의 중심이 되도록 구성했다.
+        이게 모바일 성능 관점에서 더 boring하고 안전한 구조다.
+      </p>
+    </section>
+
+    <section>
+      <h2>shared 패키지 재사용이 실제로 주는 이점</h2>
+      <ul>
+        <li>URL 형식 검증 규칙을 웹과 모바일이 따로 유지하지 않는다.</li>
+        <li>파싱 API 호출/에러 매핑 로직을 한 곳에서 공유한다.</li>
+        <li>백엔드 OpenAPI가 바뀌면 generated 타입 한 번 갱신해서 양쪽 UI가 함께 따라간다.</li>
+      </ul>
+      <p>
+        즉 "웹 따로, 모바일 따로"가 아니라, 플랫폼별로 달라야 하는 저장소와 렌더링만 각자 구현하고 나머지는 공유하는 구조다.
+      </p>
+    </section>
+
+    <section>
+      <h2>Jest + React Native Testing Library로 무엇을 검증했나</h2>
+      <ul>
+        <li><code>useAsyncStorage.test.tsx</code>: 초기값, 저장 후 재마운트 복원, 손상 데이터 fallback</li>
+        <li><code>UrlInput.test.tsx</code>: 빈 입력 에러, 정상 URL 제출</li>
+        <li><code>ProductCard.test.tsx</code>: 상품 정보 정상 렌더링</li>
+      </ul>
+      <p>
+        모바일 테스트는 브라우저 DOM이 아니라 네이티브 컴포넌트 트리를 검사한다는 점만 다르고,
+        "입력 → 상태 변화 → 화면 결과"를 계약으로 고정한다는 원리는 웹과 같다.
+      </p>
+    </section>
+  </main>
+</body>
+</html>
