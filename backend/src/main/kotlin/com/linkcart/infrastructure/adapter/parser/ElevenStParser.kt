@@ -1,8 +1,9 @@
 package com.linkcart.infrastructure.adapter.parser
 
+import com.linkcart.application.parser.ParserNames
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
-import com.linkcart.domain.port.ProductParser
+import com.linkcart.domain.port.DedicatedProductParser
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import org.jsoup.Jsoup
@@ -22,13 +23,13 @@ import java.nio.charset.StandardCharsets
 import java.time.Duration
 
 @Component
-class ElevenStApiClient(
+class ElevenStParser(
     @Value("\${linkcart.elevenst.api-key:}")
     private val apiKey: String,
     @Value("\${linkcart.elevenst.base-url:https://openapi.11st.co.kr/openapi}")
     private val baseUrl: String,
     restTemplateBuilder: RestTemplateBuilder,
-) : ProductParser {
+) : DedicatedProductParser {
 
     internal val restTemplate = restTemplateBuilder
         .connectTimeout(Duration.ofSeconds(3))
@@ -140,6 +141,6 @@ class ElevenStApiClient(
         ParseResult.Failure(reason = reason, parserUsed = PARSER_NAME)
 
     companion object {
-        const val PARSER_NAME = "11st-api"
+        const val PARSER_NAME = ParserNames.ELEVENST
     }
 }

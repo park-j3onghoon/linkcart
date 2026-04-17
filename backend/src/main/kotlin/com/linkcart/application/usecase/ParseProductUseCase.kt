@@ -1,13 +1,14 @@
 package com.linkcart.application.usecase
 
-import com.linkcart.application.parser.ParserFactory
+import com.linkcart.application.parser.ParserResolver
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.port.FallbackProductParser
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 
 @Service
 class ParseProductUseCase(
-    private val parserFactory: ParserFactory,
+    private val parserResolver: ParserResolver,
 ) {
 
     @Cacheable(
@@ -16,14 +17,15 @@ class ParseProductUseCase(
         unless = "#result instanceof T(com.linkcart.domain.model.ParseResult\$Failure)",
     )
     fun execute(url: String): ParseResult {
-        val primaryParser = parserFactory.getParser(url)
+        val primaryParser = parserResolver.resolve(url)
         val primaryResult = primaryParser.parse(url)
-        val fallbackParser = parserFactory.getFallback()
 
-        if (primaryResult !is ParseResult.Failure || primaryParser === fallbackParser) {
+        // primary가 폴백 자체이면 재시도 의미 없음 — 단락.
+        if (primaryResult !is ParseResult.Failure || primaryParser is FallbackProductParser) {
             return primaryResult
         }
 
+        val fallbackParser = parserResolver.fallbackParser
         val fallbackResult = fallbackParser.parse(url)
         return when (fallbackResult) {
             is ParseResult.Success -> fallbackResult.copy(fallbackUsed = true)

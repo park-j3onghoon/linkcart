@@ -1,9 +1,10 @@
 package com.linkcart.infrastructure.adapter.parser
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.linkcart.application.parser.ParserNames
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
-import com.linkcart.domain.port.ProductParser
+import com.linkcart.domain.port.DedicatedProductParser
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import org.springframework.beans.factory.annotation.Value
@@ -28,7 +29,7 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 @Component
-class CoupangApiClient(
+class CoupangParser(
     @Value("\${linkcart.coupang.access-key:}")
     private val accessKey: String,
     @Value("\${linkcart.coupang.secret-key:}")
@@ -37,7 +38,7 @@ class CoupangApiClient(
     private val baseUrl: String,
     restTemplateBuilder: RestTemplateBuilder,
     private val objectMapper: ObjectMapper,
-) : ProductParser {
+) : DedicatedProductParser {
 
     internal val restTemplate = restTemplateBuilder
         .connectTimeout(Duration.ofSeconds(3))
@@ -207,7 +208,7 @@ class CoupangApiClient(
     }
 
     companion object {
-        const val PARSER_NAME = "coupang-api"
+        const val PARSER_NAME = ParserNames.COUPANG
         private const val HMAC_SHA_256 = "HmacSHA256"
         private const val PRODUCT_QUERY_PATH_TEMPLATE =
             "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/{sellerProductId}"
