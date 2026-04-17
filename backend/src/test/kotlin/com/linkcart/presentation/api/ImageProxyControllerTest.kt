@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.context.annotation.Import
@@ -30,6 +31,7 @@ import org.springframework.web.client.RestTemplate
     controllers = [ImageProxyController::class],
     excludeFilters = [Filter(type = FilterType.ASSIGNABLE_TYPE, classes = [WebConfig::class])],
 )
+@AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler::class)
 class ImageProxyControllerTest {
 
