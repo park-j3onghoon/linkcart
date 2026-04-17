@@ -1,6 +1,7 @@
 plugins {
 	kotlin("jvm") version "1.9.25"
 	kotlin("plugin.spring") version "1.9.25"
+	kotlin("plugin.jpa") version "1.9.25"
 	id("org.springframework.boot") version "3.5.3"
 	id("io.spring.dependency-management") version "1.1.7"
 }
@@ -18,12 +19,24 @@ repositories {
 	mavenCentral()
 }
 
+allOpen {
+	annotation("jakarta.persistence.Entity")
+	annotation("jakarta.persistence.MappedSuperclass")
+	annotation("jakarta.persistence.Embeddable")
+}
+
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-cache")
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
+
+	// DB
+	implementation("org.flywaydb:flyway-core")
+	implementation("org.flywaydb:flyway-database-postgresql")
+	runtimeOnly("org.postgresql:postgresql")
 
 	// OG 태그 파싱 (폴백)
 	implementation("org.jsoup:jsoup:1.18.3")
@@ -35,7 +48,11 @@ dependencies {
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
+	testImplementation("org.testcontainers:junit-jupiter")
+	testImplementation("org.testcontainers:postgresql")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -47,4 +64,16 @@ kotlin {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	// Rancher Desktop 사용 시 Testcontainers가 Docker socket을 자동 감지하도록 보조.
+	// DOCKER_HOST가 이미 설정되어 있으면 그대로 사용, 아니면 ~/.rd/docker.sock 우선 탐지.
+	val existingDockerHost = System.getenv("DOCKER_HOST").orEmpty()
+	if (existingDockerHost.isBlank()) {
+		val rancherSocket = file("${System.getProperty("user.home")}/.rd/docker.sock")
+		if (rancherSocket.exists()) {
+			environment("DOCKER_HOST", "unix://${rancherSocket.absolutePath}")
+			println("[test] DOCKER_HOST auto-set to unix://${rancherSocket.absolutePath}")
+		}
+	} else {
+		environment("DOCKER_HOST", existingDockerHost)
+	}
 }
