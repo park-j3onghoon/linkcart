@@ -114,4 +114,43 @@ class ImageProxyControllerTest {
             .andExpect(jsonPath("$.code").value("upstream_error"))
             .andExpect(jsonPath("$.message").value("이미지 응답이 아닙니다"))
     }
+
+    @Test
+    fun `missing content type returns 502 response`() {
+        val headers = HttpHeaders()
+        given(safeUrlChecker.isSafe("https://images.example.com/no-content-type")).willReturn(true)
+        given(
+            restTemplate.exchange(
+                "https://images.example.com/no-content-type",
+                HttpMethod.GET,
+                HttpEntity.EMPTY,
+                ByteArray::class.java,
+            ),
+        ).willReturn(ResponseEntity(ByteArray(0), headers, HttpStatus.OK))
+
+        mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/no-content-type"))
+            .andExpect(status().isBadGateway)
+            .andExpect(jsonPath("$.code").value("upstream_error"))
+            .andExpect(jsonPath("$.message").value("이미지 응답이 아닙니다"))
+    }
+
+    @Test
+    fun `svg content type returns 200 response`() {
+        val svgBytes = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>".toByteArray()
+        val headers = HttpHeaders().apply { contentType = MediaType.valueOf("image/svg+xml") }
+        given(safeUrlChecker.isSafe("https://images.example.com/icon.svg")).willReturn(true)
+        given(
+            restTemplate.exchange(
+                "https://images.example.com/icon.svg",
+                HttpMethod.GET,
+                HttpEntity.EMPTY,
+                ByteArray::class.java,
+            ),
+        ).willReturn(ResponseEntity(svgBytes, headers, HttpStatus.OK))
+
+        mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/icon.svg"))
+            .andExpect(status().isOk)
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "image/svg+xml"))
+            .andExpect(content().bytes(svgBytes))
+    }
 }

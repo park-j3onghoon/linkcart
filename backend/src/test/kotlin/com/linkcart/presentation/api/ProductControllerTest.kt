@@ -153,4 +153,26 @@ class ProductControllerTest {
             .andExpect(jsonPath("$.code").value("invalid_request"))
             .andExpect(jsonPath("$.message").value("허용되지 않는 URL입니다"))
     }
+
+    @Test
+    fun `whitespace-only url returns 400 response`() {
+        mockMvc.perform(
+            post("/api/v1/products/parse")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"url":"   "}"""),
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.code").value("validation_error"))
+    }
+
+    @Test
+    fun `javascript protocol returns 400 response`() {
+        mockMvc.perform(
+            post("/api/v1/products/parse")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"url":"javascript:alert(1)"}"""),
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.code").value("validation_error"))
+    }
 }
