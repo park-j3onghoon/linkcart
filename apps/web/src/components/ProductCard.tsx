@@ -35,8 +35,11 @@ export function ProductCard({ imageSrc, product }: ProductCardProps) {
   const hasPartialFields = product.partial && Object.keys(product.partial).length > 0;
 
   return (
-    <article className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-      <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#e0f2fe,#f8fafc,#ede9fe)]">
+    <article
+      data-testid="product-card"
+      className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
+    >
+      <div className="relative flex aspect-[4/3] min-h-56 items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#e0f2fe,#f8fafc,#ede9fe)] sm:min-h-64">
         {imageSrc && !imageFailed ? (
           <Image
             src={imageSrc}
@@ -57,7 +60,7 @@ export function ProductCard({ imageSrc, product }: ProductCardProps) {
         )}
       </div>
 
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap gap-2">
           <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
             {mallLabel}
@@ -78,7 +81,7 @@ export function ProductCard({ imageSrc, product }: ProductCardProps) {
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-xl font-semibold leading-8 text-slate-950">
+          <h3 className="line-clamp-2 min-h-16 text-xl font-semibold leading-8 text-slate-950">
             {product.name ?? "상품명을 불러오지 못했습니다"}
           </h3>
           <p className="text-2xl font-semibold tracking-tight text-slate-950">
