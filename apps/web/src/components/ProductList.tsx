@@ -57,7 +57,10 @@ export function ProductList({
         </p>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div
+        data-testid="product-grid"
+        className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+      >
         {products.map((product) => (
           <ProductCard
             key={product.source_url ?? `${product.parser_used}-${product.name ?? "unknown"}`}

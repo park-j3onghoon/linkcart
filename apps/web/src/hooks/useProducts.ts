@@ -1,10 +1,14 @@
 "use client";
 
-import { createApiClient, validateUrl, type ParseResponse } from "@linkcart/shared";
+import {
+  createApiClient,
+  PRODUCTS_STORAGE_KEY,
+  validateUrl,
+  type ParseResponse,
+} from "@linkcart/shared";
 import { startTransition, useState } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 
-const STORAGE_KEY = "linkcart.products.v1";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 const apiClient = createApiClient(API_BASE_URL);
@@ -21,7 +25,7 @@ export function useProducts() {
     value: products,
     setValue: setProducts,
     isHydrated,
-  } = useLocalStorage<ParseResponse[]>(STORAGE_KEY, []);
+  } = useLocalStorage<ParseResponse[]>(PRODUCTS_STORAGE_KEY, []);
   const [phase, setPhase] = useState<ParsePhase>("idle");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
