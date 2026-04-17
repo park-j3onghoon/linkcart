@@ -10,7 +10,7 @@ export type ApiError =
   | { code: "TIMEOUT"; message: string }
   | { code: "UNKNOWN"; message: string };
 
-const DEFAULT_BASE_URL = "http://localhost:8080";
+const DEFAULT_BASE_URL = "";
 const TIMEOUT_MS = 15_000;
 
 export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {

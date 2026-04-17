@@ -1,1 +1,2 @@
-export type { Money, MallType, Product, ParseResponse } from "./product";
+export type { components, operations, paths } from "./api.gen";
+export type { MallType, Money, ParseResponse, Product } from "./product";

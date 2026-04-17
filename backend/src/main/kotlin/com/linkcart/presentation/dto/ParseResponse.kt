@@ -1,9 +1,12 @@
 package com.linkcart.presentation.dto
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.annotation.JsonNaming
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class ParseResponse(
     val name: String?,
     val price: Money?,
