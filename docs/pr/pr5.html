@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PR 5 - OpenAPI 타입 동기화와 Next.js 웹 UI</title>
+  <style>
+    :root {
+      --bg: #eef6ff;
+      --panel: #ffffff;
+      --text: #10213a;
+      --muted: #55657f;
+      --line: #d3dfef;
+      --accent: #0f6fb9;
+      --accent-soft: #dff1ff;
+      --code: #edf4fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(125, 211, 252, 0.24), transparent 35%),
+        linear-gradient(180deg, #f8fbff 0%, #eef6ff 50%, #fff4f8 100%);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+    section {
+      background: rgba(255, 255, 255, 0.84);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 18px 44px rgba(16, 33, 58, 0.08);
+    }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.35; }
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.3rem; color: var(--accent); }
+    p, li { margin: 0 0 12px; }
+    ul { margin: 0; padding-left: 20px; }
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      background: #f9fcff;
+    }
+    code, pre {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: var(--code);
+      border-radius: 12px;
+    }
+    code { padding: 2px 6px; }
+    pre {
+      padding: 16px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      margin: 0;
+    }
+    .flow {
+      padding: 18px;
+      border-radius: 16px;
+      background: #10213a;
+      color: #f8fbff;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <div class="eyebrow">PR 5</div>
+      <h1>OpenAPI 타입 동기화와 Next.js 웹 UI</h1>
+      <p>
+        이번 PR의 핵심은 "백엔드 JSON 계약을 프론트 타입으로 직접 끌어온다"는 점이다. PR 4에서 만든
+        <code>POST /api/v1/products/parse</code> 응답을 이제 수동 TypeScript 인터페이스가 아니라
+        OpenAPI codegen 결과로 읽고, 그 타입 위에서 웹 훅과 컴포넌트를 조합한다.
+      </p>
+      <div class="flow">Spring Boot DTO
+  -> /openapi.json 생성
+  -> openapi-typescript로 api.gen.ts 생성
+  -> shared 타입 래퍼(product.ts)
+  -> web 훅/useProducts
+  -> page.tsx에서 UrlInput + ParseProgress + ProductList 조합</div>
+    </section>
+
+    <section>
+      <h2>왜 OpenAPI codegen을 먼저 붙이나</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>계약 중복 제거</h3>
+          <p>
+            백엔드 DTO와 프론트 타입을 사람이 각각 관리하면 snake_case/camelCase, nullable 여부 같은 계약이 쉽게 어긋난다.
+            그래서 스펙을 한 번만 만들고, 프론트는 그 산출물을 재사용한다.
+          </p>
+        </div>
+        <div class="card">
+          <h3>런타임 계약과 문서 계약 일치</h3>
+          <p>
+            이번 PR에서는 <code>ParseResponse</code> OpenAPI 필드명이 실제 응답처럼 snake_case로 나오도록
+            백엔드 DTO에도 조정을 넣었다. 그래야 codegen 타입이 실제 JSON과 어긋나지 않는다.
+          </p>
+        </div>
+      </div>
+      <pre><code>npm run codegen --workspace @linkcart/shared
+
+packages/shared/src/types/api.gen.ts
+  -> generated schema
+packages/shared/src/types/product.ts
+  -> 프론트에서 쓰기 쉬운 래퍼 타입</code></pre>
+    </section>
+
+    <section>
+      <h2>Next.js App Router에서 page.tsx와 layout.tsx는 무슨 역할인가</h2>
+      <p>
+        Next.js App Router는 Django의 URLconf + template 입구를 파일 구조로 옮긴 느낌이다.
+        <code>layout.tsx</code>는 공통 html/body, 메타데이터, 폰트 같은 바깥 껍질이고,
+        <code>page.tsx</code>는 실제 라우트 화면의 본문이다.
+      </p>
+      <p>
+        이번 PR에서는 페이지 전체가 입력과 상태 변화에 반응해야 하므로 <code>page.tsx</code>를 client component로 두고,
+        그 안에서 커스텀 훅과 프레젠테이션 컴포넌트를 조합했다.
+      </p>
+    </section>
+
+    <section>
+      <h2>커스텀 훅 분리: useLocalStorage vs useProducts</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>useLocalStorage</h3>
+          <p>
+            저장소 접근과 hydration 상태만 맡는다. 손상된 JSON이면 초기값으로 복구하고, 저장 실패는 메모리 상태만 유지한다.
+            즉 "영속성 기술 세부사항"을 격리한다.
+          </p>
+        </div>
+        <div class="card">
+          <h3>useProducts</h3>
+          <p>
+            URL 중복 검사, API 호출, 진행 상태, 사용자 피드백을 맡는다.
+            즉 "상품 추가 유스케이스"를 프론트엔드용 상태 머신으로 표현한 훅이다.
+          </p>
+        </div>
+      </div>
+      <pre><code>useProducts
+  -> validateUrl
+  -> 중복 URL 확인
+  -> parseProduct API 호출
+  -> 성공 시 localStorage-backed state 갱신
+  -> phase / feedback 반환</code></pre>
+    </section>
+
+    <section>
+      <h2>localStorage를 안전하게 쓰는 이유</h2>
+      <p>
+        localStorage는 단순해 보이지만, 실제로는 JSON 손상, 저장소 비활성화, quota 초과 같은 실패가 생길 수 있다.
+        그래서 훅 안에서 <code>try/catch</code>로 읽기/쓰기를 감싸고, 파싱 실패 시 초기값으로 되돌린다.
+      </p>
+      <p>
+        중요한 점은 "저장 실패 = 앱 실패"로 만들지 않는 것이다. 이 PR에서는 저장이 막혀도 현재 세션의 메모리 상태는 계속 유지된다.
+      </p>
+    </section>
+
+    <section>
+      <h2>Vitest + Testing Library로 무엇을 검증했나</h2>
+      <ul>
+        <li><code>useLocalStorage.test.tsx</code>: 초기값, 저장 후 재마운트 복원, 손상 JSON fallback</li>
+        <li><code>UrlInput.test.tsx</code>: 빈 입력, 잘못된 URL, 정상 제출</li>
+        <li><code>ProductCard.test.tsx</code>: 상품 정보 렌더링, 이미지 로드 실패 시 플레이스홀더</li>
+        <li><code>LinkcartBackendApplicationTests</code>: OpenAPI 스펙이 실제 응답처럼 snake_case 필드를 노출하는지</li>
+      </ul>
+      <p>
+        즉 이번 PR은 화면만 만든 것이 아니라, 프론트와 백엔드 계약이 함께 깨지지 않도록 회귀 테스트를 붙인 것이다.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

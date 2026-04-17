@@ -1,64 +1,87 @@
-import Image from "next/image";
+"use client";
+
+import { ParseProgress } from "../components/ParseProgress";
+import { ProductList } from "../components/ProductList";
+import { UrlInput } from "../components/UrlInput";
+import { useProducts } from "../hooks/useProducts";
 
 export default function Home() {
+  const {
+    buildImageSrc,
+    feedback,
+    isHydrated,
+    isWorking,
+    phase,
+    products,
+    submitUrl,
+  } = useProducts();
+  const lastParserUsed = products[0]?.parser_used ?? "대기 중";
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="relative min-h-screen overflow-hidden">
+      <div className="absolute inset-x-0 top-[-8rem] h-72 bg-[radial-gradient(circle_at_top,_rgba(103,232,249,0.35),_transparent_58%)]" />
+      <div className="absolute right-[-8rem] top-32 h-80 w-80 rounded-full bg-[radial-gradient(circle,_rgba(56,189,248,0.18),_transparent_70%)] blur-3xl" />
+      <div className="absolute left-[-6rem] top-[28rem] h-72 w-72 rounded-full bg-[radial-gradient(circle,_rgba(244,114,182,0.12),_transparent_70%)] blur-3xl" />
+
+      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
+        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-[32px] border border-white/65 bg-white/80 p-8 shadow-[0_28px_90px_rgba(15,23,42,0.1)] backdrop-blur">
+            <p className="text-sm font-medium uppercase tracking-[0.35em] text-sky-700">
+              Linkcart Web
+            </p>
+            <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+              상품 링크 하나로, 파싱 결과와 저장 상태를 같은 화면에서 바로 확인합니다.
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+              API 응답 타입은 OpenAPI에서 생성하고, 웹 UI는 로컬 저장소를 기준으로 결과를 이어받습니다.
+              브라우저를 새로고침해도 최근 카드가 그대로 복원됩니다.
+            </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-[24px] bg-slate-950 px-5 py-4 text-white">
+                <p className="text-xs font-medium uppercase tracking-[0.28em] text-cyan-300">
+                  Stored
+                </p>
+                <p className="mt-3 text-3xl font-semibold">{products.length}</p>
+                <p className="mt-2 text-sm text-slate-300">브라우저에 저장된 상품 카드 수</p>
+              </div>
+              <div className="rounded-[24px] bg-sky-50 px-5 py-4">
+                <p className="text-xs font-medium uppercase tracking-[0.28em] text-sky-700">
+                  Last Parser
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-slate-950">{lastParserUsed}</p>
+                <p className="mt-2 text-sm text-slate-600">최근 성공 응답에서 사용된 파서</p>
+              </div>
+              <div className="rounded-[24px] bg-emerald-50 px-5 py-4">
+                <p className="text-xs font-medium uppercase tracking-[0.28em] text-emerald-700">
+                  Storage
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-slate-950">
+                  {isHydrated ? "복원 완료" : "복원 중"}
+                </p>
+                <p className="mt-2 text-sm text-slate-600">초기 진입 시 localStorage에서 데이터 로딩</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[32px] bg-slate-950 p-6 shadow-[0_28px_90px_rgba(15,23,42,0.18)]">
+            <UrlInput
+              feedback={feedback}
+              isHydrated={isHydrated}
+              isWorking={isWorking}
+              onSubmit={submitUrl}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+            <div className="mt-6">
+              <ParseProgress phase={phase} />
+            </div>
+          </div>
+        </section>
+
+        <ProductList
+          buildImageSrc={buildImageSrc}
+          isHydrated={isHydrated}
+          products={products}
+        />
       </main>
     </div>
   );
