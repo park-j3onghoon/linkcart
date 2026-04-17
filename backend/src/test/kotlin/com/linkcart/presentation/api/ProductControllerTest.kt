@@ -5,6 +5,7 @@ import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
+import com.linkcart.infrastructure.adapter.parser.SafeUrlChecker
 import com.linkcart.infrastructure.config.WebConfig
 import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.Test
@@ -34,8 +35,12 @@ class ProductControllerTest {
     @MockBean
     private lateinit var parseProductUseCase: ParseProductUseCase
 
+    @MockBean
+    private lateinit var safeUrlChecker: SafeUrlChecker
+
     @Test
     fun `successful parse returns 200 response`() {
+        given(safeUrlChecker.isSafe("https://www.coupang.com/vp/products/123")).willReturn(true)
         given(parseProductUseCase.execute("https://www.coupang.com/vp/products/123")).willReturn(
             ParseResult.Success(
                 product = Product(
@@ -89,6 +94,7 @@ class ProductControllerTest {
 
     @Test
     fun `parse failure returns 502 response`() {
+        given(safeUrlChecker.isSafe("https://www.coupang.com/vp/products/404")).willReturn(true)
         given(parseProductUseCase.execute("https://www.coupang.com/vp/products/404")).willReturn(
             ParseResult.Failure(
                 reason = "상품 정보를 가져올 수 없습니다",
@@ -108,6 +114,7 @@ class ProductControllerTest {
 
     @Test
     fun `partial parse returns 200 response with snake case partial keys`() {
+        given(safeUrlChecker.isSafe("https://example.com/product/partial")).willReturn(true)
         given(parseProductUseCase.execute("https://example.com/product/partial")).willReturn(
             ParseResult.Partial(
                 fields = mapOf(
@@ -131,5 +138,19 @@ class ProductControllerTest {
             .andExpect(jsonPath("$.partial.image_url").value("https://example.com/partial.jpg"))
             .andExpect(jsonPath("$.parser_used").value("og"))
             .andExpect(jsonPath("$.fallback_used").value(true))
+    }
+
+    @Test
+    fun `unsafe url returns 400 response`() {
+        given(safeUrlChecker.isSafe("http://127.0.0.1/test")).willReturn(false)
+
+        mockMvc.perform(
+            post("/api/v1/products/parse")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"url":"http://127.0.0.1/test"}"""),
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.code").value("invalid_request"))
+            .andExpect(jsonPath("$.message").value("허용되지 않는 URL입니다"))
     }
 }
