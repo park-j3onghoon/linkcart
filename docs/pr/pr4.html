@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PR 4 - API 엔드포인트와 이미지 프록시</title>
+  <style>
+    :root {
+      --bg: #f6f4ed;
+      --panel: #fffdf8;
+      --text: #20211d;
+      --muted: #5b6157;
+      --line: #d8d3c6;
+      --accent: #8a4b16;
+      --accent-soft: #f4e6d8;
+      --code: #f1ede4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+      background: linear-gradient(180deg, #f3efe4 0%, #faf8f2 100%);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 14px 32px rgba(33, 28, 20, 0.06);
+    }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.35; }
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.3rem; color: var(--accent); }
+    p, li { margin: 0 0 12px; }
+    ul { margin: 0; padding-left: 20px; }
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      background: #fffaf3;
+    }
+    code, pre {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: var(--code);
+      border-radius: 12px;
+    }
+    code { padding: 2px 6px; }
+    pre {
+      padding: 16px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      margin: 0;
+    }
+    .flow {
+      padding: 18px;
+      border-radius: 16px;
+      background: #261f19;
+      color: #fffaf2;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <div class="eyebrow">PR 4</div>
+      <h1>상품 파싱 API와 이미지 프록시</h1>
+      <p>
+        이번 PR의 목적은 PR 3에서 만든 파싱 로직을 실제 HTTP API로 꺼내는 것이다. 백엔드 안쪽에서는
+        <code>ParseProductUseCase</code>가 이미 동작하고 있었고, PR 4에서는 그 결과를 프론트엔드가 바로 호출할 수 있는
+        JSON 응답으로 바꾸는 presentation 레이어를 추가했다.
+      </p>
+      <div class="flow">POST /api/v1/products/parse
+  -> ParseRequest 검증
+  -> ParseProductUseCase 실행
+  -> Success / Partial 은 ParseResponse
+  -> Failure 는 502 ErrorResponse
+
+GET /api/v1/images/proxy
+  -> URL 검증 + SSRF 차단
+  -> 외부 이미지 fetch
+  -> image/* 만 전달</div>
+    </section>
+
+    <section>
+      <h2>왜 DTO를 따로 두나</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>도메인과 API 계약 분리</h3>
+          <p>
+            도메인의 <code>Product</code>, <code>ParseResult</code>는 내부 계산 모델이다. 반면 API는
+            snake_case, 에러 코드, nullable 필드 같은 외부 계약이 필요하다. 그래서 presentation DTO를 따로 둔다.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Partial 응답 처리</h3>
+          <p>
+            OG 폴백은 일부 필드만 얻을 수 있으므로, 응답 DTO는 top-level 필드를 nullable로 열고
+            <code>partial</code> 맵으로 어떤 값이 채워졌는지도 함께 보낸다.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>@Valid와 전역 예외 처리</h2>
+      <p>
+        요청이 잘못됐을 때 각 컨트롤러마다 <code>try/catch</code>를 반복하면, 에러 포맷이 조금씩 달라진다.
+        그래서 검증 실패, 잘못된 요청 본문, upstream 오류를 <code>GlobalExceptionHandler</code>에서 한 번에 모아
+        <code>ErrorResponse(code, message)</code> 형태로 통일했다.
+      </p>
+      <pre><code>data class ParseRequest(
+    @field:NotBlank
+    @field:Pattern(regexp = "^https?://.+")
+    val url: String,
+)</code></pre>
+    </section>
+
+    <section>
+      <h2>이미지 프록시가 왜 필요한가</h2>
+      <p>
+        OG 이미지 주소를 프론트가 직접 열면 CORS, 핫링크, 차단 정책 문제를 만날 수 있다. 그래서 백엔드가 한 번 받아서
+        전달하는 프록시 엔드포인트를 만든다.
+      </p>
+      <p>
+        다만 이 패턴은 SSRF(Server-Side Request Forgery) 위험이 바로 따라온다. 사용자가 임의 URL을 넣을 수 있기 때문이다.
+        그래서 <code>SafeUrlChecker</code>로 loopback, 사설망, link-local 주소를 막고,
+        응답도 <code>image/*</code> 타입일 때만 전달한다.
+      </p>
+    </section>
+
+    <section>
+      <h2>MockMvc 테스트가 검증하는 것</h2>
+      <ul>
+        <li><code>ProductControllerTest</code>: 정상 파싱, 빈 URL, 잘못된 URL, 파싱 실패, partial 응답의 snake_case 필드</li>
+        <li><code>ImageProxyControllerTest</code>: 정상 이미지 프록시, 빈 URL, unsafe URL, upstream fetch 실패, non-image 응답</li>
+      </ul>
+      <p>
+        여기서는 실제 네트워크를 열지 않고 controller contract만 본다. 그래서 프론트엔드가 붙을 때 어떤 JSON과 status code를
+        받는지가 명확해진다.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

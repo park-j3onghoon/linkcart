@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 class OgParserTest {
 
-    private val parser = OgParser()
+    private val parser = OgParser(SafeUrlChecker())
 
     @Test
     fun `canParse is always true for any URL`() {

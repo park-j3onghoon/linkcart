@@ -8,16 +8,16 @@ import com.linkcart.domain.vo.Money
 import org.jsoup.Jsoup
 import org.springframework.stereotype.Component
 import java.io.IOException
-import java.net.InetAddress
-import java.net.URI
 
 @Component("ogParser")
-class OgParser : ProductParser {
+class OgParser(
+    private val safeUrlChecker: SafeUrlChecker,
+) : ProductParser {
 
     override fun canParse(url: String): Boolean = true
 
     override fun parse(url: String): ParseResult {
-        if (!isUrlSafe(url)) {
+        if (!safeUrlChecker.isSafe(url)) {
             return ParseResult.Failure(reason = "허용되지 않는 URL입니다", parserUsed = PARSER_NAME)
         }
 
@@ -30,14 +30,6 @@ class OgParser : ProductParser {
         } catch (e: IOException) {
             ParseResult.Failure(reason = "페이지를 가져올 수 없습니다: ${e.message}", parserUsed = PARSER_NAME)
         }
-    }
-
-    private fun isUrlSafe(url: String): Boolean {
-        val uri = try { URI(url) } catch (e: Exception) { return false }
-        if (uri.scheme !in listOf("http", "https")) return false
-        val host = uri.host ?: return false
-        val addr = try { InetAddress.getByName(host) } catch (e: Exception) { return false }
-        return !addr.isLoopbackAddress && !addr.isLinkLocalAddress && !addr.isSiteLocalAddress
     }
 
     fun parseHtml(html: String, sourceUrl: String): ParseResult {
