@@ -37,3 +37,12 @@ linkcart:
   elevenst:
     api-key: ${LINKCART_ELEVENST_API_KEY:}
     base-url: ${LINKCART_ELEVENST_BASE_URL:https://openapi.11st.co.kr/openapi}
+  google:
+    client-id: ${LINKCART_GOOGLE_CLIENT_ID}
+    client-secret: ${LINKCART_GOOGLE_CLIENT_SECRET}
+    token-url: ${LINKCART_GOOGLE_TOKEN_URL:https://oauth2.googleapis.com/token}
+  jwt:
+    secret: ${LINKCART_JWT_SECRET}
+    access-token-ttl-seconds: ${LINKCART_JWT_ACCESS_TTL:900}
+    issuer: linkcart
+    audience: linkcart-api
