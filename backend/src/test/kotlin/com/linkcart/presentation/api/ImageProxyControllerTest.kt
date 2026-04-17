@@ -112,7 +112,7 @@ class ImageProxyControllerTest {
         mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/not-image"))
             .andExpect(status().isBadGateway)
             .andExpect(jsonPath("$.code").value("upstream_error"))
-            .andExpect(jsonPath("$.message").value("이미지 응답이 아닙니다"))
+            .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
     }
 
     @Test
@@ -131,11 +131,51 @@ class ImageProxyControllerTest {
         mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/no-content-type"))
             .andExpect(status().isBadGateway)
             .andExpect(jsonPath("$.code").value("upstream_error"))
-            .andExpect(jsonPath("$.message").value("이미지 응답이 아닙니다"))
+            .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
     }
 
     @Test
-    fun `svg content type returns 200 response`() {
+    fun `png content type is allowed`() {
+        val imageBytes = byteArrayOf(5, 6, 7, 8)
+        val headers = HttpHeaders().apply { contentType = MediaType.IMAGE_PNG }
+        given(safeUrlChecker.isSafe("https://images.example.com/test.png")).willReturn(true)
+        given(
+            restTemplate.exchange(
+                "https://images.example.com/test.png",
+                HttpMethod.GET,
+                HttpEntity.EMPTY,
+                ByteArray::class.java,
+            ),
+        ).willReturn(ResponseEntity(imageBytes, headers, HttpStatus.OK))
+
+        mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/test.png"))
+            .andExpect(status().isOk)
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.IMAGE_PNG_VALUE))
+            .andExpect(content().bytes(imageBytes))
+    }
+
+    @Test
+    fun `bmp content type is blocked with 502 response`() {
+        val bmpBytes = byteArrayOf(0x42, 0x4D)
+        val headers = HttpHeaders().apply { contentType = MediaType.valueOf("image/bmp") }
+        given(safeUrlChecker.isSafe("https://images.example.com/test.bmp")).willReturn(true)
+        given(
+            restTemplate.exchange(
+                "https://images.example.com/test.bmp",
+                HttpMethod.GET,
+                HttpEntity.EMPTY,
+                ByteArray::class.java,
+            ),
+        ).willReturn(ResponseEntity(bmpBytes, headers, HttpStatus.OK))
+
+        mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/test.bmp"))
+            .andExpect(status().isBadGateway)
+            .andExpect(jsonPath("$.code").value("upstream_error"))
+            .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
+    }
+
+    @Test
+    fun `svg content type is blocked with 502 response`() {
         val svgBytes = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>".toByteArray()
         val headers = HttpHeaders().apply { contentType = MediaType.valueOf("image/svg+xml") }
         given(safeUrlChecker.isSafe("https://images.example.com/icon.svg")).willReturn(true)
@@ -149,8 +189,8 @@ class ImageProxyControllerTest {
         ).willReturn(ResponseEntity(svgBytes, headers, HttpStatus.OK))
 
         mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/icon.svg"))
-            .andExpect(status().isOk)
-            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "image/svg+xml"))
-            .andExpect(content().bytes(svgBytes))
+            .andExpect(status().isBadGateway)
+            .andExpect(jsonPath("$.code").value("upstream_error"))
+            .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
     }
 }

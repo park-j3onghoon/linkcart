@@ -41,8 +41,10 @@ class ImageProxyController(
         }
 
         val contentType = upstreamResponse.headers.contentType
-        if (contentType == null || contentType.type != "image") {
-            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "이미지 응답이 아닙니다")
+        if (contentType == null || contentType.type != "image" ||
+            contentType.subtype !in ALLOWED_IMAGE_SUBTYPES
+        ) {
+            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "지원하지 않는 이미지 형식입니다")
         }
 
         return ResponseEntity
@@ -50,5 +52,10 @@ class ImageProxyController(
             .contentType(contentType)
             .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300")
             .body(upstreamResponse.body ?: ByteArray(0))
+    }
+
+    companion object {
+        // SVG는 <script> 태그 등 XSS 벡터를 포함할 수 있어 제외.
+        private val ALLOWED_IMAGE_SUBTYPES = setOf("png", "jpeg", "gif", "webp")
     }
 }
