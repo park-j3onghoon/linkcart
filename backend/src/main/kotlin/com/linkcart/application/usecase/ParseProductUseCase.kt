@@ -30,7 +30,7 @@ class ParseProductUseCase(
             is ParseResult.Success -> fallbackResult.copy(fallbackUsed = true)
             is ParseResult.Partial -> fallbackResult.copy(fallbackUsed = true)
             is ParseResult.Failure -> ParseResult.Failure(
-                reason = "전용 파서(${primaryResult.parserUsed}) 실패: ${primaryResult.reason}; 폴백(${fallbackResult.parserUsed}) 실패: ${fallbackResult.reason}",
+                reason = "전용 파서(${primaryResult.parserUsed.code}) 실패: ${primaryResult.reason}; 폴백(${fallbackResult.parserUsed.code}) 실패: ${fallbackResult.reason}",
                 parserUsed = fallbackResult.parserUsed,
             )
         }

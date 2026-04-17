@@ -1,6 +1,7 @@
 package com.linkcart.infrastructure.adapter.parser
 
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -30,7 +31,7 @@ class OgParserTest {
         assertEquals("https://example.com/image.jpg", result.product.imageUrl)
         assertEquals("https://example.com/product/1", result.product.sourceUrl)
         assertEquals(Mall.GENERIC, result.product.mall)
-        assertEquals("og", result.parserUsed)
+        assertEquals(ParserName.OG, result.parserUsed)
     }
 
     @Test
@@ -45,7 +46,7 @@ class OgParserTest {
 
         assertIs<ParseResult.Partial>(result)
         assertEquals("Some Product", result.fields["name"])
-        assertEquals("og", result.parserUsed)
+        assertEquals(ParserName.OG, result.parserUsed)
     }
 
     @Test
@@ -67,7 +68,7 @@ class OgParserTest {
         val result = parser.parseHtml("", "https://example.com/empty")
 
         assertIs<ParseResult.Failure>(result)
-        assertEquals("og", result.parserUsed)
+        assertEquals(ParserName.OG, result.parserUsed)
     }
 
     @Test
@@ -129,6 +130,6 @@ class OgParserTest {
 
         assertIs<ParseResult.Failure>(result)
         assertEquals("파싱 가능한 정보가 없습니다", result.reason)
-        assertEquals("og", result.parserUsed)
+        assertEquals(ParserName.OG, result.parserUsed)
     }
 }

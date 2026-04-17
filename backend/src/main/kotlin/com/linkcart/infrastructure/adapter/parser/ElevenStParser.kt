@@ -1,8 +1,8 @@
 package com.linkcart.infrastructure.adapter.parser
 
-import com.linkcart.application.parser.ParserNames
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.port.DedicatedProductParser
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
@@ -104,7 +104,7 @@ class ElevenStParser(
                 sourceUrl = sourceUrl,
                 mall = Mall.ELEVENST,
             ),
-            parserUsed = PARSER_NAME,
+            parserUsed = ParserName.ELEVENST,
         )
     }
 
@@ -138,9 +138,5 @@ class ElevenStParser(
         root.selectFirst(selector)?.text()?.trim()?.takeIf { it.isNotBlank() }
 
     private fun failure(reason: String): ParseResult.Failure =
-        ParseResult.Failure(reason = reason, parserUsed = PARSER_NAME)
-
-    companion object {
-        const val PARSER_NAME = ParserNames.ELEVENST
-    }
+        ParseResult.Failure(reason = reason, parserUsed = ParserName.ELEVENST)
 }

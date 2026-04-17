@@ -1,6 +1,7 @@
 package com.linkcart.application.parser
 
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.infrastructure.adapter.parser.OgParser
 import com.linkcart.infrastructure.adapter.parser.SafeUrlChecker
 import org.junit.jupiter.api.Test
@@ -23,7 +24,7 @@ class ParserResolverTest {
     fun `dedicated parser takes priority over fallback`() {
         val dedicated = dedicatedStub(
             canParse = { it.contains("coupang.com") },
-            parse = { ParseResult.Failure("stub", "test") },
+            parse = { ParseResult.Failure("stub", ParserName.OG) },
         )
         val resolver = ParserResolver(dedicatedParsers = listOf(dedicated), fallbackParser = ogParser)
 
@@ -36,7 +37,7 @@ class ParserResolverTest {
     fun `falls back when dedicated parser cannot parse URL`() {
         val dedicated = dedicatedStub(
             canParse = { it.contains("coupang.com") },
-            parse = { ParseResult.Failure("stub", "test") },
+            parse = { ParseResult.Failure("stub", ParserName.OG) },
         )
         val resolver = ParserResolver(dedicatedParsers = listOf(dedicated), fallbackParser = ogParser)
 

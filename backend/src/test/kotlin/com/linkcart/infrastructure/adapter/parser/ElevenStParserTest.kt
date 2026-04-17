@@ -1,6 +1,7 @@
 package com.linkcart.infrastructure.adapter.parser
 
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import org.junit.jupiter.api.Test
 import org.springframework.boot.web.client.RestTemplateBuilder
@@ -31,7 +32,7 @@ class ElevenStParserTest {
         assertEquals("갤럭시 버즈 프로", result.product.name)
         assertEquals(129000L, result.product.price.amount)
         assertEquals(Mall.ELEVENST, result.product.mall)
-        assertEquals("11st-api", result.parserUsed)
+        assertEquals(ParserName.ELEVENST, result.parserUsed)
     }
 
     @Test
