@@ -3,6 +3,7 @@ package com.linkcart.application.usecase
 import com.linkcart.application.parser.ParserResolver
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.port.DedicatedProductParser
 import com.linkcart.domain.port.FallbackProductParser
 import com.linkcart.domain.vo.Mall
@@ -43,8 +44,8 @@ class ParseProductUseCaseCachingTest {
     @Test
     fun `cache proxy is enabled and caches success results`() {
         dedicatedParser.canParse = { it.contains("coupang.com") }
-        dedicatedParser.result = success(parserUsed = "coupang-api")
-        fallbackParser.result = success(parserUsed = "og")
+        dedicatedParser.result = success(parserUsed = ParserName.COUPANG)
+        fallbackParser.result = success(parserUsed = ParserName.OG)
 
         val first = parseProductUseCase.execute("https://www.coupang.com/vp/products/123")
         val second = parseProductUseCase.execute("https://www.coupang.com/vp/products/123")
@@ -58,8 +59,8 @@ class ParseProductUseCaseCachingTest {
     @Test
     fun `failure results are not cached`() {
         dedicatedParser.canParse = { it.contains("coupang.com") }
-        dedicatedParser.result = ParseResult.Failure("쿠팡 API 호출 실패: 404", "coupang-api")
-        fallbackParser.result = ParseResult.Failure("파싱 가능한 정보가 없습니다", "og")
+        dedicatedParser.result = ParseResult.Failure("쿠팡 API 호출 실패: 404", ParserName.COUPANG)
+        fallbackParser.result = ParseResult.Failure("파싱 가능한 정보가 없습니다", ParserName.OG)
 
         parseProductUseCase.execute("https://www.coupang.com/vp/products/404")
         parseProductUseCase.execute("https://www.coupang.com/vp/products/404")
@@ -68,7 +69,7 @@ class ParseProductUseCaseCachingTest {
         assertEquals(2, fallbackParser.parseCallCount.get())
     }
 
-    private fun success(parserUsed: String): ParseResult.Success =
+    private fun success(parserUsed: ParserName): ParseResult.Success =
         ParseResult.Success(
             product = Product(
                 name = "테스트 상품",
@@ -80,7 +81,7 @@ class ParseProductUseCaseCachingTest {
             parserUsed = parserUsed,
         )
 
-    abstract class CountingParserBase(private val defaultParserName: String) {
+    abstract class CountingParserBase(private val defaultParserName: ParserName) {
         var result: ParseResult = ParseResult.Failure("unset", defaultParserName)
         val parseCallCount = AtomicInteger()
 
@@ -95,7 +96,7 @@ class ParseProductUseCaseCachingTest {
         }
     }
 
-    class DedicatedCountingParser : CountingParserBase(defaultParserName = "coupang-api"), DedicatedProductParser {
+    class DedicatedCountingParser : CountingParserBase(defaultParserName = ParserName.COUPANG), DedicatedProductParser {
         var canParse: (String) -> Boolean = { false }
 
         override fun canParse(url: String): Boolean = canParse.invoke(url)
@@ -108,7 +109,7 @@ class ParseProductUseCaseCachingTest {
         }
     }
 
-    class FallbackCountingParser : CountingParserBase(defaultParserName = "og"), FallbackProductParser {
+    class FallbackCountingParser : CountingParserBase(defaultParserName = ParserName.OG), FallbackProductParser {
         override fun parse(url: String): ParseResult = parseWithCount()
     }
 

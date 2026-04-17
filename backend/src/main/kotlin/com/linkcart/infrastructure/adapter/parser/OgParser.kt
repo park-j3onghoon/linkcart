@@ -1,8 +1,8 @@
 package com.linkcart.infrastructure.adapter.parser
 
-import com.linkcart.application.parser.ParserNames
-import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.entity.Product
+import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.port.FallbackProductParser
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
@@ -17,7 +17,7 @@ class OgParser(
 
     override fun parse(url: String): ParseResult {
         if (!safeUrlChecker.isSafe(url)) {
-            return ParseResult.Failure(reason = "허용되지 않는 URL입니다", parserUsed = PARSER_NAME)
+            return ParseResult.Failure(reason = "허용되지 않는 URL입니다", parserUsed = ParserName.OG)
         }
 
         return try {
@@ -27,13 +27,13 @@ class OgParser(
                 .get()
             parseHtml(doc.html(), url)
         } catch (e: IOException) {
-            ParseResult.Failure(reason = "페이지를 가져올 수 없습니다: ${e.message}", parserUsed = PARSER_NAME)
+            ParseResult.Failure(reason = "페이지를 가져올 수 없습니다: ${e.message}", parserUsed = ParserName.OG)
         }
     }
 
     fun parseHtml(html: String, sourceUrl: String): ParseResult {
         if (html.isBlank()) {
-            return ParseResult.Failure(reason = "빈 HTML", parserUsed = PARSER_NAME)
+            return ParseResult.Failure(reason = "빈 HTML", parserUsed = ParserName.OG)
         }
 
         val doc = Jsoup.parse(html)
@@ -55,7 +55,7 @@ class OgParser(
                     sourceUrl = sourceUrl,
                     mall = Mall.GENERIC,
                 ),
-                parserUsed = PARSER_NAME,
+                parserUsed = ParserName.OG,
             )
         }
 
@@ -65,17 +65,16 @@ class OgParser(
         priceAmount?.let { partialFields["price"] = Money(amount = it, currency = ogPriceCurrency) }
 
         if (partialFields.isEmpty()) {
-            return ParseResult.Failure(reason = "파싱 가능한 정보가 없습니다", parserUsed = PARSER_NAME)
+            return ParseResult.Failure(reason = "파싱 가능한 정보가 없습니다", parserUsed = ParserName.OG)
         }
 
         return ParseResult.Partial(
             fields = partialFields,
-            parserUsed = PARSER_NAME,
+            parserUsed = ParserName.OG,
         )
     }
 
     companion object {
-        const val PARSER_NAME = ParserNames.OG
         private const val CONNECT_TIMEOUT_MS = 10_000
     }
 }

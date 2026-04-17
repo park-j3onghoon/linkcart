@@ -3,6 +3,7 @@ package com.linkcart.presentation.api
 import com.linkcart.application.usecase.ParseProductUseCase
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import com.linkcart.infrastructure.adapter.parser.SafeUrlChecker
@@ -50,7 +51,7 @@ class ProductControllerTest {
                     sourceUrl = "https://www.coupang.com/vp/products/123",
                     mall = Mall.COUPANG,
                 ),
-                parserUsed = "coupang-api",
+                parserUsed = ParserName.COUPANG,
             ),
         )
 
@@ -68,6 +69,31 @@ class ProductControllerTest {
             .andExpect(jsonPath("$.partial").value(nullValue()))
             .andExpect(jsonPath("$.parser_used").value("coupang-api"))
             .andExpect(jsonPath("$.fallback_used").value(false))
+    }
+
+    @Test
+    fun `successful 11st parse returns 200 response with parser_used 11st-api`() {
+        given(safeUrlChecker.isSafe("https://www.11st.co.kr/products/456")).willReturn(true)
+        given(parseProductUseCase.execute("https://www.11st.co.kr/products/456")).willReturn(
+            ParseResult.Success(
+                product = Product(
+                    name = "11번가 상품",
+                    price = Money(amount = 2000L),
+                    imageUrl = "https://cdn.11st.co.kr/image.jpg",
+                    sourceUrl = "https://www.11st.co.kr/products/456",
+                    mall = Mall.ELEVENST,
+                ),
+                parserUsed = ParserName.ELEVENST,
+            ),
+        )
+
+        mockMvc.perform(
+            post("/api/v1/products/parse")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"url":"https://www.11st.co.kr/products/456"}"""),
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.parser_used").value("11st-api"))
     }
 
     @Test
@@ -98,7 +124,7 @@ class ProductControllerTest {
         given(parseProductUseCase.execute("https://www.coupang.com/vp/products/404")).willReturn(
             ParseResult.Failure(
                 reason = "상품 정보를 가져올 수 없습니다",
-                parserUsed = "coupang-api",
+                parserUsed = ParserName.COUPANG,
             ),
         )
 
@@ -121,7 +147,7 @@ class ProductControllerTest {
                     "name" to "부분 상품",
                     "imageUrl" to "https://example.com/partial.jpg",
                 ),
-                parserUsed = "og",
+                parserUsed = ParserName.OG,
                 fallbackUsed = true,
             ),
         )

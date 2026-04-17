@@ -2,6 +2,7 @@ package com.linkcart.infrastructure.adapter.parser
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import org.junit.jupiter.api.Test
 import org.springframework.boot.web.client.RestTemplateBuilder
@@ -46,7 +47,7 @@ class CoupangParserTest {
         assertEquals("아이패드 에어", result.product.name)
         assertEquals(899000L, result.product.price.amount)
         assertEquals(Mall.COUPANG, result.product.mall)
-        assertEquals("coupang-api", result.parserUsed)
+        assertEquals(ParserName.COUPANG, result.parserUsed)
     }
 
     @Test

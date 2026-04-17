@@ -1,9 +1,9 @@
 package com.linkcart.infrastructure.adapter.parser
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.linkcart.application.parser.ParserNames
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.port.DedicatedProductParser
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
@@ -135,7 +135,7 @@ class CoupangParser(
                 sourceUrl = sourceUrl,
                 mall = Mall.COUPANG,
             ),
-            parserUsed = PARSER_NAME,
+            parserUsed = ParserName.COUPANG,
         )
     }
 
@@ -152,7 +152,7 @@ class CoupangParser(
     private fun parseUri(url: String): URI? = runCatching { URI(url) }.getOrNull()
 
     private fun failure(reason: String): ParseResult.Failure =
-        ParseResult.Failure(reason = reason, parserUsed = PARSER_NAME)
+        ParseResult.Failure(reason = reason, parserUsed = ParserName.COUPANG)
 
     private fun hmacSha256(message: String): String {
         val keySpec = SecretKeySpec(secretKey.toByteArray(StandardCharsets.UTF_8), HMAC_SHA_256)
@@ -208,7 +208,6 @@ class CoupangParser(
     }
 
     companion object {
-        const val PARSER_NAME = ParserNames.COUPANG
         private const val HMAC_SHA_256 = "HmacSHA256"
         private const val PRODUCT_QUERY_PATH_TEMPLATE =
             "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/{sellerProductId}"

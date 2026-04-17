@@ -3,6 +3,7 @@ package com.linkcart.presentation.dto
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import com.linkcart.domain.model.ParseResult
+import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 
@@ -14,7 +15,7 @@ data class ParseResponse(
     val sourceUrl: String?,
     val mall: Mall?,
     val partial: Map<String, Any>?,
-    val parserUsed: String,
+    val parserUsed: ParserName,
     val fallbackUsed: Boolean,
 ) {
     companion object {

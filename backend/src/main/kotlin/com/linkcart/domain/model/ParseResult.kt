@@ -12,18 +12,18 @@ import com.linkcart.domain.entity.Product
 sealed interface ParseResult {
     data class Success(
         val product: Product,
-        val parserUsed: String,
+        val parserUsed: ParserName,
         val fallbackUsed: Boolean = false,
     ) : ParseResult
 
     data class Partial(
         val fields: Map<String, Any>,
-        val parserUsed: String,
+        val parserUsed: ParserName,
         val fallbackUsed: Boolean = false,
     ) : ParseResult
 
     data class Failure(
         val reason: String,
-        val parserUsed: String,
+        val parserUsed: ParserName,
     ) : ParseResult
 }
