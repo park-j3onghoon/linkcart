@@ -6,7 +6,16 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class OAuthLoginResponse(
     val accessToken: String,
+    val refreshToken: String,
     val tokenType: String,
     val expiresIn: Long,
     val user: UserResponse,
+)
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
+data class RefreshResponse(
+    val accessToken: String,
+    val refreshToken: String,
+    val tokenType: String,
+    val expiresIn: Long,
 )
