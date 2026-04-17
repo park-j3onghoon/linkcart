@@ -6,17 +6,10 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class OgParserTest {
 
     private val parser = OgParser(SafeUrlChecker())
-
-    @Test
-    fun `canParse is always true for any URL`() {
-        assertTrue(parser.canParse("https://example.com"))
-        assertTrue(parser.canParse("https://anything.kr/product/123"))
-    }
 
     @Test
     fun `parses full OG tags into Success`() {

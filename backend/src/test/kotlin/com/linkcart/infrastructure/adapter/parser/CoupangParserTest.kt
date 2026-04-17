@@ -23,7 +23,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-class CoupangApiClientTest {
+class CoupangParserTest {
 
     @Test
     fun `normal API response returns Success`() {
@@ -178,8 +178,8 @@ class CoupangApiClientTest {
         assertEquals("쿠팡 API 응답에 상품 정보가 없습니다", result.reason)
     }
 
-    private fun parser(): CoupangApiClient =
-        CoupangApiClient(
+    private fun parser(): CoupangParser =
+        CoupangParser(
             accessKey = "test-access",
             secretKey = "test-secret",
             baseUrl = "https://coupang.test",

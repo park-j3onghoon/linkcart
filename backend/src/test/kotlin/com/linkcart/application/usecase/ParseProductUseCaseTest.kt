@@ -1,12 +1,14 @@
 package com.linkcart.application.usecase
 
-import com.linkcart.application.parser.ParserFactory
+import com.linkcart.application.parser.ParserResolver
+import com.linkcart.application.parser.dedicatedStub
+import com.linkcart.application.parser.fallbackStub
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
-import com.linkcart.domain.port.ProductParser
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import org.junit.jupiter.api.Test
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -16,12 +18,12 @@ class ParseProductUseCaseTest {
 
     @Test
     fun `dedicated parser success returns primary result`() {
-        val dedicated = stubParser(
+        val dedicated = dedicatedStub(
             canParse = { it.contains("coupang.com") },
-            result = success(parserUsed = "coupang-api"),
+            parse = { success(parserUsed = "coupang-api") },
         )
-        val fallback = stubParser(canParse = { true }, result = success(parserUsed = "og"))
-        val useCase = ParseProductUseCase(ParserFactory(listOf(dedicated, fallback), fallback))
+        val fallback = fallbackStub { success(parserUsed = "og") }
+        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
 
         val result = useCase.execute("https://www.coupang.com/vp/products/123")
 
@@ -32,12 +34,12 @@ class ParseProductUseCaseTest {
 
     @Test
     fun `dedicated failure falls back to OG success`() {
-        val dedicated = stubParser(
+        val dedicated = dedicatedStub(
             canParse = { it.contains("coupang.com") },
-            result = ParseResult.Failure("쿠팡 API 호출 실패: 404", "coupang-api"),
+            parse = { ParseResult.Failure("쿠팡 API 호출 실패: 404", "coupang-api") },
         )
-        val fallback = stubParser(canParse = { true }, result = success(parserUsed = "og"))
-        val useCase = ParseProductUseCase(ParserFactory(listOf(dedicated, fallback), fallback))
+        val fallback = fallbackStub { success(parserUsed = "og") }
+        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
 
         val result = useCase.execute("https://www.coupang.com/vp/products/123")
 
@@ -48,18 +50,17 @@ class ParseProductUseCaseTest {
 
     @Test
     fun `dedicated failure falls back to OG partial`() {
-        val dedicated = stubParser(
+        val dedicated = dedicatedStub(
             canParse = { it.contains("11st.co.kr") },
-            result = ParseResult.Failure("11번가 API 호출 실패: 500", "11st-api"),
+            parse = { ParseResult.Failure("11번가 API 호출 실패: 500", "11st-api") },
         )
-        val fallback = stubParser(
-            canParse = { true },
-            result = ParseResult.Partial(
+        val fallback = fallbackStub {
+            ParseResult.Partial(
                 fields = mapOf("name" to "OG 상품명"),
                 parserUsed = "og",
-            ),
-        )
-        val useCase = ParseProductUseCase(ParserFactory(listOf(dedicated, fallback), fallback))
+            )
+        }
+        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
 
         val result = useCase.execute("https://www.11st.co.kr/products/123")
 
@@ -70,15 +71,12 @@ class ParseProductUseCaseTest {
 
     @Test
     fun `dedicated and fallback failures are combined`() {
-        val dedicated = stubParser(
+        val dedicated = dedicatedStub(
             canParse = { it.contains("coupang.com") },
-            result = ParseResult.Failure("쿠팡 API 호출 실패: 404", "coupang-api"),
+            parse = { ParseResult.Failure("쿠팡 API 호출 실패: 404", "coupang-api") },
         )
-        val fallback = stubParser(
-            canParse = { true },
-            result = ParseResult.Failure("파싱 가능한 정보가 없습니다", "og"),
-        )
-        val useCase = ParseProductUseCase(ParserFactory(listOf(dedicated, fallback), fallback))
+        val fallback = fallbackStub { ParseResult.Failure("파싱 가능한 정보가 없습니다", "og") }
+        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
 
         val result = useCase.execute("https://www.coupang.com/vp/products/123")
 
@@ -90,12 +88,12 @@ class ParseProductUseCaseTest {
 
     @Test
     fun `timeout from dedicated parser still uses fallback`() {
-        val dedicated = stubParser(
+        val dedicated = dedicatedStub(
             canParse = { it.contains("coupang.com") },
-            result = ParseResult.Failure("쿠팡 API 타임아웃", "coupang-api"),
+            parse = { ParseResult.Failure("쿠팡 API 타임아웃", "coupang-api") },
         )
-        val fallback = stubParser(canParse = { true }, result = success(parserUsed = "og"))
-        val useCase = ParseProductUseCase(ParserFactory(listOf(dedicated, fallback), fallback))
+        val fallback = fallbackStub { success(parserUsed = "og") }
+        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
 
         val result = useCase.execute("https://www.coupang.com/vp/products/123")
 
@@ -104,12 +102,18 @@ class ParseProductUseCaseTest {
         assertEquals("og", result.parserUsed)
     }
 
-    private fun stubParser(
-        canParse: (String) -> Boolean,
-        result: ParseResult,
-    ): ProductParser = object : ProductParser {
-        override fun canParse(url: String): Boolean = canParse(url)
-        override fun parse(url: String): ParseResult = result
+    @Test
+    fun `when primary is fallback, fallback parse is called only once`() {
+        val callCount = AtomicInteger()
+        val fallback = fallbackStub {
+            callCount.incrementAndGet()
+            ParseResult.Failure("파싱 가능한 정보가 없습니다", "og")
+        }
+        val useCase = ParseProductUseCase(ParserResolver(emptyList(), fallback))
+
+        useCase.execute("https://example.com/product/no-dedicated")
+
+        assertEquals(1, callCount.get())
     }
 
     private fun success(parserUsed: String): ParseResult.Success =

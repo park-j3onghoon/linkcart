@@ -1,20 +1,19 @@
 package com.linkcart.infrastructure.adapter.parser
 
+import com.linkcart.application.parser.ParserNames
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.entity.Product
-import com.linkcart.domain.port.ProductParser
+import com.linkcart.domain.port.FallbackProductParser
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import org.jsoup.Jsoup
 import org.springframework.stereotype.Component
 import java.io.IOException
 
-@Component("ogParser")
+@Component
 class OgParser(
     private val safeUrlChecker: SafeUrlChecker,
-) : ProductParser {
-
-    override fun canParse(url: String): Boolean = true
+) : FallbackProductParser {
 
     override fun parse(url: String): ParseResult {
         if (!safeUrlChecker.isSafe(url)) {
@@ -76,7 +75,7 @@ class OgParser(
     }
 
     companion object {
-        const val PARSER_NAME = "og"
+        const val PARSER_NAME = ParserNames.OG
         private const val CONNECT_TIMEOUT_MS = 10_000
     }
 }

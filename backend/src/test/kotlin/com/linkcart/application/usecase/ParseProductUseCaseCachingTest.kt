@@ -1,23 +1,23 @@
 package com.linkcart.application.usecase
 
-import com.linkcart.application.parser.ParserFactory
+import com.linkcart.application.parser.ParserResolver
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
-import com.linkcart.domain.port.ProductParser
+import com.linkcart.domain.port.DedicatedProductParser
+import com.linkcart.domain.port.FallbackProductParser
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.aop.support.AopUtils
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.SpringBootConfiguration
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration
+import org.springframework.cache.annotation.EnableCaching
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
-import org.springframework.cache.annotation.EnableCaching
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -29,12 +29,10 @@ class ParseProductUseCaseCachingTest {
     private lateinit var parseProductUseCase: ParseProductUseCase
 
     @Autowired
-    @Qualifier("dedicatedParser")
-    private lateinit var dedicatedParser: CountingProductParser
+    private lateinit var dedicatedParser: DedicatedCountingParser
 
     @Autowired
-    @Qualifier("ogParser")
-    private lateinit var fallbackParser: CountingProductParser
+    private lateinit var fallbackParser: FallbackCountingParser
 
     @BeforeEach
     fun setUp() {
@@ -82,47 +80,50 @@ class ParseProductUseCaseCachingTest {
             parserUsed = parserUsed,
         )
 
-    class CountingProductParser(
-        private val fallback: Boolean,
-    ) : ProductParser {
-        var canParse: (String) -> Boolean = { fallback }
-        var result: ParseResult = ParseResult.Failure("unset", if (fallback) "og" else "coupang-api")
+    abstract class CountingParserBase(private val defaultParserName: String) {
+        var result: ParseResult = ParseResult.Failure("unset", defaultParserName)
         val parseCallCount = AtomicInteger()
 
-        override fun canParse(url: String): Boolean = canParse.invoke(url)
-
-        override fun parse(url: String): ParseResult {
+        fun parseWithCount(): ParseResult {
             parseCallCount.incrementAndGet()
             return result
         }
 
-        fun reset() {
+        open fun reset() {
             parseCallCount.set(0)
-            canParse = { fallback }
-            result = ParseResult.Failure("unset", if (fallback) "og" else "coupang-api")
+            result = ParseResult.Failure("unset", defaultParserName)
         }
+    }
+
+    class DedicatedCountingParser : CountingParserBase(defaultParserName = "coupang-api"), DedicatedProductParser {
+        var canParse: (String) -> Boolean = { false }
+
+        override fun canParse(url: String): Boolean = canParse.invoke(url)
+
+        override fun parse(url: String): ParseResult = parseWithCount()
+
+        override fun reset() {
+            super.reset()
+            canParse = { false }
+        }
+    }
+
+    class FallbackCountingParser : CountingParserBase(defaultParserName = "og"), FallbackProductParser {
+        override fun parse(url: String): ParseResult = parseWithCount()
     }
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @EnableCaching
-    @Import(ParseProductUseCase::class, TestConfig::class)
+    @Import(ParseProductUseCase::class, ParserResolver::class, TestConfig::class)
     class TestApp
 
     @TestConfiguration
     class TestConfig {
         @Bean
-        fun dedicatedParser(): CountingProductParser = CountingProductParser(fallback = false)
-
-        @Bean("ogParser")
-        fun fallbackParser(): CountingProductParser = CountingProductParser(fallback = true)
+        fun dedicatedParser(): DedicatedCountingParser = DedicatedCountingParser()
 
         @Bean
-        fun parserFactory(
-            @Qualifier("dedicatedParser")
-            dedicatedParser: CountingProductParser,
-            @Qualifier("ogParser")
-            fallbackParser: CountingProductParser,
-        ): ParserFactory = ParserFactory(listOf(dedicatedParser, fallbackParser), fallbackParser)
+        fun fallbackParser(): FallbackCountingParser = FallbackCountingParser()
     }
 }

@@ -15,7 +15,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-class ElevenStApiClientTest {
+class ElevenStParserTest {
 
     @Test
     fun `normal API response returns Success`() {
@@ -135,8 +135,8 @@ class ElevenStApiClientTest {
         assertContains(result.reason, "인증 키가 유효하지 않습니다")
     }
 
-    private fun parser(): ElevenStApiClient =
-        ElevenStApiClient(
+    private fun parser(): ElevenStParser =
+        ElevenStParser(
             apiKey = "test-key",
             baseUrl = "https://11st.test",
             restTemplateBuilder = RestTemplateBuilder(),
