@@ -1,8 +1,5 @@
-package com.linkcart.application.usecase
+package com.linkcart.application.parser
 
-import com.linkcart.application.parser.ParserResolver
-import com.linkcart.application.parser.dedicatedStub
-import com.linkcart.application.parser.fallbackStub
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.model.ParserName
@@ -15,7 +12,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-class ParseProductUseCaseTest {
+class ParserPipelineTest {
 
     @Test
     fun `dedicated parser success returns primary result`() {
@@ -24,9 +21,9 @@ class ParseProductUseCaseTest {
             parse = { success(parserUsed = ParserName.COUPANG) },
         )
         val fallback = fallbackStub { success(parserUsed = ParserName.OG) }
-        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
+        val pipeline = ParserPipeline(ParserResolver(listOf(dedicated), fallback))
 
-        val result = useCase.execute("https://www.coupang.com/vp/products/123")
+        val result = pipeline.parseWithFallback("https://www.coupang.com/vp/products/123")
 
         assertIs<ParseResult.Success>(result)
         assertEquals(ParserName.COUPANG, result.parserUsed)
@@ -40,9 +37,9 @@ class ParseProductUseCaseTest {
             parse = { ParseResult.Failure("쿠팡 API 호출 실패: 404", ParserName.COUPANG) },
         )
         val fallback = fallbackStub { success(parserUsed = ParserName.OG) }
-        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
+        val pipeline = ParserPipeline(ParserResolver(listOf(dedicated), fallback))
 
-        val result = useCase.execute("https://www.coupang.com/vp/products/123")
+        val result = pipeline.parseWithFallback("https://www.coupang.com/vp/products/123")
 
         assertIs<ParseResult.Success>(result)
         assertEquals(ParserName.OG, result.parserUsed)
@@ -61,9 +58,9 @@ class ParseProductUseCaseTest {
                 parserUsed = ParserName.OG,
             )
         }
-        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
+        val pipeline = ParserPipeline(ParserResolver(listOf(dedicated), fallback))
 
-        val result = useCase.execute("https://www.11st.co.kr/products/123")
+        val result = pipeline.parseWithFallback("https://www.11st.co.kr/products/123")
 
         assertIs<ParseResult.Partial>(result)
         assertEquals("OG 상품명", result.fields["name"])
@@ -77,9 +74,9 @@ class ParseProductUseCaseTest {
             parse = { ParseResult.Failure("쿠팡 API 호출 실패: 404", ParserName.COUPANG) },
         )
         val fallback = fallbackStub { ParseResult.Failure("파싱 가능한 정보가 없습니다", ParserName.OG) }
-        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
+        val pipeline = ParserPipeline(ParserResolver(listOf(dedicated), fallback))
 
-        val result = useCase.execute("https://www.coupang.com/vp/products/123")
+        val result = pipeline.parseWithFallback("https://www.coupang.com/vp/products/123")
 
         assertIs<ParseResult.Failure>(result)
         assertTrue(result.reason.contains("coupang-api"))
@@ -94,9 +91,9 @@ class ParseProductUseCaseTest {
             parse = { ParseResult.Failure("쿠팡 API 타임아웃", ParserName.COUPANG) },
         )
         val fallback = fallbackStub { success(parserUsed = ParserName.OG) }
-        val useCase = ParseProductUseCase(ParserResolver(listOf(dedicated), fallback))
+        val pipeline = ParserPipeline(ParserResolver(listOf(dedicated), fallback))
 
-        val result = useCase.execute("https://www.coupang.com/vp/products/123")
+        val result = pipeline.parseWithFallback("https://www.coupang.com/vp/products/123")
 
         assertIs<ParseResult.Success>(result)
         assertTrue(result.fallbackUsed)
@@ -110,9 +107,9 @@ class ParseProductUseCaseTest {
             callCount.incrementAndGet()
             ParseResult.Failure("파싱 가능한 정보가 없습니다", ParserName.OG)
         }
-        val useCase = ParseProductUseCase(ParserResolver(emptyList(), fallback))
+        val pipeline = ParserPipeline(ParserResolver(emptyList(), fallback))
 
-        useCase.execute("https://example.com/product/no-dedicated")
+        pipeline.parseWithFallback("https://example.com/product/no-dedicated")
 
         assertEquals(1, callCount.get())
     }

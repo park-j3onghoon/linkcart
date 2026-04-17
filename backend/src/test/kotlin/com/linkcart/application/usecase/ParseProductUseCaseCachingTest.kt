@@ -1,5 +1,6 @@
 package com.linkcart.application.usecase
 
+import com.linkcart.application.parser.ParserPipeline
 import com.linkcart.application.parser.ParserResolver
 import com.linkcart.domain.entity.Product
 import com.linkcart.domain.model.ParseResult
@@ -116,7 +117,7 @@ class ParseProductUseCaseCachingTest {
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @EnableCaching
-    @Import(ParseProductUseCase::class, ParserResolver::class, TestConfig::class)
+    @Import(ParseProductUseCase::class, ParserPipeline::class, ParserResolver::class, TestConfig::class)
     class TestApp
 
     @TestConfiguration
