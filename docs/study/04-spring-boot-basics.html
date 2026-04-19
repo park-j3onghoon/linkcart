@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>04. Spring Boot 기초 (Django 개발자 관점)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 04. Spring Boot 기초</span>
+</div>
+<div class="layout">
+
+<h1>04. Spring Boot 기초</h1>
+<p class="subtitle">Django의 URLconf + View + Serializer가 Spring Boot에선 뭐로 대응되는지.</p>
+
+<div class="callout info">
+  <strong>이 챕터의 핵심 용어</strong> —
+  <a class="gref" href="19-glossary.html#g-ioc">IoC</a> ·
+  <a class="gref" href="19-glossary.html#g-di">DI</a> ·
+  <a class="gref" href="19-glossary.html#g-bean">Bean</a> ·
+  <a class="gref" href="19-glossary.html#g-at-component">@Component</a> ·
+  <a class="gref" href="19-glossary.html#g-at-service">@Service</a> ·
+  <a class="gref" href="19-glossary.html#g-at-repository">@Repository</a> ·
+  <a class="gref" href="19-glossary.html#g-at-restcontroller">@RestController</a> ·
+  <a class="gref" href="19-glossary.html#g-at-configuration">@Configuration</a> ·
+  <a class="gref" href="19-glossary.html#g-aop">AOP</a>
+</div>
+
+<h2>Spring / Spring Boot / Spring Framework — 이름 정리</h2>
+
+<div class="callout info">
+  <strong>"Spring"이라고만 하면 모호하다.</strong>
+  실제로는 3개 층을 구분해야 한다.
+</div>
+
+<table>
+  <tr><th>이름</th><th>무엇인가</th><th>Django 대응</th></tr>
+  <tr><td><strong>Spring Framework</strong></td><td>IoC 컨테이너, DI, AOP 같은 <em>기반 기술</em>만 제공. 웹조차 옵션.</td><td>없음 (Django는 처음부터 웹 프레임워크)</td></tr>
+  <tr><td><strong>Spring Boot</strong></td><td>Spring Framework + 수많은 라이브러리 + <em>자동 설정(auto-configuration)</em>을 묶은 "시작 키트".</td><td>Django 자체가 여기에 가까움</td></tr>
+  <tr><td><strong>Spring Data JPA, Spring Security, ...</strong></td><td>Spring 생태계의 <em>각 영역 전문 모듈</em>.</td><td>Django ORM, django-allauth, ...</td></tr>
+</table>
+
+<p>
+  이 프로젝트는 <strong>Spring Boot 3.5</strong>를 쓴다.
+  <code>spring-boot-starter-web</code>, <code>-data-jpa</code>, <code>-security</code> 같은 starter 의존성을 build.gradle에 넣으면
+  자동으로 설정이 작동한다. Django에서 <code>INSTALLED_APPS</code>에 앱 넣는 것과 비슷한 효과를 starter가 해준다.
+</p>
+
+<h2>IoC / DI — Django와 가장 다른 지점</h2>
+
+<p><strong>Django에선 객체를 직접 만들어 쓴다:</strong></p>
+
+<div class="compare">
+  <div class="compare-cell py">
+    <div class="label">Django</div>
+<pre><code><span class="kw">class</span> <span class="cls">ParseProductView</span>(<span class="cls">APIView</span>):
+    <span class="kw">def</span> <span class="fn">post</span>(<span class="kw">self</span>, request):
+        <span class="cmt"># 객체를 여기서 직접 만듦</span>
+        parser = ParserFactory.get(request.data[<span class="str">'url'</span>])
+        cache = TTLCache(maxsize=<span class="num">100</span>, ttl=<span class="num">300</span>)
+        result = parser.parse(...)
+        ...</code></pre>
+  </div>
+  <div class="compare-cell kt">
+    <div class="label">Spring Boot</div>
+<pre><code><span class="cmt">// Spring이 의존성을 주입해준다</span>
+<span class="cmt">@</span><span class="fn">RestController</span>
+<span class="kw">class</span> <span class="cls">ProductController</span>(
+    <span class="kw">private val</span> useCase: ParseProductUseCase,  <span class="cmt">// ← 주입</span>
+    <span class="kw">private val</span> safeUrlChecker: SafeUrlChecker, <span class="cmt">// ← 주입</span>
+) {
+    <span class="cmt">@</span><span class="fn">PostMapping</span>(<span class="str">"/parse"</span>)
+    <span class="kw">fun</span> <span class="fn">parse</span>(...) { <span class="cmt">// 객체는 이미 준비됨</span> }
+}</code></pre>
+  </div>
+</div>
+
+<p>
+  <strong>IoC (Inversion of Control)</strong> = 객체 생성을 개발자가 하지 않고 <em>컨테이너</em>에 맡긴다는 개념.<br>
+  <strong>DI (Dependency Injection)</strong> = IoC를 구현하는 방법 중 하나. 의존성을 <em>주입받는다</em>.
+</p>
+
+<div class="diagram">
+  <svg width="680" height="260" viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="15" width="180" height="40" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="340" y="40" text-anchor="middle" font-size="13" font-weight="600" fill="#5b21b6">Spring IoC Container</text>
+
+    <text x="340" y="73" text-anchor="middle" font-size="11" fill="#6b7280">앱 시작 시 @Component/@Service/@Repository 스캔</text>
+
+    <!-- Beans -->
+    <rect x="20" y="100" width="130" height="45" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="85" y="122" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">OgParser</text>
+    <text x="85" y="138" text-anchor="middle" font-size="10" fill="#6b7280">@Component</text>
+
+    <rect x="170" y="100" width="130" height="45" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="235" y="122" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">CoupangParser</text>
+    <text x="235" y="138" text-anchor="middle" font-size="10" fill="#6b7280">@Component</text>
+
+    <rect x="320" y="100" width="130" height="45" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="385" y="122" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">ParserResolver</text>
+    <text x="385" y="138" text-anchor="middle" font-size="10" fill="#6b7280">@Component</text>
+
+    <rect x="470" y="100" width="130" height="45" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="535" y="122" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">UseCase</text>
+    <text x="535" y="138" text-anchor="middle" font-size="10" fill="#6b7280">@Service</text>
+
+    <!-- Arrows: Container creates -->
+    <line x1="340" y1="55" x2="85" y2="100" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a3)" stroke-dasharray="3,3"/>
+    <line x1="340" y1="55" x2="235" y2="100" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a3)" stroke-dasharray="3,3"/>
+    <line x1="340" y1="55" x2="385" y2="100" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a3)" stroke-dasharray="3,3"/>
+    <line x1="340" y1="55" x2="535" y2="100" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a3)" stroke-dasharray="3,3"/>
+
+    <text x="110" y="92" font-size="9" fill="#6b7280">생성&amp;관리</text>
+
+    <!-- Injection -->
+    <line x1="150" y1="123" x2="320" y2="123" stroke="#059669" stroke-width="1.5" marker-end="url(#a3)"/>
+    <line x1="300" y1="130" x2="320" y2="130" stroke="#059669" stroke-width="1.5" marker-end="url(#a3)"/>
+    <line x1="450" y1="123" x2="470" y2="123" stroke="#059669" stroke-width="1.5" marker-end="url(#a3)"/>
+    <text x="300" y="145" font-size="9" fill="#059669">주입</text>
+
+    <!-- Consumer -->
+    <rect x="220" y="200" width="240" height="45" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+    <text x="340" y="222" text-anchor="middle" font-size="13" font-weight="600" fill="#92400e">ProductController (@RestController)</text>
+    <text x="340" y="238" text-anchor="middle" font-size="10" fill="#78350f">생성자 파라미터로 UseCase 받음</text>
+
+    <line x1="535" y1="145" x2="460" y2="200" stroke="#059669" stroke-width="1.5" marker-end="url(#a3)"/>
+  </svg>
+  <div class="diagram-caption">
+    앱 시작 시 컨테이너가 모든 @Component를 한 번씩 생성 → 다른 컴포넌트 생성자에 주입
+  </div>
+</div>
+
+<h3>왜 이게 좋나</h3>
+
+<ul class="arrow-list">
+  <li><strong>테스트 용이</strong>: ProductController를 테스트할 때 useCase를 mock으로 만들어 주입하면 된다. Django에서 view를 테스트할 때 내부 객체 생성을 모킹하는 것보다 깔끔.</li>
+  <li><strong>교체 가능</strong>: 인터페이스(포트)에 의존하고 구현체를 바꿔 끼울 수 있다. 이 프로젝트의 <code>ProductParser</code> 포트가 그 예.</li>
+  <li><strong>생명주기 관리</strong>: 싱글톤 / 요청당 / 세션당 등 컨테이너가 결정.</li>
+</ul>
+
+<h2>DI는 정확히 어디로 주입되는가 — 3가지 방법</h2>
+
+<div class="callout info">
+  <strong>핵심</strong> — "구현체를 메서드 내부에서 선택"하는 게 아니라, <strong>컨테이너가 객체를 만들 때 외부에서 꽂아 넣는다</strong>.
+  꽂는 지점이 3가지: 생성자 / 필드 / 세터. 추가로 <code>@Bean</code> 메서드 파라미터도 주입 지점이다.
+</div>
+
+<h3>① 생성자 주입 (Constructor Injection) — <em>권장. 이 프로젝트가 거의 다 쓰는 방식</em></h3>
+
+<p>Kotlin에서는 <strong>primary constructor 파라미터에 <code>val</code>을 붙이면 자동으로 클래스 프로퍼티가 된다</strong>. 즉 "메서드 파라미터로 주는 것"과 "클래스 속성으로 두는 것"이 <em>한 줄에서 동시에</em> 일어난다.</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">Service</span>
+<span class="kw">class</span> <span class="cls">ParseProductUsecase</span>(
+    <span class="kw">private val</span> parserResolver: ParserResolver,  <span class="cmt">// ← 생성자 파라미터 + 클래스 프로퍼티</span>
+    <span class="kw">private val</span> safeUrlChecker: SafeUrlChecker,  <span class="cmt">// ← 같음</span>
+    <span class="kw">private val</span> cache: ParseCache,
+) {
+    <span class="kw">fun</span> <span class="fn">execute</span>(url: <span class="cls">String</span>): Product {
+        <span class="cmt">// 메서드 안에서는 "이미 주입된 프로퍼티"를 쓴다. 메서드 파라미터로 주입받는 게 아님.</span>
+        safeUrlChecker.check(url)
+        <span class="kw">val</span> parser = parserResolver.resolve(url)  <span class="cmt">// 구현체 선택은 Resolver가</span>
+        <span class="kw">return</span> cache.getOrCompute(url) { parser.parse(url) }
+    }
+}</code></pre>
+
+<p><strong>Java 버전으로 펼쳐 보면</strong>:</p>
+
+<pre><code><span class="cmt">@Service</span>
+<span class="kw">public class</span> <span class="cls">ParseProductUsecase</span> {
+    <span class="kw">private final</span> ParserResolver parserResolver;  <span class="cmt">// 클래스 필드 (= 속성)</span>
+    <span class="kw">private final</span> SafeUrlChecker safeUrlChecker;
+    <span class="kw">private final</span> ParseCache cache;
+
+    <span class="cmt">// 생성자. Spring이 이 파라미터를 보고 컨테이너에서 찾아 넣는다.</span>
+    <span class="kw">public</span> <span class="fn">ParseProductUsecase</span>(
+        ParserResolver parserResolver,
+        SafeUrlChecker safeUrlChecker,
+        ParseCache cache
+    ) {
+        <span class="kw">this</span>.parserResolver = parserResolver;
+        <span class="kw">this</span>.safeUrlChecker = safeUrlChecker;
+        <span class="kw">this</span>.cache = cache;
+    }
+
+    <span class="kw">public</span> Product <span class="fn">execute</span>(String url) {
+        <span class="cmt">// 메서드는 그냥 this.parserResolver를 쓴다.</span>
+    }
+}</code></pre>
+
+<p>즉 답: <strong>"클래스 속성(필드)에 넣는다"</strong>. 넣는 통로가 "생성자 파라미터"일 뿐. 메서드 내부에서 주입되는 게 아니다.</p>
+
+<h3>② 필드 주입 (Field Injection) — <em>안티패턴. 쓰지 마라</em></h3>
+
+<pre><code><span class="cmt">// Java 관례. Kotlin에선 lateinit var 써야 하는 번거로움.</span>
+<span class="cmt">@Service</span>
+<span class="kw">public class</span> <span class="cls">BadUsecase</span> {
+    <span class="cmt">@</span><span class="fn">Autowired</span>              <span class="cmt">// 런타임에 리플렉션으로 필드에 값을 넣는다</span>
+    <span class="kw">private</span> ParserResolver parserResolver;
+}</code></pre>
+
+<table>
+  <tr><th>단점</th><th>설명</th></tr>
+  <tr><td>테스트 어려움</td><td><code>new BadUsecase()</code>로 만들면 필드가 <code>null</code>. Reflection 써서 주입해야 함.</td></tr>
+  <tr><td><code>final</code> 불가</td><td>필드에 <code>final</code>/<code>val</code>을 못 붙임 → 불변성 깨짐</td></tr>
+  <tr><td>의존성 숨김</td><td>생성자만 보면 의존성이 안 보여 "이 클래스가 뭐에 의존하는지" 파악이 어려움</td></tr>
+  <tr><td>순환 참조 늦게 터짐</td><td>생성자 주입이면 앱 시작 때 터지지만, 필드 주입은 런타임에 NPE</td></tr>
+</table>
+
+<h3>③ 세터 주입 (Setter Injection) — <em>거의 안 씀. 선택적 의존성일 때만</em></h3>
+
+<pre><code><span class="cmt">@</span><span class="fn">Autowired</span>
+<span class="kw">fun</span> <span class="fn">setMetrics</span>(metrics: MetricsService?) {
+    <span class="kw">this</span>.metrics = metrics  <span class="cmt">// optional한 경우 (없으면 null)</span>
+}</code></pre>
+
+<h3>④ <code>@Bean</code> 메서드 파라미터 — <em>"수동 Bean을 만들 때 다른 Bean이 필요하면"</em></h3>
+
+<p>사용자가 "메서드 파라미터로 주는 거야?"라고 물은 건 아마 <strong>이 패턴</strong>을 본 것. <code>@Configuration</code> 안의 <code>@Bean</code> 메서드는 그 메서드의 <em>파라미터</em>가 주입 지점이다.</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">Configuration</span>
+<span class="kw">class</span> <span class="cls">SecurityConfig</span> {
+
+    <span class="cmt">// ↓ 이 메서드의 "리턴값"이 Bean으로 등록된다. 파라미터는 다른 Bean을 주입받는 통로.</span>
+    <span class="cmt">@</span><span class="fn">Bean</span>
+    <span class="kw">fun</span> <span class="fn">jwtAuthenticationFilter</span>(
+        accessTokenIssuer: AccessTokenIssuer,   <span class="cmt">// ← 메서드 파라미터 = 주입 지점</span>
+        userRepository: UserRepository,          <span class="cmt">// ← 여기도</span>
+    ): JwtAuthenticationFilter {
+        <span class="kw">return</span> JwtAuthenticationFilter(accessTokenIssuer, userRepository)
+    }
+
+    <span class="cmt">// 보통 filterChain이 위의 jwtAuthenticationFilter Bean을 다시 파라미터로 받는다.</span>
+    <span class="cmt">@</span><span class="fn">Bean</span>
+    <span class="kw">fun</span> <span class="fn">filterChain</span>(
+        http: HttpSecurity,                        <span class="cmt">// Spring Boot가 기본 제공</span>
+        jwtFilter: JwtAuthenticationFilter,        <span class="cmt">// 위에서 내가 만든 Bean</span>
+    ): SecurityFilterChain = http
+        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter::<span class="kw">class</span>.java)
+        .build()
+}</code></pre>
+
+<p>이건 "메서드 내부에서 구현체 선택"처럼 보이지만 사실은 <strong>컨테이너가 메서드를 대신 호출</strong>하고, 그 파라미터에 다른 Bean을 주입한다. 메서드 안에서 <code>new</code>로 만드는 건 단지 "어떻게 조립할지"만 개발자가 통제하는 것.</p>
+
+<h3>구현체는 어떻게 "선택"되는가</h3>
+
+<p>"인터페이스 <code>ProductParser</code>에 구현체가 <code>OgParser</code>, <code>CoupangParser</code>가 있다. Spring은 누구를 주입하나?"</p>
+
+<table>
+  <tr><th>상황</th><th>규칙</th><th>방법</th></tr>
+  <tr><td>구현체 1개</td><td>그냥 그거</td><td>아무 annotation 필요 없음</td></tr>
+  <tr><td>구현체 N개 + "대표 1개"</td><td><code>@Primary</code>가 주입</td><td><code>@Primary</code> on one impl</td></tr>
+  <tr><td>구현체 N개 + 이름으로 고름</td><td><code>@Qualifier("name")</code>로 지정</td><td>주입 지점에 qualifier 명시</td></tr>
+  <tr><td>전부 다 필요</td><td><code>List&lt;ProductParser&gt;</code>로 받음</td><td>Spring이 모든 구현체 collect</td></tr>
+</table>
+
+<pre><code><span class="cmt">// 이 프로젝트의 ParserResolver 방식: 모두 주입받고, 런타임에 골라 씀</span>
+<span class="cmt">@</span><span class="fn">Component</span>
+<span class="kw">class</span> <span class="cls">ParserResolver</span>(
+    <span class="kw">private val</span> parsers: <span class="cls">List</span>&lt;ProductParser&gt;,  <span class="cmt">// ← 모든 @Component ProductParser가 다 들어옴</span>
+) {
+    <span class="kw">fun</span> <span class="fn">resolve</span>(url: <span class="cls">String</span>): ProductParser =
+        parsers.find { it.supports(url) } ?: parsers.first { it <span class="kw">is</span> OgParser }
+}
+
+<span class="cmt">// 반대로 "특정 구현체 하나만 필요"하면 @Qualifier:</span>
+<span class="kw">class</span> <span class="cls">SomeService</span>(
+    <span class="cmt">@</span><span class="fn">Qualifier</span>(<span class="str">"coupang"</span>) <span class="kw">private val</span> parser: ProductParser,
+)</code></pre>
+
+<div class="callout tip">
+  <strong>정리</strong> — 주입 지점은 <strong>클래스 속성(필드)</strong>이다. 생성자 파라미터는 그 필드를 <em>초기화</em>하는 통로.
+  <code>@Bean</code> 메서드의 파라미터는 "그 메서드로 만들 Bean을 조립할 때 필요한 재료"를 주입받는 또 다른 지점.
+  <em>메서드 내부 로직이 구현체를 고르는 게 아니라</em>, 컨테이너가 타입·이름·<code>@Primary</code>·<code>@Qualifier</code>를 보고 결정한다.
+</div>
+
+<h2>핵심 어노테이션 4종</h2>
+
+<table>
+  <tr><th>어노테이션</th><th>의미</th><th>이 프로젝트 예시</th></tr>
+  <tr><td><code>@Component</code></td><td>"이건 Spring이 관리할 Bean"</td><td>OgParser, CoupangParser, UserRepositoryAdapter</td></tr>
+  <tr><td><code>@Service</code></td><td>@Component와 기능 동일. <em>"비즈니스 로직 층"</em>이라는 의미 전달용.</td><td>ParseProductUseCase, LoginWithGoogleUsecase</td></tr>
+  <tr><td><code>@Repository</code></td><td>@Component + DB 예외 변환. <em>"영속성 층"</em> 의미.</td><td>Spring Data JPA가 자동. 직접 붙일 일 적음.</td></tr>
+  <tr><td><code>@Configuration</code></td><td>Bean을 <em>수동으로</em> 정의하는 설정 클래스.</td><td>SecurityConfig, WebConfig</td></tr>
+</table>
+
+<p>기능적으론 모두 @Component와 동일하지만 <strong>의미 전달</strong>이 다르다.
+  코드를 읽는 사람이 이게 "컨트롤러인가, 서비스인가, DB 어댑터인가"를 한눈에 알 수 있다.
+  Kotlin 컴파일러도 이 구분을 쓴다 (예: <code>@Repository</code>는 DB 예외를 Spring 표준으로 변환).</p>
+
+<h2>@Bean 수동 등록 — @Configuration 안에서</h2>
+
+<p>서드파티 라이브러리 객체, 조건부 Bean 등은 @Component를 못 붙이므로 <code>@Bean</code>으로 직접 선언:</p>
+
+<pre><code><span class="cmt">// SecurityConfig.kt (이 프로젝트)</span>
+<span class="cmt">@</span><span class="fn">Configuration</span>
+<span class="cmt">@</span><span class="fn">EnableWebSecurity</span>
+<span class="kw">class</span> <span class="cls">SecurityConfig</span> {
+
+    <span class="cmt">@</span><span class="fn">Bean</span>
+    <span class="kw">fun</span> <span class="fn">jwtAuthenticationFilter</span>(
+        accessTokenIssuer: AccessTokenIssuer,  <span class="cmt">// 다른 Bean 주입 가능</span>
+    ): JwtAuthenticationFilter = JwtAuthenticationFilter(accessTokenIssuer)
+
+    <span class="cmt">@</span><span class="fn">Bean</span>
+    <span class="kw">fun</span> <span class="fn">filterChain</span>(http: HttpSecurity, ...): SecurityFilterChain = ...
+}
+</code></pre>
+
+<div class="callout tip">
+  <strong>왜 JwtAuthenticationFilter를 @Bean으로?</strong> 이 프로젝트에서 원래 @Component로 했다가 수동 @Bean으로 바꿨다.
+  이유: @Component면 컴포넌트 스캔이 닿는 테스트(예: @WebMvcTest)에서도 자동 로드되어 의존성 실패로 컨텍스트가 안 뜬다.
+  @Bean으로 SecurityConfig 안에 두면 SecurityConfig를 @Import한 테스트에서만 로드된다.
+</div>
+
+<h2>REST API 작성 — 가장 자주 나오는 패턴</h2>
+
+<div class="compare">
+  <div class="compare-cell py">
+    <div class="label">Django + DRF</div>
+<pre><code><span class="cmt"># urls.py</span>
+urlpatterns = [
+    path(<span class="str">'products/parse'</span>, ParseView.as_view()),
+]
+
+<span class="cmt"># views.py</span>
+<span class="kw">class</span> <span class="cls">ParseView</span>(<span class="cls">APIView</span>):
+    <span class="kw">def</span> <span class="fn">post</span>(<span class="kw">self</span>, request):
+        serializer = ParseRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=<span class="kw">True</span>)
+        result = service.parse(serializer.validated_data[<span class="str">'url'</span>])
+        <span class="kw">return</span> Response(ParseResponseSerializer(result).data)</code></pre>
+  </div>
+  <div class="compare-cell kt">
+    <div class="label">Spring Boot</div>
+<pre><code><span class="cmt">// ProductController.kt</span>
+<span class="cmt">@</span><span class="fn">RestController</span>
+<span class="cmt">@</span><span class="fn">RequestMapping</span>(<span class="str">"/api/v1/products"</span>)
+<span class="kw">class</span> <span class="cls">ProductController</span>(
+    <span class="kw">private val</span> useCase: ParseProductUseCase,
+) {
+    <span class="cmt">@</span><span class="fn">PostMapping</span>(<span class="str">"/parse"</span>)
+    <span class="kw">fun</span> <span class="fn">parse</span>(
+        <span class="cmt">@</span><span class="fn">Valid</span> <span class="cmt">@</span><span class="fn">RequestBody</span> req: ParseRequest,
+    ): ResponseEntity&lt;ParseResponse&gt; {
+        <span class="kw">val</span> result = useCase.execute(req.url)
+        <span class="kw">return</span> ResponseEntity.ok(ParseResponse.from(result))
+    }
+}</code></pre>
+  </div>
+</div>
+
+<h3>각 어노테이션 역할</h3>
+
+<table>
+  <tr><th>Spring</th><th>의미</th><th>Django/DRF 대응</th></tr>
+  <tr><td><code>@RestController</code></td><td>이 클래스의 모든 핸들러가 JSON을 반환 (자동 직렬화)</td><td>DRF <code>APIView</code>의 기본</td></tr>
+  <tr><td><code>@RequestMapping("/path")</code></td><td>클래스 전체 prefix</td><td>Django <code>path()</code> prefix</td></tr>
+  <tr><td><code>@PostMapping("/sub")</code></td><td>POST 핸들러 경로</td><td>DRF <code>def post()</code></td></tr>
+  <tr><td><code>@RequestBody</code></td><td>JSON body를 객체로 역직렬화</td><td>DRF <code>Serializer(data=request.data)</code></td></tr>
+  <tr><td><code>@Valid</code></td><td>역직렬화한 객체에 Bean Validation 적용</td><td>DRF <code>is_valid()</code></td></tr>
+  <tr><td><code>@RequestParam</code></td><td>query string 값 바인딩</td><td>DRF <code>request.query_params</code></td></tr>
+  <tr><td><code>@PathVariable</code></td><td>URL path 변수 바인딩</td><td>Django <code>&lt;int:id&gt;</code></td></tr>
+</table>
+
+<h2>Jackson — DTO ↔ JSON 자동 직렬화</h2>
+
+<p>
+  Django REST Framework에선 <code>Serializer</code>를 별도 클래스로 만든다.
+  Spring Boot는 <strong>Jackson 라이브러리</strong>가 DTO 클래스를 자동으로 JSON 변환한다.
+</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">JsonNaming</span>(PropertyNamingStrategies.SnakeCaseStrategy::class)  <span class="cmt">// camelCase → snake_case</span>
+<span class="kw">data class</span> <span class="cls">ParseResponse</span>(
+    <span class="kw">val</span> name: <span class="cls">String</span>?,
+    <span class="kw">val</span> imageUrl: <span class="cls">String</span>?,      <span class="cmt">// → "image_url": "..."</span>
+    <span class="kw">val</span> parserUsed: ParserName,  <span class="cmt">// → "parser_used": "og"</span>
+)
+
+<span class="cmt">// enum은 @JsonValue로 직렬화 값 지정</span>
+<span class="kw">enum class</span> <span class="cls">ParserName</span>(<span class="kw">val</span> code: <span class="cls">String</span>) {
+    OG(<span class="str">"og"</span>), COUPANG(<span class="str">"coupang-api"</span>), ELEVENST(<span class="str">"11st-api"</span>);
+    <span class="cmt">@</span><span class="fn">JsonValue</span>
+    <span class="kw">fun</span> <span class="fn">toJson</span>(): <span class="cls">String</span> = code
+}
+</code></pre>
+
+<h2>application.yml — 설정 파일</h2>
+
+<p>Django의 <code>settings.py</code>는 Python 코드다. Spring Boot의 <code>application.yml</code>은 <strong>YAML</strong>이다.
+  그 대신 환경변수 주입(<code>${LINKCART_DB_PASSWORD}</code>) 같은 기능을 내장.</p>
+
+<pre><code>spring:
+  datasource:
+    url: ${<span class="kw">LINKCART_DB_URL</span>}         <span class="cmt"># 환경변수 필수</span>
+    username: ${<span class="kw">LINKCART_DB_USERNAME</span>}
+  jpa:
+    hibernate:
+      ddl-auto: validate         <span class="cmt"># 스키마 변경 불허 (Flyway 담당)</span>
+
+linkcart:                        <span class="cmt"># 커스텀 prefix</span>
+  jwt:
+    secret: ${<span class="kw">LINKCART_JWT_SECRET</span>}
+    access-token-ttl-seconds: ${<span class="kw">LINKCART_JWT_ACCESS_TTL</span>:900}  <span class="cmt"># :뒤 = default</span>
+</code></pre>
+
+<p>
+  코드에서는 <code>@Value("\${linkcart.jwt.secret}")</code>로 주입받거나,
+  <code>@ConfigurationProperties</code> 클래스에 bind.
+</p>
+
+<h2>Spring Boot 자동 설정 — "내가 한 게 없는데 왜 돌아가?"</h2>
+
+<div class="callout info">
+  <strong>개념</strong> — classpath에 <code>spring-boot-starter-web</code>이 있으면 Spring Boot가
+  "아, 웹 앱이구나" 판단하고 Tomcat embedded server, Jackson 설정, @RestController 스캐너 등을 자동으로 켠다.
+  <code>-data-jpa</code>가 있으면 DataSource, EntityManagerFactory, Transactional 매니저 자동 설정.
+  개발자는 application.yml만 쓰면 된다.
+</div>
+
+<p>
+  Django에서 <code>INSTALLED_APPS</code>에 앱을 추가하면 middleware, URL, model 등이 자동 등록되는 것과 비슷하다.
+  차이점: Django는 명시적으로 앱을 추가해야 하고, Spring Boot는 <em>의존성이 있으면 자동</em>.
+</p>
+
+<h2>심화 Q&amp;A — 자주 헷갈리는 지점</h2>
+
+<h3>Q. Bean이 도대체 뭐야?</h3>
+
+<p><strong>Bean = Spring IoC 컨테이너가 <em>생성·보관·주입</em>을 관리하는 객체</strong>. 그 이상도 이하도 아니다.</p>
+
+<p>이름의 기원 — 1997년 JavaBeans 규약(POJO + getter/setter + no-arg 생성자 + Serializable)에서 유래. Spring이 "관리 대상 객체"를 Bean으로 부르면서 의미가 일반화됨. 지금은 꼭 JavaBeans 규약을 따를 필요는 없고, 그냥 "컨테이너가 관리하는 객체"로 이해하면 된다.</p>
+
+<pre><code><span class="cmt">// "이건 Bean이다" 라고 선언하는 3가지 방법</span>
+
+<span class="cmt">① @Component/@Service/@Repository/@Controller 등 stereotype</span>
+<span class="cmt">@</span><span class="fn">Service</span>
+<span class="kw">class</span> <span class="cls">LoginUsecase</span>(...)    <span class="cmt">// 이 클래스의 인스턴스 1개가 Bean</span>
+
+<span class="cmt">② @Configuration 안의 @Bean 메서드</span>
+<span class="cmt">@</span><span class="fn">Configuration</span>
+<span class="kw">class</span> <span class="cls">AppConfig</span> {
+    <span class="cmt">@</span><span class="fn">Bean</span>
+    <span class="kw">fun</span> <span class="fn">objectMapper</span>(): ObjectMapper = ObjectMapper()  <span class="cmt">// 리턴값이 Bean</span>
+}
+
+<span class="cmt">③ Spring Boot auto-config가 자동 등록 (DataSource, HikariCP 등)</span></code></pre>
+
+<p><strong>Bean으로 등록되면 뭐가 되나?</strong></p>
+<ul class="arrow-list">
+  <li>앱 시작 시 <strong>한 번만</strong> 생성 (기본 scope=singleton)</li>
+  <li>다른 Bean이 "나 이거 필요해"라고 생성자 파라미터에 적으면 컨테이너가 찾아 꽂아줌</li>
+  <li>앱 종료까지 그 인스턴스가 유지됨</li>
+  <li><code>@Autowired</code>로 꺼내 쓸 수 있음 (Kotlin에선 거의 안 씀 — 생성자 주입으로 자동)</li>
+</ul>
+
+<p>Django로 비유하면 <code>settings.py</code>에서 만들어지는 <code>DATABASES['default']</code> 커넥션 풀, <code>CACHES</code> 등이 Bean 비슷한 개념. 앱 시작 시 한 번 만들고 전역에서 쓴다. 차이점: Django는 개발자가 <code>from django.db import connection</code>으로 전역에서 가져오고, Spring은 생성자로 <em>주입받는다</em>.</p>
+
+<h3>Q. @Component, @Service, @Repository는 기능이 같은데 왜 나눠?</h3>
+
+<p><strong>기능적으로는 거의 같다</strong> — 네 개 다 "이건 Bean이다" 마커. 그럼 왜 4개?</p>
+
+<table>
+  <tr><th>어노테이션</th><th>정체</th><th>의미 전달</th><th>기능 차이</th></tr>
+  <tr><td><code>@Component</code></td><td>루트 어노테이션</td><td>"컴포넌트다" (중립)</td><td>기본 동작만</td></tr>
+  <tr><td><code>@Service</code></td><td><code>@Component</code>의 메타 어노테이션 (상속)</td><td>"비즈니스 로직 층"</td><td>기능은 @Component와 동일</td></tr>
+  <tr><td><code>@Repository</code></td><td><code>@Component</code>의 메타 어노테이션</td><td>"영속성 층"</td><td>+ DB 예외를 Spring 표준(<code>DataAccessException</code>)으로 변환</td></tr>
+  <tr><td><code>@Controller</code> / <code>@RestController</code></td><td><code>@Component</code>의 메타 어노테이션</td><td>"HTTP 진입점"</td><td>+ 웹 요청 매핑 활성화 + (Rest는) @ResponseBody 자동</td></tr>
+</table>
+
+<p>즉 <strong>네 개 다 "@Component"다</strong>. <code>@Service</code>의 소스 코드를 열어보면:</p>
+
+<pre><code><span class="cmt">// org/springframework/stereotype/Service.java</span>
+<span class="cmt">@Target(ElementType.TYPE)</span>
+<span class="cmt">@Component</span>          <span class="cmt">// ← 여기! @Service는 @Component를 "달고" 있음</span>
+<span class="kw">public</span> <span class="cmt">@interface</span> <span class="cls">Service</span> { ... }</code></pre>
+
+<p><strong>그래서 기능은 똑같다. 차이는 세 가지:</strong></p>
+
+<ol>
+  <li><strong>읽는 사람에게 의도를 전달</strong>. 파일 열자마자 "이건 서비스구나 / DAO구나" 파악.</li>
+  <li><strong>@Repository만 예외 변환 AOP가 동작</strong>. 영속성 구현체에 붙여야 JPA/JDBC의 벤더별 예외가 Spring 표준으로 변환됨.</li>
+  <li><strong>@RestController만 웹 매핑 활성화</strong>. @Service 붙인 클래스에 @GetMapping 써봐야 라우팅 안 됨.</li>
+</ol>
+
+<p><strong>언제 무엇을 쓰나 (이 프로젝트 관례)</strong></p>
+<ul class="arrow-list">
+  <li><code>application/usecase/</code> → <code>@Service</code></li>
+  <li><code>infrastructure/adapter/persistence/</code>의 Repository 구현 → <code>@Component</code> (Spring Data JPA가 생성하는 JpaRepository는 자동 @Repository, Adapter는 @Component로 충분)</li>
+  <li><code>infrastructure/adapter/parser/</code>, <code>auth/</code> → <code>@Component</code></li>
+  <li><code>presentation/api/</code>의 Controller → <code>@RestController</code></li>
+  <li><code>infrastructure/config/</code>의 설정 클래스 → <code>@Configuration</code></li>
+</ul>
+
+<h3>Q. 서드파티 라이브러리에 @Component를 왜 못 붙여?</h3>
+
+<p><strong>이유 1: 소스 코드를 수정할 수 없다.</strong> @Component는 클래스 선언 위에 달린다.</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">Component</span>            <span class="cmt">// ← 이건 "Kotlin/Java 소스 파일"을 수정해야 붙일 수 있다</span>
+<span class="kw">class</span> <span class="cls">MyClass</span>(...)</code></pre>
+
+<p>Jackson의 <code>ObjectMapper</code>, Apache HttpClient, Google API의 <code>GoogleIdTokenVerifier</code>는 <em>이미 컴파일된 jar 파일 안에 있다</em>. 그 소스에 @Component를 넣을 수 없다. Maven Central에서 받은 jar를 수정할 수 없기 때문.</p>
+
+<p><strong>이유 2: 생성 시 복잡한 설정이 필요하다.</strong> @Component는 "no-arg 생성자 또는 Spring이 자동 주입 가능한 파라미터만 가진 생성자"여야 바로 작동. 서드파티 객체는 종종:</p>
+
+<ul class="arrow-list">
+  <li>Builder 패턴으로만 생성 가능 (<code>GoogleIdTokenVerifier.Builder(...).setAudience(...).build()</code>)</li>
+  <li>외부 설정값이 필요 (<code>@Value("\${linkcart.jwt.secret}")</code>에서 꺼내야 함)</li>
+  <li>조건부로 다르게 만들어야 함 (prod면 실제, dev면 mock)</li>
+</ul>
+
+<p>이런 조립은 <strong>메서드 바디에서 개발자가 직접 코드로</strong> 해야 한다. 그게 <code>@Bean</code> 메서드.</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">Configuration</span>
+<span class="kw">class</span> <span class="cls">GoogleConfig</span>(
+    <span class="cmt">@</span><span class="fn">Value</span>(<span class="str">"\${linkcart.google.client-id}"</span>)
+    <span class="kw">private val</span> clientId: <span class="cls">String</span>,
+) {
+    <span class="cmt">@</span><span class="fn">Bean</span>
+    <span class="kw">fun</span> <span class="fn">googleIdTokenVerifier</span>(): GoogleIdTokenVerifier =
+        GoogleIdTokenVerifier.Builder(NetHttpTransport(), GsonFactory())
+            .setAudience(listOf(clientId))  <span class="cmt">// Builder 패턴 + 외부 설정값</span>
+            .build()
+}</code></pre>
+
+<h3>Q. "수동 @Bean"이라는 건 뭐야? 자동 @Bean도 있나?</h3>
+
+<p>용어 정리:</p>
+
+<table>
+  <tr><th>구분</th><th>실체</th><th>누가</th></tr>
+  <tr><td><strong>자동</strong> (관례적 표현)</td><td>@Component/@Service 등이 붙은 클래스 — 앱 시작 시 Spring이 <em>스캔</em>해서 자동 Bean 등록</td><td>개발자가 어노테이션만 붙이면 끝</td></tr>
+  <tr><td><strong>수동 @Bean</strong></td><td>@Configuration 클래스 안의 <code>@Bean</code> 메서드 — 개발자가 메서드 바디에서 <em>직접</em> 조립</td><td>개발자가 메서드 바디 작성</td></tr>
+  <tr><td>Spring Boot auto-config</td><td>스타터 의존성만 추가하면 Spring이 미리 작성해둔 @Configuration이 자동 적용 (DataSource, HikariCP 등)</td><td>Spring Boot 프레임워크가 제공</td></tr>
+</table>
+
+<p>"자동 @Bean"은 정식 용어가 아니다. 보통 "@Component 계열 = 컴포넌트 스캔으로 자동 등록", "@Bean 메서드 = 개발자가 수동 정의"로 구분한다. 둘의 결과물(컨테이너에 Bean으로 등록)은 같다.</p>
+
+<h3>Q. 컴포넌트 스캔(component scan)은 뭐야?</h3>
+
+<p><strong>컴포넌트 스캔</strong> = Spring이 앱 시작 시 특정 패키지 하위를 <em>클래스패스 스캐닝</em>으로 뒤져서 <code>@Component</code>(및 <code>@Service</code>, <code>@Repository</code>, <code>@Controller</code>, <code>@Configuration</code>) 붙은 클래스를 <em>자동으로 Bean으로 등록</em>하는 과정.</p>
+
+<p><strong>누가 언제 무슨 목적으로?</strong></p>
+<ul class="arrow-list">
+  <li><strong>누가</strong>: Spring IoC 컨테이너 (<code>AnnotationConfigApplicationContext</code>)</li>
+  <li><strong>언제</strong>: 앱 시작 직후 (main 함수 → <code>SpringApplication.run()</code> 안에서)</li>
+  <li><strong>목적</strong>: 개발자가 하나하나 <code>@Bean</code>으로 등록하지 않아도, 어노테이션만 붙이면 자동으로 Bean이 되게 해 <em>보일러플레이트를 줄이는 것</em></li>
+</ul>
+
+<p><strong>스캔 대상 패키지</strong></p>
+
+<pre><code><span class="cmt">// 이 프로젝트의 메인 클래스</span>
+<span class="kw">package</span> com.linkcart                           <span class="cmt">// ← 여기가 base package</span>
+
+<span class="cmt">@</span><span class="fn">SpringBootApplication</span>                       <span class="cmt">// = @Configuration + @EnableAutoConfiguration + @ComponentScan</span>
+<span class="kw">class</span> <span class="cls">LinkcartBackendApplication</span>
+
+<span class="kw">fun</span> <span class="fn">main</span>(args: <span class="cls">Array</span>&lt;<span class="cls">String</span>&gt;) {
+    runApplication&lt;LinkcartBackendApplication&gt;(*args)
+}</code></pre>
+
+<p><code>@SpringBootApplication</code>은 메타 어노테이션. 그 안에 <code>@ComponentScan</code>이 들어있고, <strong>기본 스캔 루트 = 이 클래스가 있는 패키지 하위 전체</strong>. 즉 <code>com.linkcart.*</code> 전부. 그래서 <code>com.linkcart.application.auth.usecase.LoginWithGoogleUsecase</code>가 @Service만 붙여도 자동 발견된다.</p>
+
+<p><strong>그래서 지켜야 할 관례</strong> — 메인 Application 클래스는 <em>가장 바깥 패키지</em>에 둬라. <code>com.linkcart.backend.MyApp</code>으로 두면 <code>com.linkcart.application.*</code>이 스캔 밖으로 빠진다.</p>
+
+<h3>Q. @EnableWebSecurity, @Import, @WebMvcTest는 뭐야?</h3>
+
+<table>
+  <tr><th>어노테이션</th><th>한 줄 요약</th><th>이 프로젝트 쓰임</th></tr>
+  <tr><td><code>@EnableWebSecurity</code></td><td>"Spring Security 웹 설정 활성화"</td><td><code>SecurityConfig</code>에 붙어 있음</td></tr>
+  <tr><td><code>@Import</code></td><td>"다른 @Configuration 클래스를 명시적으로 끌어와라"</td><td>슬라이스 테스트에서 <code>SecurityConfig</code> 등 필요한 설정만 선택적 로드</td></tr>
+  <tr><td><code>@WebMvcTest</code></td><td>"웹 계층(Controller/Filter/Advice)만 로드하는 슬라이스 테스트"</td><td>Controller 테스트가 DB·Service 없이 빠르게 돔</td></tr>
+</table>
+
+<p><strong>@EnableWebSecurity</strong> — "@Enable*" 계열은 "이 기능 켜"라고 Spring에 신호를 보낸다. 내부적으로는 @Import로 필요한 Configuration을 들여온다. 다른 예: <code>@EnableCaching</code>, <code>@EnableScheduling</code>, <code>@EnableAsync</code>, <code>@EnableJpaRepositories</code>.</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">Configuration</span>
+<span class="cmt">@</span><span class="fn">EnableWebSecurity</span>    <span class="cmt">// ← 이걸 넣으면 SecurityFilterChain 정의가 작동</span>
+<span class="kw">class</span> <span class="cls">SecurityConfig</span> { ... }</code></pre>
+
+<p><strong>@Import</strong> — 테스트에서 특정 Configuration만 가져오고 싶을 때.</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">WebMvcTest</span>(AuthController::<span class="kw">class</span>)   <span class="cmt">// Controller 하나만 로드</span>
+<span class="cmt">@</span><span class="fn">Import</span>(SecurityConfig::<span class="kw">class</span>)       <span class="cmt">// + SecurityConfig 추가 로드 (필터 체인 필요)</span>
+<span class="kw">class</span> <span class="cls">AuthControllerTest</span> {
+    <span class="cmt">@</span><span class="fn">Autowired lateinit var</span> mockMvc: MockMvc
+    <span class="cmt">@</span><span class="fn">MockBean lateinit var</span> loginWithGoogleUsecase: LoginWithGoogleUsecase
+    ...
+}</code></pre>
+
+<p><strong>@WebMvcTest</strong> — <code>@SpringBootTest</code>가 전체 컨텍스트(전체 Bean)를 로드한다면, <code>@WebMvcTest</code>는 <em>웹 관련 Bean만</em> 로드한다. 대략 로드되는 것: @RestController, @ControllerAdvice, Filter, HandlerInterceptor, Jackson 설정. 로드 안 되는 것: @Service, @Repository, DataSource, JPA. → 훨씬 빠르다 (수 초 vs 수십 초).</p>
+
+<h3>Q. Bean Validation이 뭐야?</h3>
+
+<p><strong>Bean Validation</strong> = JSR-380 (Jakarta Validation) 표준 스펙. DTO/엔티티 필드에 <code>@NotBlank</code>, <code>@Email</code>, <code>@Size(min=1)</code> 같은 어노테이션을 붙여 <em>선언적으로 검증 규칙을 명시</em>하는 것. 구현체는 대부분 Hibernate Validator (이름에 속지 마라 — ORM과 무관).</p>
+
+<pre><code><span class="kw">import</span> jakarta.validation.constraints.*
+
+<span class="kw">data class</span> <span class="cls">OAuthLoginRequest</span>(
+    <span class="cmt">@field:</span><span class="fn">NotBlank</span>
+    <span class="kw">val</span> code: <span class="cls">String</span>,
+
+    <span class="cmt">@field:</span><span class="fn">NotBlank</span>
+    <span class="cmt">@field:</span><span class="fn">Pattern</span>(regexp = <span class="str">"^https?://.+"</span>)
+    <span class="kw">val</span> redirectUri: <span class="cls">String</span>,
+)
+
+<span class="cmt">// Controller</span>
+<span class="cmt">@</span><span class="fn">PostMapping</span>(<span class="str">"/oauth/google"</span>)
+<span class="kw">fun</span> <span class="fn">loginWithGoogle</span>(
+    <span class="cmt">@</span><span class="fn">Valid</span> <span class="cmt">@</span><span class="fn">RequestBody</span> req: OAuthLoginRequest,    <span class="cmt">// ← @Valid 있으면 자동 검증</span>
+) { ... }</code></pre>
+
+<p><code>@Valid</code> 트리거 → Hibernate Validator가 <code>req.code</code>, <code>req.redirectUri</code>를 검사 → 위반 시 <code>MethodArgumentNotValidException</code>을 던진다. 이 프로젝트는 <code>@RestControllerAdvice</code>에서 잡아 400 응답으로 변환.</p>
+
+<p><strong>Kotlin 주의 — <code>@field:</code> 접두사</strong>. Kotlin <code>val</code>은 "private field + public getter"로 컴파일되는데, 어노테이션은 둘 중 어디로 갈지 애매하다. <code>@field:NotBlank</code>로 명시해 <em>필드</em>에 붙인다. 없으면 검증이 누락될 수 있음.</p>
+
+<p>Django DRF의 Serializer.validate()와 유사하지만, Bean Validation은 <em>어노테이션 선언</em>만으로 끝나고 코드를 거의 안 쓴다는 점이 다르다.</p>
+
+<h3>Q. Kotlin에서 어노테이션 여러 개 쓸 때 공백으로 구분? 순서 상관있어?</h3>
+
+<p><strong>공백 기준</strong> — Kotlin/Java 어노테이션은 <strong>공백 하나 이상</strong>이면 된다. 줄바꿈도 허용. 보통 취향 따라:</p>
+
+<pre><code><span class="cmt">// 한 줄에 나열 — 간결 (이 프로젝트 Controller 파라미터)</span>
+<span class="cmt">@</span><span class="fn">Valid</span> <span class="cmt">@</span><span class="fn">RequestBody</span> req: OAuthLoginRequest
+
+<span class="cmt">// 줄바꿈 — 어노테이션이 많거나 길 때</span>
+<span class="cmt">@</span><span class="fn">Operation</span>(summary = <span class="str">"Google 로그인"</span>)
+<span class="cmt">@</span><span class="fn">ApiResponses</span>(...)
+<span class="cmt">@</span><span class="fn">PostMapping</span>(<span class="str">"/oauth/google"</span>)
+<span class="kw">fun</span> <span class="fn">loginWithGoogle</span>(...) </code></pre>
+
+<p><strong>순서 — Python 데코레이터와 다르다.</strong></p>
+
+<table>
+  <tr><th></th><th>Python 데코레이터</th><th>Kotlin/Java 어노테이션</th></tr>
+  <tr><td>실행 주체</td><td>함수/클래스를 <em>감싸는 실제 로직</em> (<code>return wrapper</code>)</td><td><em>메타데이터</em> 일 뿐. 프레임워크가 나중에 읽어 처리</td></tr>
+  <tr><td>순서 영향</td><td><strong>영향 있음</strong>. <code>@retry</code> 밑에 <code>@login_required</code>면 재시도할 때마다 로그인 체크 등</td><td><strong>기본적으로 영향 없음</strong>. 단 <em>프레임워크가 순서를 특별히 해석하는</em> 경우만 예외</td></tr>
+  <tr><td>예</td><td><code>@app.route("/x")</code> ↔ <code>@login_required</code> 순서 주의</td><td><code>@Valid @RequestBody</code>든 <code>@RequestBody @Valid</code>든 동일</td></tr>
+</table>
+
+<p><strong>Kotlin 어노테이션은 기본적으로 메타데이터</strong>. 순서로 동작이 바뀌지 않는다. 예외: Spring AOP의 <code>@Order</code>, 여러 <code>@Aspect</code> 간의 우선순위, Jackson의 <code>@JsonDeserialize</code> 체인 등 <strong>프레임워크가 순서를 규칙으로 쓰는 경우</strong>만. 대부분의 @Valid/@RequestBody/@PathVariable은 상관없다.</p>
+
+<p><strong>팀 관례</strong>로는 보통 "의미 → 매핑" 순으로 배치한다: <code>@Valid @RequestBody</code>(의미)가 <code>req: OAuthLoginRequest</code>(매핑) 앞에. 이 프로젝트 스타일도 그대로.</p>
+
+<h3>Q. @RequestBody / @RestController가 JSON 직렬화 못 하면 어떻게 돼?</h3>
+
+<p>답: <strong>예외를 던진다</strong>. 단, 요청/응답 방향에 따라 예외 타입과 상태 코드가 다르다.</p>
+
+<h4>역직렬화 실패 (요청 JSON → 객체)</h4>
+
+<table>
+  <tr><th>상황</th><th>예외</th><th>기본 HTTP 응답</th></tr>
+  <tr><td>JSON 문법 자체가 깨짐 (예: <code>{"code": }</code>)</td><td><code>HttpMessageNotReadableException</code></td><td>400 Bad Request</td></tr>
+  <tr><td>필수 필드 누락 (Kotlin non-null인데 없음)</td><td><code>MissingKotlinParameterException</code> (위 예외가 이걸 감쌈)</td><td>400 Bad Request</td></tr>
+  <tr><td>타입 불일치 (<code>price</code>에 문자열)</td><td><code>InvalidFormatException</code> → <code>HttpMessageNotReadableException</code></td><td>400 Bad Request</td></tr>
+  <tr><td>@Valid 검증 실패</td><td><code>MethodArgumentNotValidException</code></td><td>400 Bad Request</td></tr>
+</table>
+
+<h4>직렬화 실패 (객체 → 응답 JSON)</h4>
+
+<table>
+  <tr><th>상황</th><th>예외</th><th>기본 HTTP 응답</th></tr>
+  <tr><td>순환 참조 (A→B→A)</td><td><code>JsonMappingException</code> + StackOverflowError 계열</td><td>500 Internal Server Error</td></tr>
+  <tr><td>Jackson이 모르는 타입 (커스텀 객체 + getter도 없음)</td><td><code>InvalidDefinitionException</code></td><td>500</td></tr>
+</table>
+
+<p><strong>이 프로젝트의 처리 방식</strong> — <code>@RestControllerAdvice</code>에서 일관된 에러 응답으로 변환. Spring 기본 400보다 더 보기 좋은 JSON으로:</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">RestControllerAdvice</span>
+<span class="kw">class</span> <span class="cls">GlobalExceptionHandler</span> {
+    <span class="cmt">@</span><span class="fn">ExceptionHandler</span>(HttpMessageNotReadableException::<span class="kw">class</span>)
+    <span class="kw">fun</span> <span class="fn">handleNotReadable</span>(e: HttpMessageNotReadableException) =
+        ResponseEntity.badRequest().body(ErrorResponse(<span class="str">"INVALID_JSON"</span>, e.message ?: <span class="str">"malformed request"</span>))
+}</code></pre>
+
+<h3>Q. @RequestParam, @PathVariable 실제 사용 예시</h3>
+
+<p>둘 다 HTTP 요청의 특정 부분을 <strong>메서드 파라미터로 바인딩</strong>한다. 무엇을 바인딩하느냐가 다르다.</p>
+
+<table>
+  <tr><th>어노테이션</th><th>무엇을</th><th>예 URL</th><th>Django 대응</th></tr>
+  <tr><td><code>@PathVariable</code></td><td>URL 경로 세그먼트</td><td><code>/products/42</code> → id=42</td><td><code>&lt;int:id&gt;</code></td></tr>
+  <tr><td><code>@RequestParam</code></td><td>쿼리 스트링 <em>또는</em> form-data</td><td><code>/products?page=2&amp;size=20</code></td><td><code>request.GET['page']</code></td></tr>
+</table>
+
+<pre><code><span class="cmt">@</span><span class="fn">RestController</span>
+<span class="cmt">@</span><span class="fn">RequestMapping</span>(<span class="str">"/api/v1/products"</span>)
+<span class="kw">class</span> <span class="cls">ProductController</span>(...) {
+
+    <span class="cmt">// ① @PathVariable — URL에서 값 꺼내기</span>
+    <span class="cmt">// GET /api/v1/products/42</span>
+    <span class="cmt">@</span><span class="fn">GetMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">fun</span> <span class="fn">getProduct</span>(
+        <span class="cmt">@</span><span class="fn">PathVariable</span> id: <span class="cls">Long</span>,          <span class="cmt">// → 42 (자동 형변환)</span>
+    ): ProductResponse { ... }
+
+    <span class="cmt">// ② @PathVariable이 여러 개</span>
+    <span class="cmt">// GET /api/v1/products/42/reviews/7</span>
+    <span class="cmt">@</span><span class="fn">GetMapping</span>(<span class="str">"/{productId}/reviews/{reviewId}"</span>)
+    <span class="kw">fun</span> <span class="fn">getReview</span>(
+        <span class="cmt">@</span><span class="fn">PathVariable</span> productId: <span class="cls">Long</span>,
+        <span class="cmt">@</span><span class="fn">PathVariable</span> reviewId: <span class="cls">Long</span>,
+    ) { ... }
+
+    <span class="cmt">// ③ @RequestParam — query string</span>
+    <span class="cmt">// GET /api/v1/products?page=2&amp;size=20&amp;mall=COUPANG</span>
+    <span class="cmt">@</span><span class="fn">GetMapping</span>
+    <span class="kw">fun</span> <span class="fn">list</span>(
+        <span class="cmt">@</span><span class="fn">RequestParam</span>(defaultValue = <span class="str">"0"</span>) page: <span class="cls">Int</span>,
+        <span class="cmt">@</span><span class="fn">RequestParam</span>(defaultValue = <span class="str">"20"</span>) size: <span class="cls">Int</span>,
+        <span class="cmt">@</span><span class="fn">RequestParam</span>(required = <span class="kw">false</span>) mall: Mall?,    <span class="cmt">// 없으면 null</span>
+    ): PageResponse&lt;ProductResponse&gt; { ... }
+
+    <span class="cmt">// ④ @RequestParam 이름 다르게 매핑</span>
+    <span class="cmt">// GET /api/v1/products?q=ipad</span>
+    <span class="cmt">@</span><span class="fn">GetMapping</span>(<span class="str">"/search"</span>)
+    <span class="kw">fun</span> <span class="fn">search</span>(
+        <span class="cmt">@</span><span class="fn">RequestParam</span>(<span class="str">"q"</span>) query: <span class="cls">String</span>,    <span class="cmt">// URL의 q → 파라미터 query</span>
+    ) { ... }
+
+    <span class="cmt">// ⑤ 혼합</span>
+    <span class="cmt">// POST /api/v1/products/42/reviews?notify=true</span>
+    <span class="cmt">// body: { "text": "좋아요" }</span>
+    <span class="cmt">@</span><span class="fn">PostMapping</span>(<span class="str">"/{id}/reviews"</span>)
+    <span class="kw">fun</span> <span class="fn">addReview</span>(
+        <span class="cmt">@</span><span class="fn">PathVariable</span> id: <span class="cls">Long</span>,
+        <span class="cmt">@</span><span class="fn">RequestParam</span>(defaultValue = <span class="str">"false"</span>) notify: <span class="cls">Boolean</span>,
+        <span class="cmt">@</span><span class="fn">Valid</span> <span class="cmt">@</span><span class="fn">RequestBody</span> req: ReviewRequest,
+    ) { ... }
+}</code></pre>
+
+<p><strong>자동 형변환</strong> — URL은 본질적으로 문자열인데 <code>Long</code>, <code>Boolean</code>, 심지어 enum까지 Spring이 변환. 실패 시 400. 형변환 실패는 <code>MethodArgumentTypeMismatchException</code>으로 잡을 수 있다.</p>
+
+<h3>Q. @JsonNaming / @JsonValue — Jackson을 import 안 해도 되나?</h3>
+
+<p><strong>답: "import는 해야 하지만 <em>의존성 추가는 이미 돼 있다</em>"</strong>. 이 둘을 분리해서 이해해야 한다.</p>
+
+<ol>
+  <li><strong>라이브러리(jar) 의존성</strong> — <code>build.gradle.kts</code>에 Jackson이 있어야 함. 이 프로젝트는 <code>spring-boot-starter-web</code>이 Jackson을 transitive dependency로 끌고 온다. 추가로 <code>jackson-module-kotlin</code>을 명시적으로 넣어 Kotlin data class를 잘 읽게 함. 따로 <code>implementation("com.fasterxml...")</code>를 또 쓸 필요는 없음.</li>
+  <li><strong>소스 import</strong> — 사용하는 Kotlin 파일 최상단에 <code>import com.fasterxml.jackson.annotation.JsonValue</code> 같이 써야 함. IDE가 자동으로 넣어줌.</li>
+</ol>
+
+<pre><code><span class="kw">import</span> com.fasterxml.jackson.annotation.JsonValue          <span class="cmt">// ← 이건 필요</span>
+<span class="kw">import</span> com.fasterxml.jackson.databind.PropertyNamingStrategies
+<span class="kw">import</span> com.fasterxml.jackson.databind.annotation.JsonNaming
+
+<span class="cmt">@</span><span class="fn">JsonNaming</span>(PropertyNamingStrategies.SnakeCaseStrategy::<span class="kw">class</span>)
+<span class="kw">data class</span> <span class="cls">ParseResponse</span>(
+    <span class="kw">val</span> name: <span class="cls">String</span>?,
+    <span class="kw">val</span> imageUrl: <span class="cls">String</span>?,       <span class="cmt">// → "image_url"</span>
+    <span class="kw">val</span> parserUsed: ParserName,   <span class="cmt">// → "parser_used"</span>
+)</code></pre>
+
+<p><strong>@JsonNaming</strong> — 클래스 단위로 "필드명을 어떻게 JSON 키로 변환할지" 지정. <code>SnakeCaseStrategy</code>, <code>KebabCaseStrategy</code>, <code>LowerCamelCaseStrategy</code> 등. 이 프로젝트는 <code>application.yml</code>에 <code>spring.jackson.property-naming-strategy: SNAKE_CASE</code>를 <strong>전역 기본값</strong>으로 설정했으므로 클래스에 따로 안 붙여도 됨. (위 예시는 설명용)</p>
+
+<p><strong>@JsonValue</strong> — enum이나 일반 클래스에서 "JSON으로 직렬화할 때 <em>이 메서드의 반환값</em>만 써라" 지시. enum이 기본적으로 <code>name()</code>(예: "OG", "COUPANG")으로 직렬화되는데, 소문자 코드("og", "coupang-api")로 바꾸고 싶어서 씀.</p>
+
+<pre><code><span class="kw">enum class</span> <span class="cls">ParserName</span>(<span class="kw">val</span> code: <span class="cls">String</span>) {
+    OG(<span class="str">"og"</span>), COUPANG(<span class="str">"coupang-api"</span>), ELEVENST(<span class="str">"11st-api"</span>);
+
+    <span class="cmt">@</span><span class="fn">JsonValue</span>                          <span class="cmt">// 직렬화 시 이 메서드 결과가 JSON 값</span>
+    <span class="kw">fun</span> <span class="fn">toJson</span>(): <span class="cls">String</span> = code
+}
+
+<span class="cmt">// 결과: {"parser_used": "og"}  (ParserName.OG.toJson() = "og")</span>
+<span class="cmt">// @JsonValue 없으면: {"parser_used": "OG"}  (enum의 name)</span></code></pre>
+
+<p><strong>역방향</strong> — JSON 문자열 "og"를 다시 ParserName.OG로 읽어들이려면 <code>@JsonCreator</code>가 붙은 factory가 필요하다. 이 프로젝트는 응답에만 쓰므로 생략.</p>
+
+<h3>Q. application.yml 환경변수를 <code>${VAR}</code>로 썼는데 값을 안 주면?</h3>
+
+<p><strong>default 유무에 따라 동작이 다르다.</strong></p>
+
+<pre><code><span class="cmt"># 이 프로젝트 application.yml의 두 패턴</span>
+
+<span class="cmt"># ① default 없음 — 필수</span>
+datasource:
+  url: ${LINKCART_DB_URL}             <span class="cmt"># 환경변수 없으면 앱 시작 실패</span>
+
+<span class="cmt"># ② default 있음 (: 뒤)</span>
+access-token-ttl-seconds: ${LINKCART_JWT_ACCESS_TTL:900}    <span class="cmt"># 없으면 900</span>
+base-url: ${LINKCART_COUPANG_BASE_URL:https://api-gateway.coupang.com}
+
+<span class="cmt"># ③ 빈 default — "있어도 되고 없어도 됨"</span>
+access-key: ${LINKCART_COUPANG_ACCESS_KEY:}    <span class="cmt"># 없으면 빈 문자열</span></code></pre>
+
+<table>
+  <tr><th>상황</th><th>결과</th></tr>
+  <tr><td><code>${FOO}</code> + FOO 환경변수 없음</td><td>앱 시작 실패. <code>IllegalArgumentException: Could not resolve placeholder 'FOO'</code></td></tr>
+  <tr><td><code>${FOO:default}</code> + FOO 없음</td><td>"default" 값이 들어감</td></tr>
+  <tr><td><code>${FOO:}</code> + FOO 없음</td><td>빈 문자열 <code>""</code></td></tr>
+  <tr><td><code>${FOO:default}</code> + <code>FOO=actual</code></td><td>"actual" 값이 우선</td></tr>
+</table>
+
+<p><strong>값을 안 준 채로 실행하면</strong> — Spring Boot는 <em>앱 시작 시점</em>에 전부 resolve를 시도한다. 빠진 게 있으면 <code>UnsatisfiedDependencyException</code>으로 기동 실패 (이른 실패 — fail-fast). 실행 중이 아니라 시작 시 걸리므로 프로덕션 배포 전 파이프라인에서 잡힌다.</p>
+
+<p><strong>이 프로젝트 관례</strong> — 시크릿(DB 비번, JWT secret, Google client secret)은 default 없이 필수로, 선택 설정(TTL, base-url)은 default 제공. README에 필수 환경변수를 명시.</p>
+
+<h3>Q. JDBC가 뭐야?</h3>
+
+<p><strong>JDBC</strong> = <strong>Java Database Connectivity</strong>. Java가 어떤 RDB(Postgres, MySQL, Oracle 등)와도 같은 코드로 통신할 수 있게 한 <strong>표준 API 스펙</strong>. JVM 생태계의 ODBC라고 보면 된다.</p>
+
+<p><strong>구조: 3단 분리</strong></p>
+
+<div class="diagram">
+  <svg width="680" height="220" viewBox="0 0 680 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a-jdbc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#4338ca"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="25" width="180" height="55" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+    <text x="120" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="#5b21b6">애플리케이션 코드</text>
+    <text x="120" y="68" text-anchor="middle" font-size="11" fill="#5b21b6">JPA / Spring Data / 직접 SQL</text>
+
+    <line x1="210" y1="52" x2="260" y2="52" stroke="#4338ca" stroke-width="1.5" marker-end="url(#a-jdbc)"/>
+
+    <rect x="260" y="25" width="180" height="55" rx="8" fill="#c7d2fe" stroke="#4338ca"/>
+    <text x="350" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="#312e81">JDBC API (java.sql.*)</text>
+    <text x="350" y="68" text-anchor="middle" font-size="11" fill="#312e81">Connection, Statement, ResultSet</text>
+
+    <line x1="440" y1="52" x2="490" y2="52" stroke="#4338ca" stroke-width="1.5" marker-end="url(#a-jdbc)"/>
+
+    <rect x="490" y="25" width="180" height="55" rx="8" fill="#fde68a" stroke="#d97706"/>
+    <text x="580" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="#92400e">JDBC Driver</text>
+    <text x="580" y="68" text-anchor="middle" font-size="11" fill="#92400e">postgresql-42.x.jar (벤더별)</text>
+
+    <line x1="580" y1="80" x2="580" y2="125" stroke="#d97706" stroke-width="1.5" marker-end="url(#a-jdbc)"/>
+    <text x="580" y="102" text-anchor="middle" font-size="10" fill="#d97706">TCP/Socket</text>
+
+    <rect x="490" y="130" width="180" height="50" rx="8" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="580" y="153" text-anchor="middle" font-size="13" font-weight="700" fill="#991b1b">Database</text>
+    <text x="580" y="170" text-anchor="middle" font-size="11" fill="#991b1b">PostgreSQL 서버</text>
+
+    <text x="340" y="205" text-anchor="middle" font-size="11" fill="#6b7280">앱은 JDBC API만 안다 → DB 바뀌어도 Driver jar만 교체하면 됨</text>
+  </svg>
+  <div class="diagram-caption">JDBC의 3단 구조. 스펙(API)과 구현(Driver)이 분리돼 DB 독립성 확보.</div>
+</div>
+
+<p><strong>레이어별 역할</strong></p>
+
+<table>
+  <tr><th>레이어</th><th>무엇인가</th><th>이 프로젝트 예</th></tr>
+  <tr><td>JDBC API</td><td>Java 표준 스펙 (<code>java.sql.Connection</code>, <code>PreparedStatement</code>, <code>ResultSet</code>). JDK에 포함.</td><td>JDK 21 기본</td></tr>
+  <tr><td>JDBC Driver</td><td>JDBC API의 벤더별 구현. DB마다 다른 jar.</td><td><code>org.postgresql:postgresql</code> (<code>runtimeOnly</code>)</td></tr>
+  <tr><td>상위 추상화</td><td>JDBC 위에 얹힌 편의 레이어</td><td>JPA/Hibernate/Spring Data JPA → 개발자가 쿼리 대신 Entity로 대화</td></tr>
+</table>
+
+<p><strong>왜 <code>runtimeOnly</code>?</strong> — 컴파일 시점엔 Driver의 구체 타입을 몰라도 된다. JDBC API(<code>Connection</code> 등)만으로 코드가 돈다. 앱이 실행되면 Hibernate가 <code>DriverManager.getConnection("jdbc:postgresql://...")</code>을 호출 → JDK가 classpath에서 "postgresql"을 처리할 Driver를 찾음 → Driver가 응답. 그래서 jar는 <em>실행 시</em>에만 있으면 충분.</p>
+
+<p><strong>연결 URL 포맷</strong></p>
+
+<pre><code><span class="cmt"># application.yml</span>
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/linkcart
+    <span class="cmt">#    └────┬────┘ └─────┬─────┘ └───┬───┘</span>
+    <span class="cmt">#      스킴           호스트:포트         DB명</span>
+    driver-class-name: org.postgresql.Driver    <span class="cmt"># Driver 클래스 full name</span></code></pre>
+
+<p>스킴이 <code>jdbc:postgresql://</code>이면 postgresql driver, <code>jdbc:mysql://</code>이면 mysql driver가 선택된다. DB 교체 = 의존성 교체 + URL 스킴 교체. 코드는 거의 그대로.</p>
+
+<p>Django/Python 비교: DB-API 2.0(PEP 249)이 비슷한 역할. <code>psycopg2</code>, <code>pymysql</code>이 Driver에 해당. Django ORM이 JPA에 해당.</p>
+
+<h3>Q. "리플렉션 로드"가 뭐야?</h3>
+
+<p><strong>Reflection</strong>(리플렉션) = 런타임에 클래스/메서드/필드 정보를 프로그램이 <em>자기 자신을 들여다보며</em> 조회·조작하는 기능. Java/Kotlin 기본 내장.</p>
+
+<p>"리플렉션 로드"는 보통 <strong>앱 시작 시 리플렉션으로 어노테이션을 읽어 Bean을 등록/연결</strong>하는 과정을 일컫는다. Spring이 이걸 광범위하게 쓴다.</p>
+
+<h4>Spring이 리플렉션으로 하는 일 (단계별)</h4>
+
+<ol>
+  <li><strong>클래스패스 스캔</strong> — classpath 하위 <code>.class</code> 파일의 <em>바이트코드</em>를 읽어 어노테이션 확인. 이때 ASM 라이브러리로 바이트코드 레벨 파싱 (리플렉션 이전 단계)</li>
+  <li><strong>클래스 로드</strong> — @Component 붙은 것만 <code>Class.forName()</code>으로 로드 → 이제 리플렉션 API 사용 가능</li>
+  <li><strong>생성자 확인</strong> — <code>clazz.declaredConstructors</code>로 생성자 파라미터 타입 조회</li>
+  <li><strong>의존성 해결</strong> — 각 파라미터 타입으로 컨테이너에서 Bean 찾음</li>
+  <li><strong>인스턴스화</strong> — <code>constructor.newInstance(deps...)</code> 호출로 객체 생성</li>
+  <li><strong>필드/세터 주입</strong> — @Autowired 붙은 필드가 있으면 <code>field.set(instance, bean)</code>으로 값 주입 (생성자 주입만 있으면 이 단계 생략)</li>
+</ol>
+
+<pre><code><span class="cmt">// 개념 코드 — Spring이 내부에서 대략 이런 일을 한다</span>
+<span class="kw">val</span> clazz = Class.forName(<span class="str">"com.linkcart.presentation.api.AuthController"</span>)  <span class="cmt">// ① 로드</span>
+<span class="kw">val</span> ctor = clazz.declaredConstructors[<span class="num">0</span>]                                <span class="cmt">// ② 생성자 조회</span>
+<span class="kw">val</span> paramTypes = ctor.parameterTypes                                     <span class="cmt">// ③ 필요 타입 파악</span>
+<span class="kw">val</span> deps = paramTypes.map { container.getBean(it) }                      <span class="cmt">// ④ 타입으로 Bean 찾기</span>
+<span class="kw">val</span> controller = ctor.newInstance(*deps.toTypedArray())                  <span class="cmt">// ⑤ 인스턴스 생성</span></code></pre>
+
+<h4>리플렉션이 없으면 못 하는 것</h4>
+
+<table>
+  <tr><th>기능</th><th>리플렉션 필요성</th></tr>
+  <tr><td>Jackson이 <code>data class</code> 필드 이름을 알아서 JSON 키로 사용</td><td>Jackson이 <code>clazz.declaredFields</code>로 필드명 읽음</td></tr>
+  <tr><td>@PostMapping(...)로 URL → 메서드 매핑</td><td>Spring이 메서드의 어노테이션을 읽어 라우팅 테이블 구성</td></tr>
+  <tr><td>JPA가 <code>@Entity</code>에서 컬럼 추론</td><td>Hibernate가 필드/어노테이션 리플렉션</td></tr>
+  <tr><td>@Valid가 <code>@NotBlank</code> 필드 검증</td><td>Validator가 필드 어노테이션 스캔</td></tr>
+  <tr><td>테스트의 <code>@MockBean</code></td><td>Spring이 컨텍스트 Bean을 프록시로 대체</td></tr>
+</table>
+
+<h4>비용과 주의</h4>
+
+<ul class="arrow-list">
+  <li><strong>시작 지연</strong> — 대규모 프로젝트(수백 Bean)는 앱 시작에 수 초~수십 초가 리플렉션 스캔에 쓰임</li>
+  <li><strong>런타임 실패</strong> — 컴파일엔 문제없지만 리플렉션 해석 시 처음 발견되는 오류들이 있음 (예: 생성자에 필요한 Bean 부재)</li>
+  <li><strong>Kotlin 추가 비용</strong> — Kotlin 리플렉션(<code>KClass</code>)은 Java보다 정보가 풍부해 <code>kotlin-reflect.jar</code>를 런타임에 추가로 로드. 이 프로젝트도 <code>implementation("org.jetbrains.kotlin:kotlin-reflect")</code> 포함.</li>
+  <li><strong>대안</strong> — GraalVM Native Image, Spring AOT(Ahead-of-Time) 컴파일은 빌드 시점에 리플렉션 결과를 메타데이터로 미리 저장해 시작 속도 극단적으로 단축</li>
+</ul>
+
+<p><strong>이 프로젝트의 <code>allOpen</code> 플러그인</strong>과도 관련 — Kotlin 클래스는 기본이 <code>final</code>이라 Hibernate가 <em>lazy proxy를 만들 수 없다</em>. Hibernate는 Entity를 상속해 proxy 객체를 런타임에 생성(= 리플렉션 + 바이트코드 조작)하는데, final이면 상속 불가. 그래서 <code>build.gradle.kts</code>에서 <code>allOpen { annotation("jakarta.persistence.Entity") }</code>로 @Entity 클래스만 <code>open</code>으로 컴파일되게 지정한다.</p>
+
+<h3>Q. Controller 생성자에 타입만 써도 어떻게 @Service/@Component를 아는가?</h3>
+
+<pre><code><span class="kw">class</span> <span class="cls">AuthController</span>(
+    <span class="kw">private val</span> loginWithGoogleUsecase: LoginWithGoogleUsecase,  <span class="cmt">// @Service 명시 안 함</span>
+    <span class="kw">private val</span> userRepository: UserRepository,                   <span class="cmt">// 포트 interface만 명시</span>
+) { ... }</code></pre>
+
+<p>답: <strong>대상 클래스(<code>LoginWithGoogleUsecase</code>)에 이미 @Service가 붙어 있다</strong>. 주입받는 쪽에선 <em>타입만</em> 적으면 된다. Spring은 앱 시작 시:</p>
+
+<ol>
+  <li>컴포넌트 스캔으로 @Service 붙은 LoginWithGoogleUsecase를 찾음 → Bean 등록 (타입: LoginWithGoogleUsecase)</li>
+  <li>AuthController 생성 차례에 생성자 파라미터를 봄 → "LoginWithGoogleUsecase 타입 필요"</li>
+  <li>컨테이너에서 그 타입의 Bean을 찾아 꽂아줌</li>
+</ol>
+
+<p><strong>주입받는 쪽에 어노테이션을 쓰면?</strong> — 의미 없다. <code>@Service</code>는 "이 클래스 자체를 Bean으로 등록해줘" 선언이지, "이걸 여기로 주입해줘" 선언이 아니다.</p>
+
+<pre><code><span class="cmt">// 잘못된 기대</span>
+<span class="kw">class</span> <span class="cls">AuthController</span>(
+    <span class="cmt">@</span><span class="fn">Service</span> <span class="kw">private val</span> loginWithGoogleUsecase: LoginWithGoogleUsecase,  <span class="cmt">// ❌ 무시됨. 에러는 안 나지만 효과 없음</span>
+) </code></pre>
+
+<p><strong>대상 클래스에 @Service를 안 붙이면?</strong> — 그 클래스는 Bean으로 등록되지 않는다. AuthController 생성할 때 컨테이너가 "LoginWithGoogleUsecase 타입의 Bean이 없다" → <code>NoSuchBeanDefinitionException</code> → 앱 시작 실패.</p>
+
+<p><strong>포트(interface) 케이스</strong> — <code>UserRepository</code>는 interface이므로 @Component를 붙일 곳이 없다. 대신 <em>구현체</em>인 <code>UserRepositoryAdapter</code>(infrastructure)에 @Component가 붙어 있다. Spring은 "타입=UserRepository" 요청에 대해 "이 타입으로 할당 가능한 Bean = UserRepositoryAdapter 하나 있네" → 그걸 주입.</p>
+
+<pre><code><span class="cmt">// domain/port/UserRepository.kt — 포트 (어노테이션 없음)</span>
+<span class="kw">interface</span> <span class="cls">UserRepository</span> { ... }
+
+<span class="cmt">// infrastructure/adapter/persistence/user/UserRepositoryAdapter.kt — 구현</span>
+<span class="cmt">@</span><span class="fn">Component</span>    <span class="cmt">// ← 이게 Bean 등록 선언</span>
+<span class="kw">class</span> <span class="cls">UserRepositoryAdapter</span>(
+    <span class="kw">private val</span> jpa: UserJpaRepository,
+) : <span class="cls">UserRepository</span> { ... }</code></pre>
+
+<p>즉 주석 <code>// @Component Adapter</code>는 "이 interface를 구현하는 클래스에 @Component가 붙어 있다는 뜻"이라는 독자 안내였다.</p>
+
+<h2>정리 — 이 프로젝트의 컨트롤러 한 조각</h2>
+
+<pre><code><span class="cmt">@</span><span class="fn">RestController</span>
+<span class="cmt">@</span><span class="fn">RequestMapping</span>(<span class="str">"/api/v1/auth"</span>)
+<span class="kw">class</span> <span class="cls">AuthController</span>(                              <span class="cmt">// 생성자 주입 (Kotlin primary constructor)</span>
+    <span class="kw">private val</span> loginWithGoogleUsecase: LoginWithGoogleUsecase,  <span class="cmt">// @Service</span>
+    <span class="kw">private val</span> refreshTokensUsecase: RefreshTokensUsecase,        <span class="cmt">// @Service</span>
+    <span class="kw">private val</span> userRepository: UserRepository,                   <span class="cmt">// 포트 (구현체는 @Component Adapter)</span>
+) {
+    <span class="cmt">@</span><span class="fn">PostMapping</span>(<span class="str">"/oauth/google"</span>)
+    <span class="kw">fun</span> <span class="fn">loginWithGoogle</span>(
+        <span class="cmt">@</span><span class="fn">Valid</span> <span class="cmt">@</span><span class="fn">RequestBody</span> req: OAuthLoginRequest,
+    ): ResponseEntity&lt;OAuthLoginResponse&gt; {
+        <span class="kw">val</span> result = loginWithGoogleUsecase.execute(req.code, req.redirectUri)
+        <span class="kw">return</span> ResponseEntity.ok(OAuthLoginResponse(...))
+    }
+}
+</code></pre>
+
+<p>여기 보이는 거의 모든 게 이 문서에서 다룬 것들이다:
+  data class, @RestController, 생성자 주입, @Valid, @RequestBody, 자동 JSON 직렬화.</p>
+
+<div class="page-footer">
+  <a class="prev" href="03-kotlin-basics.html">02. Kotlin 기초</a>
+  <a class="next" href="05-gradle-build.html">04. Gradle &amp; 빌드</a>
+</div>
+
+</div>
+</body>
+</html>

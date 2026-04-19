@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>18. 퀴즈 / 시험 — 면접 대비</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .quiz { border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 16px 0; background: var(--surface); }
+  .quiz .num { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.1em; }
+  .quiz .q { font-size: 15px; font-weight: 600; margin: 6px 0 10px; color: var(--text); }
+  .quiz .opts { font-size: 14px; color: var(--text-muted); margin: 8px 0; }
+  .quiz .opts li { padding: 3px 0; }
+  .quiz .toggle { display: inline-block; padding: 6px 12px; margin: 8px 0 0; border-radius: 6px; background: var(--accent-soft); color: var(--accent-dark); font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+  .quiz .toggle:hover { background: var(--accent); color: white; }
+  .quiz .answer { display: none; margin-top: 12px; padding: 14px; background: #f0fdf4; border-left: 3px solid var(--ok); border-radius: 6px; font-size: 14px; }
+  .quiz.open .answer { display: block; }
+  .quiz .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; background: #fef3c7; color: #92400e; margin-left: 6px; }
+  .quiz .tag.interview { background: #fce7f3; color: #9f1239; }
+  .quiz .tag.code { background: #ddd6fe; color: #5b21b6; }
+  .quiz .tnear { margin-top: 10px; padding: 10px 14px; background: #fef9c3; border-left: 3px solid #ca8a04; border-radius: 4px; font-size: 13px; color: #713f12; }
+  .quiz .tnear::before { content: "🎯 TNEAR — "; font-weight: 700; }
+  .quiz pre { margin: 8px 0; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 18. 퀴즈 / 시험</span>
+</div>
+<div class="layout">
+
+<h1>18. 퀴즈 / 시험 — 면접 대비</h1>
+<p class="subtitle">기존 <code>pr1-quiz.html</code> 32문항 + <code>kotlin-spring-study-test.md</code> + <code>tnear-backend-prep-test.md</code>에서 핵심 엄선. 정답 버튼 클릭으로 확인.</p>
+
+<div class="callout info">
+  <strong>사용법</strong> — 각 문제 본 뒤 머릿속으로 답 구성하고 <em>Show Answer</em> 클릭. 틀리거나 애매하면 해당 챕터로 돌아가 복습.
+</div>
+
+<h2>Section A — Kotlin 언어 기초</h2>
+
+<div class="quiz">
+  <div class="num">Q1 <span class="tag">기본</span></div>
+  <div class="q">Kotlin의 <code>val</code>과 <code>var</code>의 차이는? 그리고 <code>val list = mutableListOf(1,2,3)</code>에서 <code>list.add(4)</code>는 허용되나?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <strong>val</strong> = 재할당 불가한 참조 (read-only reference). <strong>var</strong> = 재할당 가능.
+    <br>val은 "불변 객체"가 아니라 "참조 재할당 금지". <code>list.add(4)</code>는 참조 자체는 안 바뀌므로 <strong>허용</strong>.
+    <div class="tnear">면접관이 "val = final/const 같은 거죠?" 같은 오답을 유도하는 경우 있음. "참조 재할당 금지이고 객체 mutability와 별개"를 명확히 구분해서 답변.</div>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q2 <span class="tag">기본</span></div>
+  <div class="q">Kotlin <code>data class</code>가 자동 생성하는 5가지 메서드는? Python <code>@dataclass</code>와 가장 큰 차이 1가지?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    equals / hashCode / toString / copy / componentN (destructuring).
+    <br>차이: Kotlin의 <code>copy(field = newValue)</code>는 <strong>명명 파라미터로 일부 필드만 변경한 새 객체 반환</strong>. Python은 <code>dataclasses.replace(obj, field=newValue)</code>로 같은 기능 제공하지만 data class 자체 메서드는 아님.
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q3 <span class="tag">기본</span></div>
+  <div class="q"><code>sealed interface ParseResult</code>의 핵심 가치는? <code>enum class</code>로 대체할 수 없는 이유?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <strong>when exhaustive check</strong> — 모든 subtype 처리 안 하면 컴파일 에러. 새 subtype 추가 시 처리 안 한 모든 when 블록에 자동 에러. 실수로 빠뜨리는 게 불가능.
+    <br>enum은 값만 가질 수 있지만, sealed는 각 subtype이 <strong>다른 필드를 가질 수 있다</strong>. Success(product), Partial(fields map), Failure(reason) — 모두 구조가 다름.
+    <div class="tnear">Rust <code>Result&lt;T, E&gt;</code>, Haskell <code>Either</code>과 같은 "닫힌 합(sum) 타입" 철학. 예외 던지지 않고 타입으로 표현하는 Railway-Oriented Programming.</div>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q4 <span class="tag code">코드</span></div>
+  <div class="q">아래 Kotlin 코드에서 <code>==</code>의 의미는?</div>
+<pre><code><span class="kw">val</span> a = Money(<span class="num">1000L</span>, <span class="str">"KRW"</span>)
+<span class="kw">val</span> b = Money(<span class="num">1000L</span>, <span class="str">"KRW"</span>)
+println(a == b)   <span class="cmt">// ?</span>
+println(a === b)  <span class="cmt">// ?</span></code></pre>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <code>a == b</code> → <strong>true</strong> (구조적 동등성, data class의 equals 자동 구현).
+    <br><code>a === b</code> → <strong>false</strong> (참조 비교, 서로 다른 객체).
+    <br>Kotlin의 <code>==</code>는 Java의 <code>.equals()</code>. Java의 <code>==</code>는 Kotlin의 <code>===</code>. <strong>반대</strong>라 헷갈리기 쉬움.
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q5 <span class="tag">기본</span></div>
+  <div class="q">Money의 <code>amount</code>를 왜 <code>Double</code>이 아닌 <code>Long</code>으로 선언하나?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <code>Double</code>은 IEEE 754 부동소수점 → <code>0.1 + 0.2 ≠ 0.3</code>. 금액 정산/결제 시 오차 발생. <code>Long</code>은 64비트 정수, 원화처럼 원 단위 정수 통화에 정확.
+    <br>대안: <code>BigDecimal</code> (정밀 소수) — 다국가 통화 지원 시 고려. 이 프로젝트는 KRW 원 단위 기본이라 <code>Long</code> 충분.
+    <div class="tnear">"왜 Int 아닌 Long?" 추가 질문: Int는 32비트 (21억). 대규모 금액(총 매출, 글로벌 누적 등)은 21억 초과. Long(9 × 10¹⁸)이 안전.</div>
+  </div>
+</div>
+
+<h2>Section B — Spring Boot / DI</h2>
+
+<div class="quiz">
+  <div class="num">Q6 <span class="tag">기본</span></div>
+  <div class="q"><code>@RestController</code>, <code>@Service</code>, <code>@Component</code> 셋의 기술적 차이? 왜 구분하나?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    기술적으로 모두 <strong>@Component의 특수화</strong>. Spring은 셋 다 동일하게 Bean으로 등록.
+    <br>구분 이유: <strong>의도 전달</strong>. <code>@RestController</code>=HTTP 진입점, <code>@Service</code>=비즈니스 로직, <code>@Component</code>=기타 유틸. 코드 읽는 사람이 레이어를 즉시 파악.
+    <br><code>@Repository</code>는 추가로 DB 예외 변환 기능 있음.
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q7 <span class="tag">에세이</span></div>
+  <div class="q">Spring DI가 Django의 "View에서 직접 객체 생성" 방식에 비해 가지는 장점 3가지?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <ol>
+      <li><strong>테스트 용이</strong>: 생성자로 의존성 주입 → 테스트에서 mock을 넣기 쉬움. Django는 View 내부에서 객체 생성 시 patch/mock.patch 남발.</li>
+      <li><strong>교체 가능</strong>: interface에 의존하면 구현체 교체가 쉬움. OgParser → MockParser로 테스트 시 구현체만 갈아끼우기.</li>
+      <li><strong>책임 분리</strong>: Controller/Service/Repository 레이어 간 의존성을 Spring이 관리 → 각자 자기 일에 집중.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q8 <span class="tag">기본</span></div>
+  <div class="q"><code>kotlin("plugin.spring")</code> 플러그인이 왜 필요한가?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    Kotlin 클래스는 기본 <code>final</code> (상속 불가). Spring은 <code>@Configuration</code>, <code>@Service</code> 등의 클래스를 <strong>CGLIB 프록시</strong>로 감싸 AOP/트랜잭션/캐시를 구현 → 프록시는 원본을 상속해야 함.
+    <br>이 플러그인이 Spring 어노테이션이 붙은 클래스를 자동으로 <code>open</code>으로 변환.
+    <div class="tnear">면접 심화: "그럼 JPA Entity는?" → 별도 <code>kotlin("plugin.jpa")</code>로 <code>@Entity</code>도 open 처리. 이 프로젝트 P2-1에서 추가.</div>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q9 <span class="tag">기본</span></div>
+  <div class="q">Spring Boot에서 캐시를 붙일 때 고려해야 할 4가지는?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <ol>
+      <li><strong>TTL (Time To Live)</strong>: 얼마나 오래 유지할지</li>
+      <li><strong>Cache key</strong>: 무엇을 키로 쓸지 (URL? user id + URL?)</li>
+      <li><strong>Stale data</strong>: 낡은 데이터 허용 여부, 외부 상태 변경 시 대응</li>
+      <li><strong>Invalidation</strong>: 무효화 조건 (이 프로젝트는 Failure 미캐시)</li>
+    </ol>
+    <div class="tnear">tnear 시험 Q15 원문. 이 프로젝트는 TTL 5분 + URL key + Failure 미캐시 (<code>unless</code>로) 조합.</div>
+  </div>
+</div>
+
+<h2>Section C — 아키텍처</h2>
+
+<div class="quiz">
+  <div class="num">Q10 <span class="tag code">코드</span></div>
+  <div class="q">다음 4개 import 중 클린 아키텍처 위반은?</div>
+<pre><code><span class="cmt">// a) application/auth/usecase/LoginWithGoogle.kt</span>
+<span class="kw">import</span> com.linkcart.domain.entity.User
+
+<span class="cmt">// b) domain/entity/User.kt</span>
+<span class="kw">import</span> com.fasterxml.jackson.annotation.JsonValue
+
+<span class="cmt">// c) domain/port/UserRepository.kt</span>
+<span class="kw">import</span> com.linkcart.infrastructure.adapter.UserEntity
+
+<span class="cmt">// d) infrastructure/adapter/UserRepositoryAdapter.kt</span>
+<span class="kw">import</span> com.linkcart.application.auth.usecase.LoginWithGoogle</code></pre>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <strong>c가 위반</strong> (domain이 infrastructure import) — 의존 방향 역전.
+    <br><strong>d도 일부 위반 가능성</strong> (infrastructure adapter가 application usecase를 아는 건 드문 경우). 정상이면 infrastructure는 domain port만 구현.
+    <br>b는 논쟁 여지: domain이 Jackson (infra 라이브러리) 의존. 이 프로젝트는 Mall/ParserName/AuthProvider 선례로 허용 (실용적 타협).
+    <div class="tnear">면접에서 a/b/c 네 개를 보여주고 "의존 위반 찾아보세요"는 시니어 코드 리뷰 시뮬레이션 단골.</div>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q11 <span class="tag">에세이</span></div>
+  <div class="q">DB를 MySQL에서 PostgreSQL로 교체한다고 할 때, 이 프로젝트의 어느 레이어가 영향받고 어느 레이어는 영향받지 않나?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <strong>영향받음</strong>: infrastructure/adapter/persistence (JPA Entity, Adapter 구현), Flyway migration SQL 파일 (BIGSERIAL vs IDENTITY 등 DB 문법), application.yml (driver class, URL).
+    <br><strong>영향 없음</strong>: domain (User, UserProduct 등), application (UseCase, Port interface), presentation (Controller, DTO).
+    <br>이것이 <strong>Clean Architecture의 실제 이득</strong>. Django ORM 프로젝트는 model이 곧 DB라 전체에 영향.
+    <div class="tnear">"Django 경험과 비교"를 물으면: Django는 Model.objects.filter가 어디서든 호출되어 전면적 impact. Port/Adapter는 인프라 교체 시 수정 범위를 1개 어댑터 클래스로 축소.</div>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q12 <span class="tag">기본</span></div>
+  <div class="q">OgParser / CoupangApiClient / ElevenStApiClient / ProductParseUseCase를 Domain/Application/Infrastructure/Presentation 중 어디에 배치하나?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <ul>
+      <li><strong>ProductParseUseCase</strong>: application (유스케이스 오케스트레이션)</li>
+      <li><strong>OgParser</strong>: infrastructure/adapter/parser (Jsoup 같은 외부 라이브러리 의존)</li>
+      <li><strong>CoupangApiClient</strong>: infrastructure/adapter/parser (외부 HTTP API 호출)</li>
+      <li><strong>ElevenStApiClient</strong>: 동일 infrastructure</li>
+    </ul>
+    <br>Parser interface (<code>ProductParser</code>)는 <strong>domain/port</strong>에 둠. 도메인이 "파싱 능력"이라는 개념을 계약으로 정의.
+  </div>
+</div>
+
+<h2>Section D — 외부 통신 / 장애 대응</h2>
+
+<div class="quiz">
+  <div class="num">Q13 <span class="tag">에세이</span></div>
+  <div class="q">전용 API 파서가 실패했을 때 왜 OG 파서로 폴백하나? 즉시 에러 반환하면 안 되는 이유?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    외부 API (쿠팡/11번가) 장애는 우리가 통제 못 함. 즉시 에러 반환하면 <strong>외부 장애 = 사용자 장애</strong>. OG 파서는 HTML meta 태그 파싱이라 대상 몰 서버만 살아있으면 최소 정보 제공 가능.
+    <br>원문 (pr3.html): "전용 파서가 실패했다고 해서 요청 전체를 즉시 실패시키면, 외부 API 장애가 곧 사용자 장애가 된다."
+    <div class="tnear">티니어 "24/365 장애 없는 환경" 요구의 실전 답. graceful degradation.</div>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q14 <span class="tag">기본</span></div>
+  <div class="q"><code>@Cacheable</code>의 <code>unless</code> 옵션으로 Failure를 제외하는 이유?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    외부 API가 잠깐 장애일 때 실패가 캐시되면, 실제 복구된 뒤에도 5분간 실패 계속 반환. <em>"실패 결과는 캐시하지 않는다"</em>는 운영 원칙.
+    <br>원문: "실패를 오래 보관하면, 실제 복구 뒤에도 계속 실패를 재사용하게 되기 때문이다."
+  </div>
+</div>
+
+<h2>Section E — 인증 / 보안</h2>
+
+<div class="quiz">
+  <div class="num">Q15 <span class="tag">기본</span></div>
+  <div class="q">이 프로젝트가 세션 대신 JWT를 선택한 가장 큰 이유?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <strong>모바일 클라이언트(Expo)의 존재</strong>. 네이티브 앱은 쿠키 관리가 번거롭고 Bearer 헤더가 표준. 웹+앱 통일 인증 전략을 위해 JWT 채택.
+    <br>보조: stateless라 확장성. Redis 세션 스토어 인프라 불필요.
+    <div class="tnear">단순히 "JWT가 대세라서"는 얄팍한 답. 이 프로젝트의 <em>구체적 요건(모바일)</em>을 드는 게 설득력 있음.</div>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q16 <span class="tag">기본</span></div>
+  <div class="q">Refresh Token rotation에서 reuse 감지 시 왜 같은 user의 다른 active Refresh까지 전부 revoke하나?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    Refresh 재사용 = "어디선가 탈취됐다"는 강한 신호. 공격자가 R1을 쓰고 정상 사용자는 이미 R2로 rotate한 상태. 어느 쪽이 공격자인지 서버는 구분 불가.
+    <br>정상 사용자 재로그인 불편 vs 공격 창 확장. <strong>안전 쪽 선택</strong>. 정상 사용자는 다시 로그인 + 이상 알림 수신.
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q17 <span class="tag">기본</span></div>
+  <div class="q">Refresh Token은 JWT가 아닌 opaque (무작위 문자열)인 이유?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    Refresh는 rotation과 revoke가 필수 → 어차피 <strong>DB state 필요</strong>. JWT의 "stateless 검증" 이점이 사라짐.
+    <br>JWT payload에 정보 노출 대신 의미 없는 무작위 문자열(opaque) + DB에 SHA-256 해시만 저장 → DB 유출 시에도 원본 복구 불가.
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q18 <span class="tag">기본</span></div>
+  <div class="q">SSRF 공격에서 AWS EC2의 <code>169.254.169.254</code>가 왜 특히 위험한가?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    AWS EC2 instance의 <strong>metadata endpoint</strong>. 여기서 IAM role의 임시 자격증명(AccessKey/SecretKey/Token)을 조회할 수 있음. 공격자가 SSRF로 이 엔드포인트 접근 → 서비스의 AWS 자원 전체 장악 가능.
+    <br>이 프로젝트 SafeUrlChecker는 <code>isLinkLocalAddress</code>로 <code>169.254.x.x</code> 대역 전체 차단.
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q19 <span class="tag">기본</span></div>
+  <div class="q">왜 이미지 프록시에서 SVG content-type을 차단하나?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    SVG는 이미지이면서 XML. <strong>내부에 <code>&lt;script&gt;</code> 태그를 가질 수 있어 XSS 벡터</strong>. 우리 origin에서 서빙되면 우리 JS 권한으로 실행.
+    <br>해결: allow-list(<code>png/jpeg/gif/webp</code>)로 기본 거부. 안전하지 않은 포맷은 명시적으로만 허용.
+  </div>
+</div>
+
+<h2>Section F — 면접 시뮬레이션 (서술형)</h2>
+
+<div class="quiz">
+  <div class="num">Q20 <span class="tag interview">면접</span></div>
+  <div class="q">"Python/Django 주력이었는데 왜 Kotlin/Spring으로 이직 준비하시나요?"</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <strong>프레임</strong>: "언어를 바꾸는 게 아니라, 이미 가진 역량을 더 강한 타입 시스템 위에서 발전시키는 것."
+    <br><br>
+    답변 예시:
+    "Python/Django로 5년 실무 했고, N+1 해결, 결제 API fail-fast, 백업 DB 재설계 같은 경험을 쌓았습니다. 이 경험들의 본질은 '장애 대응 + 확장성 + 유지보수성'인데, 정적 타입 시스템과 Spring 생태계 위에서 이걸 더 잘 표현할 수 있다고 판단했습니다.
+    <br>특히 Kotlin의 sealed interface, null safety 같은 타입 시스템 기능은 Python에서 mypy로 강제했던 규약을 컴파일러가 강제해주는 구조고, Spring의 DI + Clean Architecture는 Django에서 service layer로 우회했던 패턴의 언어 수준 지원입니다.
+    <br>linkcart 프로젝트를 직접 만들며 이 전환 과정을 증명했습니다."
+    <div class="tnear">"Python 강점을 버리지 않는다"가 핵심 메시지. 기술 스택 학습 중이지만 <em>설계/장애 대응/팀워크 역량은 이전되는 것</em>.</div>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q21 <span class="tag interview">면접</span></div>
+  <div class="q">"대규모 트래픽 다뤄본 적 없는데 티니어 날씨 앱(전 세계 6천만 다운로드)에 어떻게 기여하실 건가요?"</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    정직 + 증거:
+    "제 실전 트래픽 경험은 제한적입니다. 다만 linkcart를 설계하며 대규모 트래픽 <em>대비 기법</em>은 적용했습니다:
+    <br><br>
+    • Caffeine TTL 캐시 + <code>@Cacheable unless Failure</code>로 불필요 외부 API 호출 방지
+    <br>• 외부 HTTP 3초 timeout + Fallback chain으로 단일 외부 장애가 전체 서비스 장애로 번지지 않게
+    <br>• DB에 (user_id, source_url) UNIQUE + 부분 인덱스로 쓰기 성능과 조회 성능 균형
+    <br>• SSRF 7단계 방어로 내부망 접근 공격 차단
+    <br><br>
+    이전 Django 경험에서도 N+1 쿼리 5시간→15분 단축, 외부 결제 API 지연 시 fail-fast 적용 같은 성능 개선은 있었습니다. 스케일 차이는 있지만 <em>원칙과 도구는 공유</em>되므로 빠르게 따라잡을 수 있다고 봅니다."
+    <div class="tnear">약점은 숨기지 말고, 그 약점을 보완하는 <em>구체적 학습 증거</em>로 방어.</div>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q22 <span class="tag interview">면접</span></div>
+  <div class="q">"코드 리뷰를 받을 때 어떤 태도를 가지시나요?"</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    "피드백은 항상 <strong>설계 근거와 함께</strong> 반영합니다. 'A가 좋겠어요' 코멘트를 받으면 (1) 현재 코드가 왜 B였는지 정리, (2) A와 B의 트레이드오프 비교, (3) A 채택 시 어떤 부분을 함께 바꿔야 하는지 판단.
+    <br><br>
+    실제로 linkcart에서 PR-BE3는 plan-review에서 <code>FallbackProductParser</code> marker interface가 YAGNI라는 제안을 받았는데, Spring DI ambiguous 회피라는 이유로 마커를 유지하면서 <em>명확히 문서화</em>했습니다. 피드백 수용이 무조건 옳은 건 아니고, <em>근거 있는 유지</em>도 리뷰의 일부라 봅니다."
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q23 <span class="tag interview">면접</span></div>
+  <div class="q">"속도와 품질 중 어느 쪽을 우선시하나요?"</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    "<strong>단계별로 다릅니다</strong>. 가설 검증 단계는 속도 우선 (작고 빠른 PR, 테스트 최소), 프로덕션 운영 단계는 품질 우선 (회귀 테스트, SSRF 방어, 관측성).
+    <br><br>
+    linkcart에서 Phase 1 MVP는 PR 단위 100~200줄로 빠르게 돌렸고, 리팩토링 트랙(BE1~BE6)에서 테스트 커버리지와 보안을 보강했습니다. '빠른 실험, 빠른 실패' + '운영 안전성'은 충돌이 아니라 <em>단계별 책임 배분</em>이라고 생각합니다."
+    <div class="tnear">티니어 공고의 "빠른 실험, 빠른 실패" 문구에 정확히 대응. "나는 둘 다 한다"가 정답 프레임.</div>
+  </div>
+</div>
+
+<h2>Section G — 시스템 설계</h2>
+
+<div class="quiz">
+  <div class="num">Q24 <span class="tag">설계</span></div>
+  <div class="q">linkcart 파싱 API에 갑자기 트래픽이 10배 몰렸다. 제한된 시간/자원 내에서 어떤 순서로 대응하겠는가?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    우선순위:
+    <ol>
+      <li><strong>관측 먼저</strong>: 어느 API가 병목? 외부 호출이 느린가 DB가 느린가? 메트릭/로그 확인.</li>
+      <li><strong>캐시 TTL 확대</strong>: 5분 → 15분. 같은 URL 반복 호출 흡수. stale 허용.</li>
+      <li><strong>외부 호출 timeout 축소</strong>: 3초 → 2초. 장애 외부 API가 자원 점유 못 하게.</li>
+      <li><strong>ThreadPool 조정</strong>: Tomcat max-threads / HikariCP maxPoolSize 확인. 병목 지점에 맞춰.</li>
+      <li><strong>Rate limiting</strong>: 동일 IP/user 초당 N회로 제한 (Resilience4j Bulkhead).</li>
+      <li><strong>수평 확장</strong>: 위 조치 후에도 부족하면 인스턴스 추가 (stateless라 쉬움).</li>
+    </ol>
+    <br>원칙: <em>관측 → 소프트 대응 (설정) → 수평 확장</em> 순서. 처음부터 인스턴스 추가는 비용 대비 효과 불명확.
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="num">Q25 <span class="tag">설계</span></div>
+  <div class="q">날씨 앱이 전 세계 사용자에게 10분마다 날씨를 조회한다. 캐시 전략과 장애 격리를 어떻게 설계하겠는가?</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+    <ul>
+      <li><strong>지역별 캐시 키</strong>: (city, date-hour) 단위. 1시간 내 같은 지역 요청은 캐시 히트.</li>
+      <li><strong>외부 날씨 API 장애 대비 Fallback</strong>: primary=OpenWeather, fallback=AccuWeather. 둘 다 실패 시 <em>최근 성공한 캐시를 stale로 제공</em>하되 "업데이트 지연" 메타 표시.</li>
+      <li><strong>모바일 client cache</strong>: 서버 응답에 <code>Cache-Control: max-age=600</code>. 앱 단에서도 10분 유지.</li>
+      <li><strong>CDN</strong>: 지리적으로 가까운 서버에서 캐시 응답 (CloudFront/Cloudflare).</li>
+      <li><strong>Timeout + retry</strong>: 외부 API 2초 timeout, 실패 시 1회만 retry, 그래도 실패면 fallback.</li>
+      <li><strong>관측</strong>: 각 지역/외부 API별 p95 latency, 에러율, 캐시 히트율 대시보드.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>Section H — 실전 구현</h2>
+
+<div class="quiz">
+  <div class="num">Q26 <span class="tag code">코드</span></div>
+  <div class="q">linkcart의 상품 파싱 API에 Caffeine TTL 캐시 + 외부 요청 timeout + fallback result + 실패 사유 로깅을 넣는 설계 코드를 작성하라.</div>
+  <button class="toggle" onclick="this.parentElement.classList.toggle('open')">Show Answer</button>
+  <div class="answer">
+<pre><code><span class="cmt">// application.yml</span>
+spring:
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=<span class="num">1000</span>,expireAfterWrite=<span class="num">5</span>m
+
+<span class="cmt">// CoupangParser.kt - timeout</span>
+<span class="kw">internal val</span> restTemplate = restTemplateBuilder
+    .connectTimeout(Duration.ofSeconds(<span class="num">3</span>))
+    .readTimeout(Duration.ofSeconds(<span class="num">3</span>))
+    .build()
+
+<span class="cmt">// ParseProductUseCase.kt - cache + delegated pipeline</span>
+<span class="cmt">@</span><span class="fn">Service</span>
+<span class="kw">class</span> <span class="cls">ParseProductUseCase</span>(<span class="kw">private val</span> pipeline: ParserPipeline) {
+    <span class="cmt">@</span><span class="fn">Cacheable</span>(
+        cacheNames = [<span class="str">"products"</span>],
+        key = <span class="str">"#url"</span>,
+        unless = <span class="str">"#result instanceof T(...ParseResult$Failure)"</span>,
+    )
+    <span class="kw">fun</span> <span class="fn">execute</span>(url: <span class="cls">String</span>): ParseResult = pipeline.parseWithFallback(url)
+}
+
+<span class="cmt">// ParserPipeline.kt - fallback + 로깅</span>
+<span class="kw">fun</span> <span class="fn">parseWithFallback</span>(url: <span class="cls">String</span>): ParseResult {
+    <span class="kw">val</span> primary = parserResolver.resolve(url)
+    <span class="kw">val</span> primaryResult = primary.parse(url)
+    <span class="kw">if</span> (primaryResult <span class="kw">!is</span> ParseResult.Failure || primary <span class="kw">is</span> FallbackProductParser) {
+        <span class="kw">return</span> primaryResult
+    }
+    log.warn(<span class="str">"primary parser {} failed: {}"</span>, primaryResult.parserUsed, primaryResult.reason)
+    <span class="kw">val</span> fallback = parserResolver.fallbackParser.parse(url)
+    <span class="kw">return when</span> (fallback) {
+        <span class="kw">is</span> Success -> fallback.copy(fallbackUsed = <span class="kw">true</span>)
+        <span class="kw">is</span> Partial -> fallback.copy(fallbackUsed = <span class="kw">true</span>)
+        <span class="kw">is</span> Failure -> combineError(primaryResult, fallback)
+    }
+}
+</code></pre>
+    이미 이 프로젝트에 구현되어 있음 (BE5 Pipeline + BE3 Resolver + Phase 1 @Cacheable).
+    <div class="tnear">실제 구현을 이렇게 한 줄의 요약 아닌 코드로 보여주면 설득력 최고.</div>
+  </div>
+</div>
+
+<h2>종합 점수 체크리스트</h2>
+
+<table>
+  <tr><th>섹션</th><th>핵심 역량</th><th>약한 곳</th></tr>
+  <tr><td>A Kotlin</td><td>val/var, data class, sealed, ==/===, Long vs Double</td><td>해당 문제 틀렸다면 02 챕터 복습</td></tr>
+  <tr><td>B Spring/DI</td><td>@Component 구분, plugin.spring, 캐시 4요소</td><td>03, 04 챕터</td></tr>
+  <tr><td>C 아키텍처</td><td>의존 방향, 레이어 배치, 교체 영향</td><td>05, 06 챕터</td></tr>
+  <tr><td>D 외부 통신</td><td>Fallback, Failure 비캐시</td><td>06, 17 챕터</td></tr>
+  <tr><td>E 인증/보안</td><td>JWT vs 세션, rotation, opaque, SSRF</td><td>09-13 챕터</td></tr>
+  <tr><td>F 면접 답변</td><td>Python→Kotlin 서사, 약점 보완</td><td>20 챕터</td></tr>
+  <tr><td>G 시스템 설계</td><td>관측-설정-확장 순서</td><td>전 챕터 종합</td></tr>
+  <tr><td>H 실전 구현</td><td>코드로 답하기</td><td>06, 17 챕터 + 실제 코드</td></tr>
+</table>
+
+<div class="callout tip">
+  <strong>면접 1주 전 다시 풀기</strong> — 첫 회차엔 답 찾아가며 학습. 1주 후 다시 답을 안 보고 구술. 말이 막히는 곳이 본인 약점.
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="19-glossary.html">18. 용어집</a>
+  <a class="next" href="17-summary-interview.html">13. 요약</a>
+</div>
+
+</div>
+</body>
+</html>

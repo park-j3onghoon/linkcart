@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>07. 파서 설계의 진화</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 07. 파서 설계 진화</span>
+</div>
+<div class="layout">
+
+<h1>07. 파서 설계의 진화 (Phase 1)</h1>
+<p class="subtitle">OgParser 1개 → Factory → Resolver + Pipeline. 각 단계에서 무엇을 고치고 왜 그렇게 고쳤는가.</p>
+
+<div class="callout info">
+  <strong>이 챕터의 목표</strong> — "완벽한 설계를 한 번에 그린 게 아니다. 필요가 드러날 때마다 리팩토링했다"는 걸 보여주는 것. 설계 결정 6건의 트레이드오프를 따라간다.
+</div>
+
+<div class="callout info">
+  <strong>이 챕터의 핵심 용어</strong> —
+  <a class="gref" href="19-glossary.html#g-og-parser">OG parser</a> ·
+  <a class="gref" href="19-glossary.html#g-hotlink">핫링크</a> · Port · Adapter · Factory · Resolver · Pipeline · Fallback Chain
+</div>
+
+<h2>초기 버전 (PR 2) — 포트 1개 + 구현 1개</h2>
+
+<pre><code><span class="cmt">// domain/port/ProductParser.kt</span>
+<span class="kw">interface</span> <span class="cls">ProductParser</span> {
+    <span class="kw">fun</span> <span class="fn">canParse</span>(url: <span class="cls">String</span>): <span class="cls">Boolean</span>
+    <span class="kw">fun</span> <span class="fn">parse</span>(url: <span class="cls">String</span>): ParseResult
+}
+
+<span class="cmt">// infrastructure/adapter/parser/OgParser.kt</span>
+<span class="cmt">@</span><span class="fn">Component</span>
+<span class="kw">class</span> <span class="cls">OgParser</span>(...) : <span class="cls">ProductParser</span> {
+    <span class="kw">override fun</span> <span class="fn">canParse</span>(url: <span class="cls">String</span>) = <span class="kw">true</span>  <span class="cmt">// 모든 URL을 폴백으로 처리</span>
+    <span class="kw">override fun</span> <span class="fn">parse</span>(url: <span class="cls">String</span>): ParseResult = ...
+}
+</code></pre>
+
+<p>이 시점엔 OG 파서(Open Graph meta 태그 파싱)만 있었다. 모든 URL이 <code>canParse=true</code>를 반환하니 <code>canParse</code>는 무의미했다. 하지만 쿠팡/11번가 전용 파서가 곧 추가될 거라 인터페이스엔 미리 둠.</p>
+
+<h2>쿠팡 · 11번가 추가 (PR 3) — Factory 패턴 등장</h2>
+
+<div class="diagram">
+  <svg width="680" height="220" viewBox="0 0 680 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="20" width="180" height="40" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="340" y="45" text-anchor="middle" font-size="13" font-weight="600" fill="#4338ca">UseCase</text>
+
+    <line x1="340" y1="60" x2="340" y2="95" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a6)"/>
+    <text x="380" y="80" font-size="11" fill="#6b7280">factory.getParser(url)</text>
+
+    <rect x="230" y="100" width="220" height="40" rx="8" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="340" y="125" text-anchor="middle" font-size="13" font-weight="600" fill="#5b21b6">ParserFactory</text>
+
+    <line x1="340" y1="140" x2="100" y2="170" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a6)"/>
+    <line x1="340" y1="140" x2="340" y2="170" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a6)"/>
+    <line x1="340" y1="140" x2="580" y2="170" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a6)"/>
+
+    <rect x="20" y="175" width="180" height="35" rx="6" fill="#d1fae5" stroke="#059669"/>
+    <text x="110" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">CoupangApiClient</text>
+    <rect x="250" y="175" width="180" height="35" rx="6" fill="#d1fae5" stroke="#059669"/>
+    <text x="340" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">ElevenStApiClient</text>
+    <rect x="500" y="175" width="160" height="35" rx="6" fill="#fef3c7" stroke="#d97706"/>
+    <text x="580" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">OgParser (fallback)</text>
+  </svg>
+  <div class="diagram-caption">Factory가 URL 도메인을 보고 어느 파서를 쓸지 선택</div>
+</div>
+
+<p>Factory 구현:</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">Component</span>
+<span class="kw">class</span> <span class="cls">ParserFactory</span>(
+    <span class="kw">private val</span> parsers: List&lt;ProductParser&gt;,     <span class="cmt">// Spring이 모든 ProductParser 빈을 수집 주입</span>
+    <span class="cmt">@</span><span class="fn">Qualifier</span>(<span class="str">"ogParser"</span>)
+    <span class="kw">private val</span> fallbackParser: ProductParser,
+) {
+    <span class="kw">fun</span> <span class="fn">getParser</span>(url: <span class="cls">String</span>): ProductParser =
+        parsers.filter { it !== fallbackParser }
+               .firstOrNull { it.canParse(url) }
+            ?: fallbackParser
+}
+</code></pre>
+
+<div class="callout warn">
+  <strong>여기에 3가지 냄새가 있다</strong> (BE3 리팩토링의 트리거)
+  <ol>
+    <li><code>canParse=true</code>인 OgParser가 <code>parsers</code>에 섞여 있어 <code>filter { it !== fallbackParser }</code>로 제외해야 한다. 인스턴스 동일성 비교.</li>
+    <li><code>@Qualifier("ogParser")</code>로 Bean 이름 문자열에 의존. 타입 안전하지 않음.</li>
+    <li><code>ProductParser</code> 인터페이스가 "라우팅(canParse)"과 "실행(parse)" 두 책임을 섞어 둠.</li>
+  </ol>
+</div>
+
+<h2>리팩토링 1: 포트 분리 (PR BE3)</h2>
+
+<h3>결정 — "Dedicated와 Fallback을 타입으로 분리"</h3>
+
+<div class="tradeoff">
+  <div class="tradeoff-head">
+    <span class="badge">결정</span>
+    <strong>어떻게 역할을 분리할 것인가</strong>
+  </div>
+
+  <div class="tradeoff-table">
+    <div class="th">후보</div><div class="th">장점</div><div class="th">단점</div>
+
+    <div><strong>A. sealed interface ProductParser</strong><br>Dedicated/Fallback subtype</div>
+    <div>exhaustive when 가능. 타입 안전 최고.</div>
+    <div>Spring DI가 <code>@Component</code>로 각 구현을 스캔하는데 sealed는 "같은 모듈" 제약. infrastructure에서 domain sealed 상속이 어색.</div>
+
+    <div><strong>B. DedicatedProductParser만 추가</strong><br>OgParser는 그냥 ProductParser</div>
+    <div>마커 인터페이스 1개로 해결, 최소 변경</div>
+    <div><span style="color:#dc2626">Spring DI 실패 가능</span>: DedicatedProductParser가 ProductParser 상속 시 ProductParser 빈이 3개가 됨. <code>fallbackParser: ProductParser</code> 주입 시 ambiguous.</div>
+
+    <div><strong>C. Dedicated + Fallback 둘 다 마커 interface</strong></div>
+    <div>Spring DI 타입 기반 주입 확실 (Fallback 구현체 = OgParser 유일). 역할이 타입으로 명시.</div>
+    <div>파일 1개(FallbackProductParser) 추가 부담.</div>
+  </div>
+
+  <div class="tradeoff-choice">
+    <strong>→ C 채택</strong>. Spring DI ambiguous 회피가 결정적. 빈 마커 interface는 JDK의 <code>Serializable</code> 선례도 있어 Kotlin에서도 이상하지 않음.
+    <br><em>원래 B로 가려다 plan-review에서 Spring DI 제약 발견 → C로 변경.</em>
+  </div>
+</div>
+
+<h3>결과 구조</h3>
+
+<pre><code><span class="cmt">// domain/port</span>
+<span class="kw">interface</span> <span class="cls">ProductParser</span> { <span class="kw">fun</span> <span class="fn">parse</span>(url: <span class="cls">String</span>): ParseResult }
+<span class="kw">interface</span> <span class="cls">DedicatedProductParser</span> : <span class="cls">ProductParser</span> {
+    <span class="kw">fun</span> <span class="fn">canParse</span>(url: <span class="cls">String</span>): <span class="cls">Boolean</span>
+}
+<span class="kw">interface</span> <span class="cls">FallbackProductParser</span> : <span class="cls">ProductParser</span>   <span class="cmt">// 빈 마커</span>
+
+<span class="cmt">// 구현</span>
+<span class="kw">class</span> <span class="cls">CoupangParser</span>(...) : <span class="cls">DedicatedProductParser</span> { ... }
+<span class="kw">class</span> <span class="cls">ElevenStParser</span>(...) : <span class="cls">DedicatedProductParser</span> { ... }
+<span class="kw">class</span> <span class="cls">OgParser</span>(...) : <span class="cls">FallbackProductParser</span> { ... }
+</code></pre>
+
+<h2>리팩토링 2: Factory → Resolver (PR BE3)</h2>
+
+<div class="tradeoff">
+  <div class="tradeoff-head">
+    <span class="badge">결정</span>
+    <strong>이름과 로직 어떻게 정리할 것인가</strong>
+  </div>
+
+  <div class="tradeoff-table">
+    <div class="th">후보</div><div class="th">장점</div><div class="th">단점</div>
+
+    <div><strong>A. 그대로 두기</strong></div>
+    <div>변경 없음</div>
+    <div>인스턴스 비교 + Bean name 의존 남음</div>
+
+    <div><strong>B. ParserFactory 유지 + 로직만 수정</strong></div>
+    <div>최소 diff</div>
+    <div>"Factory"는 <em>생성</em> 뉘앙스인데 실제론 <em>선택</em>만. 이름 부정확.</div>
+
+    <div><strong>C. ParserResolver로 이름 변경 + 타입 기반</strong></div>
+    <div>이름이 역할(선택) 드러냄. Spring의 <code>List&lt;DedicatedProductParser&gt;</code> 주입으로 filter 제거.</div>
+    <div>git history 추적성 (rename). 호출부 수정.</div>
+  </div>
+
+  <div class="tradeoff-choice">
+    <strong>→ C 채택</strong>. 이름은 <em>책임의 선언</em>. 한 번 잘못 붙은 이름은 오래 간다. 지금 바꿔두는 게 싸다.
+  </div>
+</div>
+
+<pre><code><span class="cmt">// application/parser/ParserResolver.kt</span>
+<span class="cmt">@</span><span class="fn">Component</span>
+<span class="kw">class</span> <span class="cls">ParserResolver</span>(
+    <span class="kw">private val</span> dedicatedParsers: List&lt;DedicatedProductParser&gt;,  <span class="cmt">// 2개: Coupang, 11st</span>
+    <span class="kw">val</span> fallbackParser: FallbackProductParser,                  <span class="cmt">// 1개: Og</span>
+) {
+    <span class="kw">fun</span> <span class="fn">resolve</span>(url: <span class="cls">String</span>): ProductParser =
+        dedicatedParsers.firstOrNull { it.canParse(url) } ?: fallbackParser
+}
+</code></pre>
+
+<p>이제 <code>filter</code>가 사라졌다. 타입이 다르므로 애초에 dedicatedParsers에 OgParser는 안 섞인다. <code>@Qualifier</code> 문자열도 제거.</p>
+
+<h2>리팩토링 3: String → Enum (PR BE4)</h2>
+
+<p><code>ParseResult.parserUsed</code>가 String이면 "og", "coupang-api", "cupang-api"(오타!) 어느 값이든 들어간다. 컴파일러 보호 부재.</p>
+
+<div class="compare">
+  <div class="compare-cell" style="border-left: 4px solid #ef4444;">
+    <div class="label">Before: String 상수</div>
+<pre><code><span class="kw">object</span> <span class="cls">ParserNames</span> {
+    <span class="kw">const val</span> OG = <span class="str">"og"</span>
+    <span class="kw">const val</span> COUPANG = <span class="str">"coupang-api"</span>
+}
+
+<span class="kw">data class</span> <span class="cls">Success</span>(
+    <span class="kw">val</span> parserUsed: <span class="cls">String</span>,  <span class="cmt">// "cupang-api" 같은 오타 허용</span>
+)</code></pre>
+  </div>
+  <div class="compare-cell" style="border-left: 4px solid #059669;">
+    <div class="label">After: Enum</div>
+<pre><code><span class="kw">enum class</span> <span class="cls">ParserName</span>(<span class="kw">val</span> code: <span class="cls">String</span>) {
+    OG(<span class="str">"og"</span>), COUPANG(<span class="str">"coupang-api"</span>), ELEVENST(<span class="str">"11st-api"</span>);
+
+    <span class="cmt">@</span><span class="fn">JsonValue</span>
+    <span class="kw">fun</span> <span class="fn">toJson</span>(): <span class="cls">String</span> = code
+}
+
+<span class="kw">data class</span> <span class="cls">Success</span>(
+    <span class="kw">val</span> parserUsed: ParserName,  <span class="cmt">// 오타 불가</span>
+)</code></pre>
+  </div>
+</div>
+
+<p><strong>주의할 점 — Mall 선례를 따랐다</strong>. 이 프로젝트에 이미 <code>domain/vo/Mall.kt</code>가 <code>@JsonValue</code>로 lowercase 직렬화하는 패턴이 있었다. 새 enum(ParserName, AuthProvider)도 동일 패턴으로 통일해 팀 관행 일관성 확보.</p>
+
+<div class="callout tip">
+  <strong>왜 <code>@JsonValue</code>가 필요한가</strong> — Jackson의 enum 기본 직렬화는 <code>name()</code>을 쓴다. 즉 <code>ParserName.OG</code>가 JSON에 <code>"OG"</code>로 나간다. 프론트엔드는 <code>"og"</code>를 기대. <code>@JsonValue</code>로 직렬화 값 커스터마이징.
+</div>
+
+<h2>리팩토링 4: Fallback 정책을 UseCase에서 Pipeline으로 (PR BE5)</h2>
+
+<p>BE3까지 UseCase가 이렇게 길었다:</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">Service</span>
+<span class="kw">class</span> <span class="cls">ParseProductUseCase</span>(<span class="kw">private val</span> parserResolver: ParserResolver) {
+    <span class="cmt">@</span><span class="fn">Cacheable</span>(...)
+    <span class="kw">fun</span> <span class="fn">execute</span>(url: <span class="cls">String</span>): ParseResult {
+        <span class="kw">val</span> primaryParser = parserResolver.resolve(url)
+        <span class="kw">val</span> primaryResult = primaryParser.parse(url)
+
+        <span class="kw">if</span> (primaryResult <span class="kw">!is</span> ParseResult.Failure || primaryParser <span class="kw">is</span> FallbackProductParser) {
+            <span class="kw">return</span> primaryResult
+        }
+
+        <span class="kw">val</span> fallbackResult = parserResolver.fallbackParser.parse(url)
+        <span class="kw">return when</span> (fallbackResult) {
+            <span class="kw">is</span> ParseResult.Success -> fallbackResult.copy(fallbackUsed = <span class="kw">true</span>)
+            ...
+        }
+    }
+}
+</code></pre>
+
+<p>문제: UseCase가 "파서 오케스트레이션 + 캐싱 + 횡단 관심사(@Cacheable)" 여러 책임. SRP 흔들림.</p>
+
+<div class="tradeoff">
+  <div class="tradeoff-head">
+    <span class="badge">결정</span>
+    <strong>Fallback 정책을 어디에 둘까</strong>
+  </div>
+
+  <div class="tradeoff-table">
+    <div class="th">후보</div><div class="th">장점</div><div class="th">단점</div>
+
+    <div><strong>A. 그대로 UseCase에</strong></div>
+    <div>변경 없음</div>
+    <div>UseCase 비대화. 유사 UseCase 생기면 복붙 유혹.</div>
+
+    <div><strong>B. ParserResolver에 parseWithFallback 추가</strong></div>
+    <div>파일 추가 없음</div>
+    <div>"Resolver = 선택 책임"인데 실행까지 하면 이름 안 맞음.</div>
+
+    <div><strong>C. ParserPipeline 신규 클래스</strong></div>
+    <div>책임 분리 명확. Resolver는 선택, Pipeline은 실행 + 폴백 + 에러 조합.</div>
+    <div>파일 1개 추가.</div>
+  </div>
+
+  <div class="tradeoff-choice">
+    <strong>→ C 채택</strong>. UseCase가 <code>pipeline.parseWithFallback(url)</code>만 부르는 얇은 위임으로 줄어듦. @Cacheable 경계가 명확해짐.
+  </div>
+</div>
+
+<h2>최종 구조 요약</h2>
+
+<div class="diagram">
+  <svg width="680" height="330" viewBox="0 0 680 330" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+      </marker>
+    </defs>
+
+    <rect x="240" y="10" width="200" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="340" y="35" text-anchor="middle" font-size="13" font-weight="600" fill="#92400e">ProductController</text>
+
+    <line x1="340" y1="50" x2="340" y2="75" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a7)"/>
+
+    <rect x="200" y="80" width="280" height="50" rx="8" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="340" y="103" text-anchor="middle" font-size="13" font-weight="600" fill="#5b21b6">ParseProductUseCase</text>
+    <text x="340" y="120" text-anchor="middle" font-size="11" fill="#5b21b6">@Cacheable ("products", 5분)</text>
+
+    <line x1="340" y1="130" x2="340" y2="155" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a7)"/>
+
+    <rect x="200" y="160" width="280" height="50" rx="8" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="340" y="183" text-anchor="middle" font-size="13" font-weight="600" fill="#5b21b6">ParserPipeline</text>
+    <text x="340" y="200" text-anchor="middle" font-size="11" fill="#5b21b6">primary → fallback → error 조합</text>
+
+    <line x1="340" y1="210" x2="340" y2="235" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a7)"/>
+
+    <rect x="260" y="240" width="160" height="35" rx="8" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="340" y="262" text-anchor="middle" font-size="12" font-weight="600" fill="#5b21b6">ParserResolver</text>
+
+    <line x1="260" y1="265" x2="140" y2="290" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a7)"/>
+    <line x1="420" y1="265" x2="540" y2="290" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a7)"/>
+
+    <rect x="20" y="285" width="240" height="35" rx="6" fill="#d1fae5" stroke="#059669"/>
+    <text x="140" y="308" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">List&lt;DedicatedProductParser&gt;</text>
+
+    <rect x="420" y="285" width="240" height="35" rx="6" fill="#fef3c7" stroke="#d97706"/>
+    <text x="540" y="308" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">FallbackProductParser (Og)</text>
+  </svg>
+  <div class="diagram-caption">각 컴포넌트 1가지 책임만</div>
+</div>
+
+<h2>설계 결정 6건 요약</h2>
+
+<table>
+  <tr><th>결정</th><th>PR</th><th>핵심 논리</th></tr>
+  <tr><td>OgParser만 먼저, 인터페이스는 미리 준비</td><td>PR 2</td><td>미래 확장 대비 최소 뼈대. YAGNI 거슬리지만 매우 얕음.</td></tr>
+  <tr><td>ParserFactory로 URL→파서 선택</td><td>PR 3</td><td>쿠팡/11번가 추가 시 Resolver만 건드리면 되는 OCP 구조.</td></tr>
+  <tr><td>포트 3분할 (Dedicated/Fallback/Base)</td><td>BE3</td><td>역할을 타입으로 표현. Spring DI 제약 해결.</td></tr>
+  <tr><td>ParserFactory → ParserResolver 이름 변경</td><td>BE3</td><td>이름 = 책임 선언. 실제 역할(선택)과 일치시킴.</td></tr>
+  <tr><td>String → ParserName enum</td><td>BE4</td><td>타입 안전성 + Mall 선례 일관.</td></tr>
+  <tr><td>ParserPipeline 분리</td><td>BE5</td><td>UseCase 슬림화, @Cacheable 경계 명확.</td></tr>
+</table>
+
+<h2>면접에서 이야기할 포인트</h2>
+
+<div class="callout tip">
+  <strong>"완성된 설계"가 아닌 "진화한 설계"</strong>로 설명하면 설득력이 커진다.
+  <br>"처음엔 OgParser만이라 Factory가 없어도 됐다. 쿠팡 추가하면서 Factory 넣었다. 그 Factory가 Bean 이름에 의존하는 게 불편해서 포트 분리하고 Resolver로 바꿨다. 그 과정에서 UseCase가 비대해져 Pipeline으로 분리했다."
+  <br>이게 <strong>"나는 설계 결정을 근거 있게 내린다"</strong>는 증거가 된다.
+</div>
+
+<div class="source-files">
+  <h3>이 챕터 관련 소스 파일</h3>
+  <ul>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/domain/port/ProductParser.kt">backend/src/main/kotlin/com/linkcart/domain/port/ProductParser.kt</a><span class="comment">포트 interface</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/domain/model/ParseResult.kt">domain/model/ParseResult.kt</a><span class="comment">sealed 결과</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/domain/model/ParserName.kt">domain/model/ParserName.kt</a><span class="comment">enum</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/parser/OgParser.kt">infrastructure/adapter/parser/OgParser.kt</a><span class="comment">OG 메타 파서</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/parser/CoupangParser.kt">infrastructure/adapter/parser/CoupangParser.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/parser/ElevenStParser.kt">infrastructure/adapter/parser/ElevenStParser.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/parser/SafeUrlChecker.kt">infrastructure/adapter/parser/SafeUrlChecker.kt</a><span class="comment">SSRF 검증</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/parser/ParserResolver.kt">application/parser/ParserResolver.kt</a><span class="comment">host→parser 선택</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/parser/ParserPipeline.kt">application/parser/ParserPipeline.kt</a><span class="comment">파서 호출 오케스트레이션</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/usecase/ParseProductUseCase.kt">application/usecase/ParseProductUseCase.kt</a></li>
+  </ul>
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="06-clean-architecture.html">05. 클린 아키텍처</a>
+  <a class="next" href="08-jpa-flyway.html">07. JPA + Flyway</a>
+</div>
+
+</div>
+</body>
+</html>

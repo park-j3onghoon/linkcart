@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>17. 요약 + 면접 포인트</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 17. 요약 + 면접 포인트</span>
+</div>
+<div class="layout">
+
+<h1>17. 프로젝트 요약 + 면접 포인트</h1>
+<p class="subtitle">지금까지 한 것을 면접관 관점에서 어필하려면.</p>
+
+<h2>2개 문장 자기소개</h2>
+
+<div class="callout tip">
+  "Python/Django를 주력으로 써온 개발자이고, 티니어 백엔드 포지션을 준비하며 Kotlin/Spring Boot로
+  쇼핑몰 링크 파서 서비스(linkcart)를 혼자 처음부터 만들었습니다. Phase 1(파싱 MVP) + Phase 2(OAuth 인증 + 사용자 리소스)까지 완료했고,
+  각 리팩토링 결정마다 트레이드오프 문서화와 테스트 커버리지를 병행했습니다."
+</div>
+
+<h2>PR 목록 — 18개</h2>
+
+<table>
+  <tr><th>#</th><th>제목</th><th>핵심 기여</th></tr>
+  <tr><td>1~7</td><td>Phase 1 기본 구현</td><td>OG 파서, 쿠팡/11번가 Open API, 이미지 프록시, E2E</td></tr>
+  <tr><td>8 BE1</td><td>파서 엣지 케이스 테스트 13개</td><td>기존 동작 고정 (prod 변경 없음)</td></tr>
+  <tr><td>9 BE2</td><td>컨트롤러 + SafeUrlChecker 테스트 13개</td><td>SSRF 판정 분기 커버</td></tr>
+  <tr><td>10 BE3</td><td>Parser 아키텍처 명확화</td><td>포트 3분할, Factory→Resolver, 네이밍 통일</td></tr>
+  <tr><td>11 DOC</td><td>BE1~3 plan 문서</td><td>설계 기록</td></tr>
+  <tr><td>12 BE4</td><td>ParserName enum 전환</td><td>String → enum, Mall 선례 일관, @JsonValue</td></tr>
+  <tr><td>13 BE5</td><td>ParserPipeline 응집</td><td>UseCase 슬림화, @Cacheable 경계 명확</td></tr>
+  <tr><td>14 BE6</td><td>SSRF 방어 강화</td><td>URL-encoded, 짧은 IP, SVG allow-list</td></tr>
+  <tr><td>15 P2-1</td><td>DB 인프라 + User 도메인</td><td>PostgreSQL + JPA + Flyway + 도메인 분리</td></tr>
+  <tr><td>16 P2-2</td><td>Spring Security + OAuth + Access JWT</td><td>Google OAuth, HMAC JWT 15분</td></tr>
+  <tr><td>17 P2-3</td><td>Refresh Token + 로그아웃</td><td>opaque+SHA-256 해시, rotation, reuse 감지</td></tr>
+  <tr><td>18 P2-4</td><td>사용자별 상품 저장 API</td><td>UserProduct CRUD, 소유자 확인</td></tr>
+</table>
+
+<h2>티니어 채용공고 요구사항 ↔ 프로젝트 기여</h2>
+
+<div class="diagram">
+  <svg width="680" height="540" viewBox="0 0 680 540" xmlns="http://www.w3.org/2000/svg">
+    <!-- 매핑 -->
+    <rect x="20" y="10" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="28" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: Kotlin/Spring 시스템 구축·운영</text>
+    <text x="160" y="42" text-anchor="middle" font-size="10" fill="#92400e">"3년 이상 경험 또는 그에 준하는"</text>
+    <rect x="380" y="10" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="28" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">이 프로젝트</text>
+    <text x="520" y="42" text-anchor="middle" font-size="10" fill="#065f46">Phase 1 + Phase 2, 18 PR, 각 PR plan-review</text>
+
+    <rect x="20" y="60" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: RDBMS 데이터 모델링</text>
+    <rect x="380" y="60" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">3 테이블 + FK/UNIQUE/부분 인덱스</text>
+    <text x="520" y="92" text-anchor="middle" font-size="10" fill="#065f46">users / refresh_tokens / user_products</text>
+
+    <rect x="20" y="110" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="128" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: 확장성 있는 아키텍처</text>
+    <rect x="380" y="110" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="128" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">Clean Architecture 4-layer</text>
+    <text x="520" y="142" text-anchor="middle" font-size="10" fill="#065f46">domain/application/infrastructure/presentation</text>
+
+    <rect x="20" y="160" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="178" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: 클라이언트 고려한 API 설계</text>
+    <rect x="380" y="160" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="178" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">snake_case JSON, @Valid, 일관 에러 응답</text>
+
+    <rect x="20" y="210" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="228" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: 외부 API 연동 + 장애 격리</text>
+    <rect x="380" y="210" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="228" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">쿠팡/11번가 API + OgParser Fallback</text>
+
+    <rect x="20" y="260" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: 캐시 전략</text>
+    <rect x="380" y="260" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">@Cacheable + Caffeine, Failure 제외</text>
+
+    <rect x="20" y="310" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="328" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: 24/365 장애 없는 환경</text>
+    <rect x="380" y="310" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="328" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">Fallback chain + 타임아웃 3초 + 회귀 테스트</text>
+
+    <rect x="20" y="360" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="378" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: 글로벌 멀티 플랫폼</text>
+    <rect x="380" y="360" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="378" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">Next.js Web + Expo Mobile + shared 패키지</text>
+
+    <rect x="20" y="410" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="428" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: 테스트 + 코드 품질</text>
+    <rect x="380" y="410" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="428" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">단위/슬라이스/통합 + plan-review + review 6 Agent</text>
+
+    <rect x="20" y="460" width="280" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="160" y="478" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">요구: CI/CD 파이프라인</text>
+    <rect x="380" y="460" width="280" height="40" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="520" y="478" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">Docker Compose (현재), GitHub Actions 예정</text>
+
+    <rect x="20" y="510" width="640" height="25" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="340" y="528" text-anchor="middle" font-size="11" fill="#4338ca">(우대) 분산 시스템 / AWS 운영 — 미커버, 솔직히 언급 준비</text>
+  </svg>
+  <div class="diagram-caption">각 요구사항마다 이 프로젝트의 대응 지점</div>
+</div>
+
+<h2>면접에서 반드시 준비할 6가지 이야기</h2>
+
+<h3>① "왜 Kotlin/Spring으로 했나요?"</h3>
+<div class="callout ok">
+  <strong>답</strong> — "Python/Django가 주력이지만 티니어 기술스택 경험이 필요하다고 판단했다. 처음부터 실무 수준 아키텍처(클린 4-layer + JPA + Security)를 경험하면서 Kotlin 문법도 익혔다. 단순 튜토리얼 따라하기가 아니라 실제 프로덕션 구성 — PostgreSQL + Flyway + OAuth + JWT rotation + SSRF 방어 — 를 갖추려 했다."
+</div>
+
+<h3>② "클린 아키텍처를 이 규모에 쓴 이유는?" (과설계 질문)</h3>
+<div class="callout ok">
+  <strong>답</strong> — "정직히 말해 이 규모에는 과할 수 있다. 다만 (1) Kotlin/Spring의 DI·포트 패턴을 학습하는 목적 (2) 외부 API 3종 + DB + OAuth 등 외부 의존성 분리 이득 실재 (3) 면접에서 '헥사고날/클린 구조를 써봤다' 언급 가능한 실물 생산. 실무에서는 도메인 복잡도를 보고 결정한다는 건 알고 있다."
+</div>
+
+<h3>③ "JWT vs 세션 왜 JWT?"</h3>
+<div class="callout ok">
+  <strong>답</strong> — "웹+모바일 2종 클라이언트. 모바일에서 쿠키 관리가 번거로워 Bearer 헤더 기반 JWT로 통일. 다만 Access-only JWT는 revoke가 약해 Refresh Token rotation + DB 저장으로 보완. 웹 단독이면 Spring Session + Redis가 더 단순했을 것. 선택은 <em>모바일 존재</em>라는 요건에 의한 것."
+</div>
+
+<h3>④ "Refresh rotation에서 family revoke까지 하는 이유?"</h3>
+<div class="callout ok">
+  <strong>답</strong> — "reuse는 '어디선가 탈취가 일어났다'는 강한 신호. 정상 사용자가 rotate 후, 그 구식 token을 또 쓰는 건 공격자일 가능성이 높다. 정상 사용자에게 재로그인을 요구하는 불편 vs 공격 창 확장. 이 프로젝트는 안전 쪽을 택했다."
+</div>
+
+<h3>⑤ "SSRF 방어는 완벽한가?"</h3>
+<div class="callout ok">
+  <strong>답</strong> — "완벽하지 않다. 7개 공격 벡터(scheme, loopback, any-local, link-local, 사설 IP, URL-encoded, 짧은 IP, SVG XSS)는 막았지만 DNS rebinding, 리다이렉트 체이스, 이미지 magic byte 검증은 <em>명시적으로 NOT in scope</em>로 남겼다. <em>방어의 한계를 문서화하는 것</em>이 '완벽한 척 하다 터지는' 것보다 중요하다고 생각했다."
+</div>
+
+<h3>⑥ "트러블이 생겼을 때 어떻게 해결했나?"</h3>
+<div class="callout ok">
+  <strong>답</strong> — 구체 예: "Testcontainers가 Rancher Desktop 환경에서 Docker socket을 찾지 못해 통합 테스트가 실패했다. 원인을 docker context 경로에서 찾아 <code>~/.testcontainers.properties</code>로 대체 socket 지정 시도했고, 해결 안 되어 일단 <em>H2 in-memory로 fallback + Integration test @Disabled</em>로 문서화한 뒤 다음 세션 과제로 이관했다. 실행을 막지 않고 진행하되 기술부채를 명시적으로 남긴 게 포인트."
+</div>
+
+<h2>면접 대비 체크리스트</h2>
+
+<table>
+  <tr><th>항목</th><th>준비 상태</th></tr>
+  <tr><td>Kotlin 문법: val/var, null safety, data class, when/sealed, 확장 함수</td><td>✅</td></tr>
+  <tr><td>Spring DI / Bean 생명주기 / @Component·@Service·@Configuration 차이</td><td>✅</td></tr>
+  <tr><td>JPA: N+1, lazy vs eager, open-in-view, ddl-auto 레벨</td><td>✅</td></tr>
+  <tr><td>트랜잭션: @Transactional, 전파 레벨, 롤백 조건</td><td>⚠ 보강 필요</td></tr>
+  <tr><td>인덱스 설계: 부분 인덱스, 복합 인덱스 순서, covering index</td><td>⚠ 보강 필요</td></tr>
+  <tr><td>OAuth 2.0 flow 4종 (Code / Implicit / Password / Client Credentials)</td><td>⚠ Code만 깊이</td></tr>
+  <tr><td>JWT: 서명 알고리즘(HS vs RS vs ES), payload 설계, revoke 한계</td><td>✅</td></tr>
+  <tr><td>Spring Security Filter chain, SecurityContext</td><td>✅</td></tr>
+  <tr><td>SSRF 공격 벡터 + 방어</td><td>✅</td></tr>
+  <tr><td>테스트 피라미드, MockMvc, Testcontainers</td><td>✅</td></tr>
+  <tr><td>분산 시스템 (캐시 일관성, CAP, sharding)</td><td>⚠ 약한 편, 이론 학습 필요</td></tr>
+  <tr><td>AWS (EC2/RDS/S3/CloudWatch)</td><td>❌ 미경험, 솔직히 말할 준비</td></tr>
+  <tr><td>Django/Python 실무 경험</td><td>✅ 본 강점</td></tr>
+</table>
+
+<h2>예상되는 약점 질문 + 답변</h2>
+
+<div class="callout warn">
+  <strong>"대규모 트래픽 다뤄본 경험 있으세요?"</strong><br>
+  "linkcart는 혼자 만든 사이드 프로젝트라 실제 트래픽은 없다. 다만 캐시/타임아웃/폴백/부분 인덱스 같은 <em>대용량 대비 기법</em>은 적용했다. Django 경력 때는 OO 수준 트래픽을 다뤘고 N+1 수정, Redis 캐시 레이어 추가 같은 실전 경험이 있다. [실제 경험 구체적으로]"
+</div>
+
+<div class="callout warn">
+  <strong>"AWS 운영 경험이 없는데요?"</strong><br>
+  "사실대로 말씀드리면 AWS는 관찰만 해봤다. linkcart는 Docker Compose 로컬 환경이고 클라우드 배포까지는 못 갔다. 다만 (1) AWS IAM metadata 주소(169.254.169.254)를 SSRF에서 방어할 만큼 인프라 보안 맥락은 이해한다 (2) 오기 전까지 학습할 계획 (3) Python/Django 때 ECS 배포 파이프라인은 팀에서 돌아가는 걸 곁에서 보았다. 입사 후 빠르게 따라갈 자신 있다."
+</div>
+
+<div class="callout warn">
+  <strong>"Kotlin 경력이 없는데 실무에서 생산성 보장되나요?"</strong><br>
+  "솔직히 Java/Kotlin은 이 프로젝트가 실질적 첫 경험이다. 다만 (1) 5년 전 Java 경력이 JVM 생태계 기반이 됨 (2) 이 프로젝트에서 Spring Security, JPA, Security Filter 같은 깊이 있는 영역까지 들어가 봤다 (3) Python/Django 5년 숙련이 '문제를 빨리 파악하고 해결하는 습관'을 만들어 놨다. 문법 학습 곡선은 2~4주로 극복 가능하다고 본다."
+</div>
+
+<h2>프로젝트 URL 준비</h2>
+
+<ul class="arrow-list">
+  <li>GitHub 레포 링크 — PR 목록이 바로 보이도록</li>
+  <li>각 PR의 description을 영어로 번역해 둘지 (지원 회사가 글로벌이면)</li>
+  <li>README에 "이 프로젝트는 티니어 지원용 학습 포트폴리오"라는 정직한 한 줄</li>
+  <li>docs/study/ 학습 문서 링크 (이 문서들!)</li>
+</ul>
+
+<h2>입사 후 30일 계획 (면접 마지막에 보여주기 좋음)</h2>
+
+<ol>
+  <li><strong>Week 1</strong> — 팀 코드베이스 파악, 로컬 환경 구성, 작은 PR 1개 (오탈자/주석)</li>
+  <li><strong>Week 2</strong> — 날씨 데이터 파이프라인 이해, 관찰자로 온콜 참석</li>
+  <li><strong>Week 3</strong> — 작은 기능 PR 1~2개, 팀 리뷰어 관습 학습</li>
+  <li><strong>Week 4</strong> — 중급 기능 PR (테스트 포함), 테크데이 기여 1건 아이디어 제안</li>
+</ol>
+
+<h2>마지막</h2>
+
+<div class="callout tip">
+  <strong>이 프로젝트의 본질</strong> — "Kotlin/Spring을 얼마나 잘하나"가 아니다. 기간 대비 학습량이 적어서 시니어 Kotlin 개발자와 경쟁할 수 없다.
+  경쟁 포인트는 <em>"새 기술을 만났을 때 어떻게 접근하는가"</em> — 트레이드오프를 문서화하고, 리뷰 피드백을 리팩토링으로 흡수하고, 한계를 정직히 남겨두는 <em>일하는 방식</em>이다.
+  티니어가 채용공고에서 말한 "본질과 핵심에 집중, 빠른 실험 빠른 실패"와 정확히 일치하는 서사로 말할 것.
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="15-testing.html">12. 테스트 전략</a>
+  <a class="next" href="00-index.html">↑ 목차</a>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>08. DB 영속성 (JPA + Flyway)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 08. JPA + Flyway</span>
+</div>
+<div class="layout">
+
+<h1>08. DB 영속성 (JPA + Flyway)</h1>
+<p class="subtitle">Django ORM 쓰던 사람이 Spring Data JPA를 만나면. 마이그레이션은 Flyway.</p>
+
+<h2>이름 정리 — JPA / Hibernate / Spring Data JPA</h2>
+
+<table>
+  <tr><th>이름</th><th>무엇인가</th><th>Django 대응</th></tr>
+  <tr><td><strong>JPA</strong></td><td>Java Persistence API. 자바 표준 <em>스펙</em>(interface와 어노테이션 정의만).</td><td>없음 (Django는 표준/구현 구분 없음)</td></tr>
+  <tr><td><strong>Hibernate</strong></td><td>JPA 스펙의 가장 유명한 <em>구현체</em>.</td><td>Django ORM 엔진 부분</td></tr>
+  <tr><td><strong>Spring Data JPA</strong></td><td>Hibernate 위에 Repository 추상화를 얹은 <em>Spring 모듈</em>. "메서드 이름으로 쿼리 자동 생성" 같은 편의 기능.</td><td><code>Model.objects</code> 매니저</td></tr>
+</table>
+
+<p>이 프로젝트는 <strong>Spring Data JPA</strong>를 쓴다. 직접 Hibernate API를 부를 일은 드물다.</p>
+
+<h2>Django Model과 Kotlin JPA Entity 비교</h2>
+
+<div class="compare">
+  <div class="compare-cell py">
+    <div class="label">Django</div>
+<pre><code><span class="cmt"># models.py</span>
+<span class="kw">class</span> <span class="cls">User</span>(models.Model):
+    provider = models.CharField(max_length=<span class="num">32</span>)
+    provider_user_id = models.CharField(max_length=<span class="num">255</span>)
+    email = models.EmailField()
+    display_name = models.CharField(null=<span class="kw">True</span>)
+    created_at = models.DateTimeField(auto_now_add=<span class="kw">True</span>)
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        unique_together = [(<span class="str">'provider'</span>, <span class="str">'provider_user_id'</span>)]
+
+<span class="cmt"># 1 클래스 = 1 테이블 = 1 도메인</span>
+<span class="cmt"># makemigrations로 마이그레이션 자동 생성</span></code></pre>
+  </div>
+  <div class="compare-cell kt">
+    <div class="label">Spring Data JPA</div>
+<pre><code><span class="cmt">// domain/entity/User.kt — 도메인 객체 (JPA 독립)</span>
+<span class="kw">data class</span> <span class="cls">User</span>(
+    <span class="kw">val</span> id: <span class="cls">Long</span>? = <span class="kw">null</span>,
+    <span class="kw">val</span> provider: AuthProvider,
+    <span class="kw">val</span> providerUserId: <span class="cls">String</span>,
+    <span class="kw">val</span> email: <span class="cls">String</span>,
+    <span class="kw">val</span> displayName: <span class="cls">String</span>? = <span class="kw">null</span>,
+    <span class="kw">val</span> createdAt: Instant? = <span class="kw">null</span>,
+)
+
+<span class="cmt">// infrastructure/.../UserEntity.kt — JPA 매핑</span>
+<span class="cmt">@</span><span class="fn">Entity</span>
+<span class="cmt">@</span><span class="fn">Table</span>(name = <span class="str">"users"</span>)
+<span class="kw">class</span> <span class="cls">UserEntity</span>(
+    <span class="cmt">@</span><span class="fn">Id</span> <span class="cmt">@</span><span class="fn">GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="kw">val</span> id: <span class="cls">Long</span>? = <span class="kw">null</span>,
+
+    <span class="cmt">@</span><span class="fn">Column</span>(nullable = <span class="kw">false</span>, length = <span class="num">32</span>)
+    <span class="cmt">@</span><span class="fn">Enumerated</span>(EnumType.STRING)
+    <span class="kw">val</span> provider: AuthProvider,
+    ...
+)
+
+<span class="cmt">// + 별도 SQL 마이그레이션 (Flyway V1__...)</span></code></pre>
+  </div>
+</div>
+
+<p>
+  Django는 "Model = 도메인 = 테이블 = 마이그레이션 원천"이 한 몸. 이 프로젝트는 <strong>일부러 분리</strong>했다:
+</p>
+
+<ul class="arrow-list">
+  <li><strong>도메인 User</strong> (domain/entity) — 프레임워크 독립. Jackson/JPA도 이상적으로는 몰라야.</li>
+  <li><strong>UserEntity</strong> (infrastructure/adapter/persistence) — JPA 어노테이션 있음. DB 모양.</li>
+  <li><strong>UserRepository</strong> 포트 (domain/port) — UseCase가 의존하는 계약.</li>
+  <li><strong>UserRepositoryAdapter</strong> (infrastructure) — 포트 구현, Entity ↔ 도메인 변환.</li>
+</ul>
+
+<div class="callout tip">
+  <strong>왜 이렇게 번거롭게?</strong> Django 접근은 편하지만 <em>도메인이 ORM에 묶인다</em>. 이 프로젝트는 클린 아키텍처 학습 목적 + 포트폴리오 + 미래 DB 교체 가능성 어필. 실무에선 도메인 복잡도가 낮으면 Django 스타일이 더 합리적인 경우도 많다.
+</div>
+
+<h2>Spring Data JPA Repository — 쿼리 자동 생성</h2>
+
+<p>가장 놀라운 기능. 메서드 이름만 쓰면 구현이 자동 생성된다:</p>
+
+<pre><code><span class="kw">interface</span> <span class="cls">UserJpaRepository</span> : JpaRepository&lt;UserEntity, <span class="cls">Long</span>&gt; {
+    <span class="cmt">// 이름이 곧 쿼리 정의</span>
+    <span class="kw">fun</span> <span class="fn">findByProviderAndProviderUserId</span>(
+        provider: AuthProvider,
+        providerUserId: <span class="cls">String</span>,
+    ): UserEntity?
+
+    <span class="kw">fun</span> <span class="fn">existsByUserIdAndSourceUrl</span>(userId: <span class="cls">Long</span>, sourceUrl: <span class="cls">String</span>): <span class="cls">Boolean</span>
+
+    <span class="kw">fun</span> <span class="fn">findAllByUserIdOrderByCreatedAtDesc</span>(userId: <span class="cls">Long</span>): List&lt;UserProductEntity&gt;
+}
+</code></pre>
+
+<p>
+  <code>findByProviderAndProviderUserId</code>는 "provider = ? AND providerUserId = ?" WHERE절 자동.
+  <code>findAllByUserIdOrderByCreatedAtDesc</code>는 ORDER BY. 복잡한 쿼리는 <code>@Query("JPQL...")</code>로 직접.
+</p>
+
+<h3>복잡한 쿼리 — @Query + @Modifying</h3>
+
+<p>이 프로젝트에서 RefreshToken의 family revoke:</p>
+
+<pre><code><span class="kw">interface</span> <span class="cls">RefreshTokenJpaRepository</span> : JpaRepository&lt;RefreshTokenEntity, UUID&gt; {
+    <span class="cmt">@</span><span class="fn">Modifying</span>
+    <span class="cmt">@</span><span class="fn">Query</span>(
+        <span class="str">"UPDATE RefreshTokenEntity r "</span> +
+        <span class="str">"SET r.revokedAt = :revokedAt "</span> +
+        <span class="str">"WHERE r.userId = :userId AND r.revokedAt IS NULL"</span>,
+    )
+    <span class="kw">fun</span> <span class="fn">revokeAllActiveForUser</span>(
+        <span class="cmt">@</span><span class="fn">Param</span>(<span class="str">"userId"</span>) userId: <span class="cls">Long</span>,
+        <span class="cmt">@</span><span class="fn">Param</span>(<span class="str">"revokedAt"</span>) revokedAt: Instant,
+    ): <span class="cls">Int</span>
+}
+</code></pre>
+
+<div class="callout info">
+  <strong>JPQL vs native SQL</strong> — @Query는 기본이 <strong>JPQL</strong>(Java Persistence Query Language)이다. 테이블 이름이 아닌 Entity 클래스 이름을 쓴다 (<code>RefreshTokenEntity</code>). DB 이식성이 좋지만 Postgres 전용 기능(CTE, JSONB 등)은 못 씀. 그럴 땐 <code>nativeQuery = true</code>로 native SQL 사용.
+</div>
+
+<h2>왜 Flyway를 따로 쓰나 — Django migrations와 비교</h2>
+
+<table>
+  <tr><th></th><th>Django</th><th>Spring (이 프로젝트)</th></tr>
+  <tr><td>스키마 원천</td><td>Model 클래스</td><td>SQL 파일 (Flyway <code>V1__*.sql</code>)</td></tr>
+  <tr><td>마이그레이션 생성</td><td><code>python manage.py makemigrations</code> 자동</td><td>SQL 직접 작성</td></tr>
+  <tr><td>마이그레이션 적용</td><td><code>migrate</code></td><td>앱 startup에 자동 실행</td></tr>
+  <tr><td>롤백</td><td>일부 지원</td><td>Flyway undo (유료). 보통 새 forward migration으로.</td></tr>
+  <tr><td>Entity-DB 일치 검증</td><td>migrate가 그 역할</td><td><code>ddl-auto: validate</code> — Hibernate가 startup에 비교</td></tr>
+</table>
+
+<h3>이 프로젝트의 선택 근거</h3>
+
+<div class="tradeoff">
+  <div class="tradeoff-head">
+    <span class="badge">결정</span>
+    <strong>스키마를 어떻게 관리할 것인가</strong>
+  </div>
+
+  <div class="tradeoff-table">
+    <div class="th">후보</div><div class="th">장점</div><div class="th">단점</div>
+
+    <div><strong>A. Hibernate ddl-auto: update</strong></div>
+    <div>Django처럼 Entity만 고치면 스키마 자동 갱신</div>
+    <div>프로덕션 쓰면 안 됨. 예상 못한 ALTER, 데이터 손실 위험.</div>
+
+    <div><strong>B. Flyway + ddl-auto: validate</strong></div>
+    <div>SQL 원천 명시적. 앱 시작 시 Entity와 DB 구조 일치 검증. 팀 SQL 리뷰 가능.</div>
+    <div>Entity 수정 시 마이그레이션 수동 작성. Django보다 귀찮음.</div>
+
+    <div><strong>C. Liquibase</strong></div>
+    <div>XML/YAML로 DB 독립 표현</div>
+    <div>학습 곡선. Flyway가 더 단순 + 대세.</div>
+  </div>
+
+  <div class="tradeoff-choice">
+    <strong>→ B 채택</strong>. 프로덕션 품질 + DBA/리뷰어 친화적 SQL. 실무 표준.
+  </div>
+</div>
+
+<h2>이 프로젝트의 V1__create_users.sql</h2>
+
+<pre><code><span class="cmt">-- backend/src/main/resources/db/migration/V1__create_users.sql</span>
+
+<span class="cmt">-- updated_at 자동 갱신 트리거 (raw SQL로 UPDATE해도 갱신됨)</span>
+<span class="kw">CREATE OR REPLACE FUNCTION</span> set_updated_at() <span class="kw">RETURNS TRIGGER AS</span> $$
+<span class="kw">BEGIN</span>
+    NEW.updated_at = NOW();
+    <span class="kw">RETURN</span> NEW;
+<span class="kw">END</span>;
+$$ <span class="kw">LANGUAGE</span> plpgsql;
+
+<span class="kw">CREATE TABLE</span> users (
+    id <span class="kw">BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span>,   <span class="cmt">-- SQL 표준 (BIGSERIAL보다 권장)</span>
+    provider <span class="kw">VARCHAR</span>(<span class="num">32</span>) <span class="kw">NOT NULL</span>,
+    provider_user_id <span class="kw">VARCHAR</span>(<span class="num">255</span>) <span class="kw">NOT NULL</span>,
+    email <span class="kw">VARCHAR</span>(<span class="num">255</span>) <span class="kw">NOT NULL</span>,
+    display_name <span class="kw">VARCHAR</span>(<span class="num">100</span>),
+    avatar_url <span class="kw">VARCHAR</span>(<span class="num">500</span>),
+    created_at <span class="kw">TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT</span> NOW(),
+    updated_at <span class="kw">TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT</span> NOW(),
+    <span class="kw">CONSTRAINT</span> uq_users_provider_user <span class="kw">UNIQUE</span> (provider, provider_user_id)
+);
+
+<span class="kw">CREATE TRIGGER</span> trg_users_updated_at
+<span class="kw">BEFORE UPDATE ON</span> users
+<span class="kw">FOR EACH ROW EXECUTE FUNCTION</span> set_updated_at();
+</code></pre>
+
+<div class="callout tip">
+  <strong>IDENTITY vs SERIAL</strong> — <code>BIGSERIAL</code>은 Postgres 전용 단축. <code>BIGINT GENERATED ALWAYS AS IDENTITY</code>는 SQL 표준 + 수동 id 주입 막아줌(OVERRIDING SYSTEM VALUE 명시 필요). 신규 프로젝트는 IDENTITY 권장.
+</div>
+
+<h2>중요한 설정 2가지</h2>
+
+<h3>1. open-in-view: false</h3>
+
+<p>Spring Boot 기본값은 <code>true</code>. Controller가 응답 쓸 때까지 영속 컨텍스트(세션)가 열려 있어 lazy loading이 자동. 편하지만:</p>
+
+<ul class="arrow-list">
+  <li>DB 커넥션을 view 렌더링 내내 잡고 있음 → 커넥션 풀 고갈 위험</li>
+  <li>N+1 쿼리가 조용히 숨어 발생</li>
+  <li>Controller가 lazy loading에 암묵 의존</li>
+</ul>
+
+<p>이 프로젝트는 <code>open-in-view: false</code>. Service/UseCase가 필요한 데이터를 <em>명시적으로 fetch</em>해야 함. 약간 번거롭지만 문제 조기 노출.</p>
+
+<h3>2. ddl-auto: validate</h3>
+
+<p>Hibernate가 앱 시작 시 Entity 매핑과 DB 스키마 일치 검증만 한다. 차이 있으면 부팅 실패 → <em>Flyway와 Entity가 어긋난 상태로 배포되는 사고 방지</em>.</p>
+
+<h2>Testcontainers — 테스트에서 진짜 DB 쓰기</h2>
+
+<p>단위 테스트는 mock으로 충분하지만, Repository는 <em>실제 DB에 붙어봐야</em> JPQL/쿼리/제약조건이 맞는지 검증된다. Docker 컨테이너로 Postgres 16 띄워 테스트:</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">Testcontainers</span>
+<span class="cmt">@</span><span class="fn">SpringBootTest</span>
+<span class="kw">class</span> <span class="cls">UserRepositoryAdapterIntegrationTest</span> {
+    <span class="kw">companion object</span> {
+        <span class="cmt">@</span><span class="fn">Container</span>
+        <span class="cmt">@</span><span class="fn">JvmStatic</span>
+        <span class="kw">val</span> postgres = PostgreSQLContainer(<span class="str">"postgres:16"</span>)
+
+        <span class="cmt">@</span><span class="fn">JvmStatic</span>
+        <span class="cmt">@</span><span class="fn">DynamicPropertySource</span>
+        <span class="kw">fun</span> <span class="fn">properties</span>(registry: DynamicPropertyRegistry) {
+            registry.add(<span class="str">"spring.datasource.url"</span>, postgres::getJdbcUrl)
+            ...
+        }
+    }
+
+    <span class="cmt">@</span><span class="fn">Test</span>
+    <span class="kw">fun</span> <span class="fn">`duplicate provider violates unique constraint`</span>() {
+        userRepository.save(<span class="fn">newUser</span>(providerUserId = <span class="str">"x"</span>))
+        assertThrows&lt;DataIntegrityViolationException&gt; {
+            userRepository.save(<span class="fn">newUser</span>(providerUserId = <span class="str">"x"</span>))
+        }
+    }
+}
+</code></pre>
+
+<div class="callout warn">
+  <strong>이 프로젝트 현재 상태</strong> — Rancher Desktop 환경 이슈로 Integration test는 @Disabled. 대신 H2 in-memory로 @SpringBootTest 회귀 커버. 다음 세션에서 Postgres 컨테이너 활성화 예정.
+</div>
+
+<h2>정리</h2>
+
+<table>
+  <tr><th>주제</th><th>이 프로젝트 선택</th></tr>
+  <tr><td>ORM</td><td>Spring Data JPA (+ Hibernate)</td></tr>
+  <tr><td>도메인 ↔ Entity</td><td>분리 (클린 아키텍처)</td></tr>
+  <tr><td>Entity 이름 규칙</td><td>{Name}Entity로 도메인 User와 구분</td></tr>
+  <tr><td>마이그레이션</td><td>Flyway SQL 파일 직접 작성</td></tr>
+  <tr><td>ddl-auto</td><td>validate (Flyway가 원천)</td></tr>
+  <tr><td>open-in-view</td><td>false (명시적 fetch 강제)</td></tr>
+  <tr><td>PK 전략</td><td>BIGINT GENERATED AS IDENTITY (SQL 표준)</td></tr>
+  <tr><td>Timestamp 자동 갱신</td><td>DB 트리거 (raw SQL 경로 커버)</td></tr>
+  <tr><td>통합 테스트</td><td>Testcontainers (환경 해결 중, 임시 H2)</td></tr>
+</table>
+
+<div class="source-files">
+  <h3>이 챕터 관련 소스 파일</h3>
+  <ul>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/user/UserEntity.kt">infrastructure/adapter/persistence/user/UserEntity.kt</a><span class="comment">@Entity</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/user/UserMappers.kt">.../user/UserMappers.kt</a><span class="comment">도메인 ↔ Entity</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/user/UserJpaRepository.kt">.../user/UserJpaRepository.kt</a><span class="comment">JpaRepository</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/user/UserRepositoryAdapter.kt">.../user/UserRepositoryAdapter.kt</a><span class="comment">port 구현</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/backend/src/main/resources/db/migration">backend/src/main/resources/db/migration/</a><span class="comment">Flyway V__ 파일들</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/resources/application.yml">backend/src/main/resources/application.yml</a><span class="comment">spring.jpa / flyway 설정</span></li>
+  </ul>
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="07-parser-evolution.html">06. 파서 설계</a>
+  <a class="next" href="12-oauth-jwt.html">08. OAuth + JWT</a>
+</div>
+
+</div>
+</body>
+</html>

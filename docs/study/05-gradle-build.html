@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>05. Gradle &amp; 빌드</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 05. Gradle &amp; 빌드</span>
+</div>
+<div class="layout">
+
+<h1>05. Gradle &amp; 빌드</h1>
+<p class="subtitle">Python의 pyproject.toml + pip가 Kotlin에선 build.gradle.kts + Gradle wrapper.</p>
+
+<h2>JVM 생태계의 빌드 도구 간략 역사</h2>
+
+<table>
+  <tr><th>도구</th><th>등장</th><th>스타일</th><th>현 위치</th></tr>
+  <tr><td>Ant</td><td>2000</td><td>XML 스크립트</td><td>거의 안 씀 (legacy)</td></tr>
+  <tr><td>Maven</td><td>2004</td><td>XML (pom.xml) 선언적</td><td>여전히 많음 (엔터프라이즈)</td></tr>
+  <tr><td><strong>Gradle</strong></td><td>2007</td><td>Groovy DSL → Kotlin DSL</td><td>신규 프로젝트 대세 (특히 Android/Kotlin)</td></tr>
+</table>
+
+<p>
+  이 프로젝트는 <strong>Gradle + Kotlin DSL (build.gradle.kts)</strong>.
+  <code>.kts</code>는 "Kotlin Script" 확장자로, 빌드 스크립트를 Kotlin 문법으로 쓴다.
+  IDE가 자동완성/타입체크 지원하니 Groovy(<code>.gradle</code>)보다 훨씬 읽기 쉽다.
+</p>
+
+<h2>Gradle Wrapper — "Gradle을 따로 설치할 필요가 없다"</h2>
+
+<p>
+  프로젝트 루트의 <code>gradlew</code>, <code>gradlew.bat</code>, <code>gradle/wrapper/</code> 디렉토리가 wrapper다.
+  이것들을 커밋해두면, 팀원이 git clone 후 바로 <code>./gradlew build</code> 하면 된다.
+  Gradle이 설치 안 돼 있어도 wrapper가 지정된 버전을 자동 다운로드.
+</p>
+
+<div class="callout tip">
+  <strong>Django 비교</strong> — Python은 <code>python -m venv</code> + <code>pip install</code>을 팀원이 각자 해야 한다.
+  Gradle wrapper는 그게 필요 없다. JDK만 있으면 나머지는 wrapper가 처리.
+</div>
+
+<h2>build.gradle.kts 구조</h2>
+
+<p>이 프로젝트의 <code>backend/build.gradle.kts</code>를 섹션별로 분해:</p>
+
+<pre><code><span class="cmt">// 1) 플러그인 — 언어/프레임워크 설정</span>
+<span class="fn">plugins</span> {
+    <span class="fn">kotlin</span>(<span class="str">"jvm"</span>) version <span class="str">"1.9.25"</span>            <span class="cmt">// Kotlin on JVM</span>
+    <span class="fn">kotlin</span>(<span class="str">"plugin.spring"</span>) version <span class="str">"1.9.25"</span>   <span class="cmt">// Spring과 Kotlin 연동</span>
+    <span class="fn">kotlin</span>(<span class="str">"plugin.jpa"</span>) version <span class="str">"1.9.25"</span>      <span class="cmt">// JPA entity를 open 클래스로</span>
+    id(<span class="str">"org.springframework.boot"</span>) version <span class="str">"3.5.3"</span>
+    id(<span class="str">"io.spring.dependency-management"</span>) version <span class="str">"1.1.7"</span>
+}
+
+<span class="cmt">// 2) JDK 버전</span>
+<span class="fn">java</span> {
+    <span class="fn">toolchain</span> { languageVersion = JavaLanguageVersion.of(<span class="num">21</span>) }
+}
+
+<span class="cmt">// 3) 의존성 저장소</span>
+<span class="fn">repositories</span> { <span class="fn">mavenCentral</span>() }
+
+<span class="cmt">// 4) 의존성 — 이게 핵심</span>
+<span class="fn">dependencies</span> {
+    <span class="fn">implementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-web"</span>)
+    <span class="fn">implementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-data-jpa"</span>)
+    <span class="fn">implementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-security"</span>)
+    <span class="fn">runtimeOnly</span>(<span class="str">"org.postgresql:postgresql"</span>)  <span class="cmt">// 실행 시만 필요</span>
+
+    <span class="fn">testImplementation</span>(<span class="str">"org.springframework.boot:spring-boot-starter-test"</span>)
+    <span class="fn">testImplementation</span>(<span class="str">"org.testcontainers:postgresql"</span>)
+}
+
+<span class="cmt">// 5) Kotlin + Spring 통합 옵션</span>
+<span class="fn">allOpen</span> {
+    annotation(<span class="str">"jakarta.persistence.Entity"</span>)      <span class="cmt">// @Entity 클래스를 open으로 (Hibernate proxy 용)</span>
+    annotation(<span class="str">"jakarta.persistence.MappedSuperclass"</span>)
+}
+
+<span class="cmt">// 6) Task 설정</span>
+tasks.withType&lt;Test&gt; {
+    useJUnitPlatform()
+}
+</code></pre>
+
+<h2>의존성 scope — implementation / testImplementation / runtimeOnly</h2>
+
+<table>
+  <tr><th>scope</th><th>언제 쓰나</th><th>pip 비교</th></tr>
+  <tr><td><code>implementation</code></td><td>컴파일 + 런타임 모두 필요 (일반)</td><td>install_requires</td></tr>
+  <tr><td><code>testImplementation</code></td><td>테스트 코드에서만</td><td>dev-dependencies / [dev]</td></tr>
+  <tr><td><code>runtimeOnly</code></td><td>컴파일 시엔 노출 안 함, 실행 시만 (DB 드라이버 등)</td><td>해당 개념 없음</td></tr>
+  <tr><td><code>api</code></td><td>라이브러리 작성 시, 쓰는 쪽에도 노출</td><td>해당 개념 없음</td></tr>
+</table>
+
+<div class="callout tip">
+  <strong>왜 PostgreSQL을 runtimeOnly로?</strong> 컴파일 단계에서 <code>org.postgresql.Driver</code>를 직접 import할 일이 없다 (JDBC URL로 리플렉션 로드). 실행 시만 있으면 됨. 실수로 코드에서 Postgres 전용 클래스에 의존하는 걸 방지.
+</div>
+
+<h2>"Starter"라는 묶음 — 스프링 생태계의 관습</h2>
+
+<p>
+  <code>spring-boot-starter-web</code>은 하나의 패키지가 아니다.
+  <em>여러 라이브러리를 묶은 메타 패키지</em>:
+</p>
+
+<div class="diagram">
+  <svg width="680" height="210" viewBox="0 0 680 210" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="20" width="200" height="60" rx="10" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/>
+    <text x="120" y="48" text-anchor="middle" font-size="14" font-weight="600" fill="#4338ca">spring-boot-starter-web</text>
+    <text x="120" y="66" text-anchor="middle" font-size="11" fill="#6b7280">(내가 넣는 것)</text>
+
+    <line x1="220" y1="50" x2="280" y2="50" stroke="#6b7280" stroke-width="1.5"/>
+    <text x="250" y="42" text-anchor="middle" font-size="11" fill="#6b7280">포함</text>
+
+    <rect x="290" y="10" width="180" height="28" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="380" y="28" text-anchor="middle" font-size="11">spring-web</text>
+    <rect x="290" y="44" width="180" height="28" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="380" y="62" text-anchor="middle" font-size="11">spring-webmvc</text>
+    <rect x="290" y="78" width="180" height="28" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="380" y="96" text-anchor="middle" font-size="11">tomcat-embed-core (서버)</text>
+    <rect x="290" y="112" width="180" height="28" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="380" y="130" text-anchor="middle" font-size="11">jackson-databind (JSON)</text>
+    <rect x="290" y="146" width="180" height="28" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="380" y="164" text-anchor="middle" font-size="11">spring-boot-autoconfigure</text>
+    <rect x="290" y="180" width="180" height="22" rx="6" fill="transparent" stroke="none"/>
+    <text x="380" y="196" text-anchor="middle" font-size="11" fill="#6b7280">+ 기타 수십 개 추이 의존성</text>
+  </svg>
+  <div class="diagram-caption">starter 1개 = 실제로는 수십 개 라이브러리의 버전 궁합이 맞춰진 묶음</div>
+</div>
+
+<p>
+  덕분에 "Spring Web 쓰려면 jackson, tomcat, validator 등 뭐뭐를 넣어야 하지?" 고민이 사라진다.
+  <strong>Spring Boot의 핵심 기여</strong>가 이 starter 생태계다.
+</p>
+
+<h2>자주 쓰는 Gradle 명령</h2>
+
+<table>
+  <tr><th>명령</th><th>하는 일</th></tr>
+  <tr><td><code>./gradlew build</code></td><td>컴파일 + 테스트 + 패키징</td></tr>
+  <tr><td><code>./gradlew test</code></td><td>테스트만</td></tr>
+  <tr><td><code>./gradlew test --tests ClassName</code></td><td>특정 테스트만</td></tr>
+  <tr><td><code>./gradlew bootRun</code></td><td>Spring Boot 앱 실행 (개발 모드)</td></tr>
+  <tr><td><code>./gradlew --stop</code></td><td>Gradle daemon 재시작 (간헐적 이슈 해결)</td></tr>
+  <tr><td><code>./gradlew dependencies</code></td><td>의존성 트리 확인</td></tr>
+</table>
+
+<h2>심화 Q&amp;A — 자주 헷갈리는 지점</h2>
+
+<h3>Q. classpath가 뭐야?</h3>
+
+<p><strong>classpath</strong> = JVM이 "실행 시 클래스 파일(.class)과 리소스를 어디서 찾을지" 알려주는 경로 목록. Python의 <code>PYTHONPATH</code>, Node.js의 <code>NODE_PATH</code>와 비슷한 개념.</p>
+
+<p>JVM은 <code>new ProductController()</code>를 실행할 때 "ProductController라는 이름의 .class 파일"을 classpath에서 찾는다. classpath에 없으면 <code>ClassNotFoundException</code>.</p>
+
+<p><strong>classpath에 들어가는 것들</strong></p>
+<ul class="arrow-list">
+  <li>내가 작성한 코드를 컴파일한 <code>.class</code> 파일 (<code>build/classes/...</code>)</li>
+  <li>의존성으로 받은 라이브러리 jar (<code>~/.gradle/caches/.../spring-boot-starter-web-3.5.3.jar</code>)</li>
+  <li>리소스 파일 (<code>application.yml</code>, <code>static/</code>, <code>templates/</code> 등)</li>
+</ul>
+
+<p><strong>Spring과 classpath</strong> — Spring Boot의 많은 기능이 "classpath에 X가 있으면 Y를 자동 설정"한다. 예:</p>
+
+<table>
+  <tr><th>classpath에 있으면</th><th>Spring Boot가 자동으로</th></tr>
+  <tr><td><code>spring-webmvc</code> jar</td><td>내장 Tomcat + DispatcherServlet + @RestController 스캐너 켬</td></tr>
+  <tr><td><code>spring-data-jpa</code> jar</td><td>DataSource, EntityManagerFactory, @Repository 스캐너 켬</td></tr>
+  <tr><td><code>hibernate-validator</code> jar</td><td>@Valid 처리 활성화</td></tr>
+  <tr><td><code>application.yml</code>에 <code>spring.cache.type=caffeine</code> + classpath에 caffeine</td><td>@EnableCaching 시 Caffeine을 캐시 구현체로 선택</td></tr>
+</table>
+
+<p>그래서 "의존성만 <code>build.gradle.kts</code>에 추가하면 대부분 작동"한다. 내부적으로 Spring이 classpath 스캔을 하기 때문.</p>
+
+<p><strong>application.yml의 <code>classpath:db/migration</code></strong>도 같은 개념. 이 프로젝트:</p>
+
+<pre><code><span class="cmt"># application.yml</span>
+spring:
+  flyway:
+    locations: classpath:db/migration     <span class="cmt"># ← classpath 루트에서 db/migration/ 하위를 찾아라</span></code></pre>
+
+<p>빌드 시 <code>backend/src/main/resources/db/migration/*.sql</code>이 jar 안 <code>db/migration/</code>으로 들어간다. Flyway가 실행 시 classpath에서 그 경로를 스캔.</p>
+
+<h3>Q. spring-boot-starter-web 실물은 우리 프로젝트 어디에 있어?</h3>
+
+<p><strong>우리 프로젝트 안에는 없다.</strong> Gradle이 Maven Central에서 받아 <strong>홈 디렉토리의 공용 캐시</strong>에 보관한다. 모든 프로젝트가 같은 캐시를 공유.</p>
+
+<pre><code>~/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-web/3.5.3/
+├── &lt;hash&gt;/spring-boot-starter-web-3.5.3.jar      <span class="cmt"># 실제 jar</span>
+├── &lt;hash&gt;/spring-boot-starter-web-3.5.3.pom      <span class="cmt"># 의존성 메타데이터</span>
+└── ...</code></pre>
+
+<p><strong>프로젝트 내부에는 무엇이 있나?</strong></p>
+<ul class="arrow-list">
+  <li><code>backend/build.gradle.kts</code> — <code>implementation("org.springframework.boot:spring-boot-starter-web")</code> 선언 1줄</li>
+  <li><code>backend/gradle/wrapper/gradle-wrapper.properties</code> — Gradle 버전 지정</li>
+  <li><code>backend/.gradle/</code> (gitignore) — 로컬 Gradle 작업 캐시 (빌드 증분, task 결과 등)</li>
+  <li><code>backend/build/</code> (gitignore) — 컴파일 결과, jar 패키지</li>
+</ul>
+
+<p><strong>실행 시점에는?</strong> — Gradle이 classpath를 조립해 JVM에 전달. <code>./gradlew bootRun</code>을 돌리면 <code>~/.gradle/caches/.../spring-boot-starter-web-3.5.3.jar</code>가 classpath에 포함된 상태로 JVM이 뜬다.</p>
+
+<p><strong>검증 명령</strong>:</p>
+
+<pre><code>./gradlew dependencies --configuration runtimeClasspath | head -30</code></pre>
+
+<p>의존성 트리 출력. spring-boot-starter-web이 transitive로 가져오는 것들(tomcat, jackson, spring-webmvc, ...)도 전부 표시된다.</p>
+
+<h3>Q. ./gradlew로 실행하면 Gradle은 어디에 설치되나? 프로젝트에 캐시로 남나?</h3>
+
+<p><strong>Gradle 자체는 사용자 홈 공유 캐시에 저장</strong>. 프로젝트 디렉토리가 아니다.</p>
+
+<pre><code><span class="cmt"># 1) wrapper가 가리키는 Gradle 버전</span>
+<span class="cmt"># backend/gradle/wrapper/gradle-wrapper.properties</span>
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.4-bin.zip
+
+<span class="cmt"># 2) 첫 ./gradlew 실행 시 다운로드되는 위치</span>
+~/.gradle/wrapper/dists/gradle-8.14.4-bin/&lt;hash&gt;/gradle-8.14.4/
+├── bin/gradle                 <span class="cmt"># 실제 Gradle 실행 파일</span>
+├── lib/                       <span class="cmt"># Gradle 내부 라이브러리</span>
+└── ...</code></pre>
+
+<p><strong>흐름</strong></p>
+
+<ol>
+  <li>팀원이 <code>git clone</code> → <code>backend/gradlew</code>(스크립트)만 있음. Gradle 실체는 없음</li>
+  <li><code>./gradlew build</code> 최초 실행 → wrapper 스크립트가 <code>gradle-wrapper.properties</code>의 distributionUrl 읽음</li>
+  <li>해당 zip을 <code>~/.gradle/wrapper/dists/</code>로 다운로드 후 unzip (20~40초)</li>
+  <li>그 Gradle을 사용해 build 수행</li>
+  <li>2회 차부터는 캐시 활용으로 다운로드 없음</li>
+</ol>
+
+<p><strong>그래서 "고정 버전 Gradle이 프로젝트에 캐시로 남나?"</strong> — 프로젝트 폴더 안에는 <strong>없다</strong>. 전역 <code>~/.gradle/wrapper/dists/</code>에 있고, 같은 버전을 쓰는 다른 프로젝트가 재사용한다.</p>
+
+<p><strong>프로젝트 로컬 캐시</strong>는 다른 성격:</p>
+
+<table>
+  <tr><th>경로</th><th>내용</th><th>git 포함?</th></tr>
+  <tr><td><code>~/.gradle/wrapper/dists/</code></td><td>Gradle 배포판 본체 (버전별)</td><td>아님 (홈)</td></tr>
+  <tr><td><code>~/.gradle/caches/modules-2/</code></td><td>다운로드한 의존성 jar (프로젝트 전체 공유)</td><td>아님 (홈)</td></tr>
+  <tr><td><code>backend/.gradle/</code></td><td>프로젝트 빌드 증분 캐시 (task 결과, 컴파일된 .class 체크섬)</td><td>gitignore</td></tr>
+  <tr><td><code>backend/build/</code></td><td>컴파일 결과, jar 패키지</td><td>gitignore</td></tr>
+</table>
+
+<p><strong>캐시 정리</strong></p>
+
+<pre><code>./gradlew --stop           <span class="cmt"># Gradle daemon 종료</span>
+rm -rf backend/.gradle backend/build    <span class="cmt"># 프로젝트 캐시만 삭제</span>
+rm -rf ~/.gradle/caches     <span class="cmt"># 전역 의존성 캐시까지 삭제 (재다운로드 발생)</span></code></pre>
+
+<h2>정리</h2>
+
+<ul class="arrow-list">
+  <li>빌드 도구는 Gradle (Kotlin DSL)</li>
+  <li>build.gradle.kts 6개 섹션: plugins / java / repositories / dependencies / 플러그인 옵션 / tasks</li>
+  <li><code>implementation</code> / <code>runtimeOnly</code> / <code>testImplementation</code> scope 구분</li>
+  <li>starter로 관련 라이브러리 묶음 받음</li>
+  <li>gradlew 덕에 팀원 Gradle 설치 불필요 (Gradle 본체는 <code>~/.gradle/wrapper/dists/</code>에 공용)</li>
+  <li>의존성 jar도 <code>~/.gradle/caches/</code>에 공용. 프로젝트 폴더 안에는 선언(<code>.kts</code>)과 빌드 산출물만</li>
+</ul>
+
+<div class="page-footer">
+  <a class="prev" href="04-spring-boot-basics.html">03. Spring Boot 기초</a>
+  <a class="next" href="06-clean-architecture.html">05. 클린 아키텍처</a>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>16. 리뷰에서 배운 것 + 주요 결정 기록</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 16. 리뷰 / 결정 기록</span>
+</div>
+<div class="layout">
+
+<h1>16. 리뷰에서 배운 것 + 결정 기록</h1>
+<p class="subtitle">코드 리뷰 피드백 → 실제 수정 → 왜 그렇게 고쳤는가. 그리고 Plan Review에서 내린 결정들.</p>
+
+<div class="callout info">
+  <strong>이 챕터의 의도</strong> — "완벽한 설계를 처음부터 했다"가 아니라 "리뷰에서 배워 반영했다"는 서사는 시니어 레벨의 증거. 구체적 결정과 이유를 기록한다.
+</div>
+
+<h2>PR-1 리뷰에서 배운 4가지 원칙 (pr1.html 기준)</h2>
+
+<h3>① 금액은 항상 Long</h3>
+
+<div class="compare">
+  <div class="compare-cell" style="border-left: 4px solid #ef4444;">
+    <div class="label">Before</div>
+<pre><code><span class="kw">data class</span> <span class="cls">Money</span>(
+    <span class="kw">val</span> amount: <span class="cls">Int</span>,     <span class="cmt">// ❌ 21억 초과 불가</span>
+    <span class="kw">val</span> currency: <span class="cls">String</span>,
+)</code></pre>
+  </div>
+  <div class="compare-cell" style="border-left: 4px solid #059669;">
+    <div class="label">After</div>
+<pre><code><span class="kw">data class</span> <span class="cls">Money</span>(
+    <span class="kw">val</span> amount: <span class="cls">Long</span>,    <span class="cmt">// ✅ 9 * 10^18</span>
+    <span class="kw">val</span> currency: <span class="cls">String</span> = <span class="str">"KRW"</span>,
+)</code></pre>
+  </div>
+</div>
+
+<p>원문 (pr1.html): "Python은 <code>int</code>가 크기 제한이 없어서(arbitrary precision) 이 문제를 겪지 않지만, JVM 언어에서는 <code>Int</code>(32비트)와 <code>Long</code>(64비트)이 다릅니다. 금액에는 항상 <code>Long</code>을 쓰는 것이 안전합니다."</p>
+
+<div class="callout warn">
+  <strong>왜 Double 아닌 Long?</strong> IEEE 754 부동소수점은 <code>0.1 + 0.2 ≠ 0.3</code>. 금액 처리에서 이 오차는 결제 불일치, 정산 오류로 직결. BigDecimal도 가능하나 Long이 단순하고 원화처럼 원 단위 정수 통화에 충분.
+</div>
+
+<h3>② 공통 상태가 없으면 sealed interface, 있으면 sealed class</h3>
+
+<div class="compare">
+  <div class="compare-cell" style="border-left: 4px solid #ef4444;">
+    <div class="label">Before</div>
+<pre><code><span class="kw">sealed class</span> <span class="cls">ParseResult</span> {
+    <span class="cmt">// 공통 필드 없는데 class?</span>
+    <span class="kw">data class</span> <span class="cls">Success</span>(<span class="kw">val</span> product: Product) : ParseResult()
+    <span class="kw">data class</span> <span class="cls">Failure</span>(<span class="kw">val</span> reason: <span class="cls">String</span>) : ParseResult()
+}</code></pre>
+  </div>
+  <div class="compare-cell" style="border-left: 4px solid #059669;">
+    <div class="label">After</div>
+<pre><code><span class="kw">sealed interface</span> <span class="cls">ParseResult</span> {
+    <span class="kw">data class</span> <span class="cls">Success</span>(<span class="kw">val</span> product: Product) : ParseResult
+    <span class="kw">data class</span> <span class="cls">Partial</span>(<span class="kw">val</span> fields: Map&lt;<span class="cls">String</span>, Any&gt;) : ParseResult
+    <span class="kw">data class</span> <span class="cls">Failure</span>(<span class="kw">val</span> reason: <span class="cls">String</span>) : ParseResult
+}</code></pre>
+  </div>
+</div>
+
+<p>원문: "공통 상태(필드)가 필요하면 <code>sealed class</code>, 없으면 <code>sealed interface</code>. <code>ParseResult</code>는 공통 필드가 없으므로 <code>interface</code>가 맞습니다."</p>
+
+<h3>③ 인프라 설정은 infrastructure/config/에</h3>
+
+<div class="callout tip">
+  <strong>CORS가 presentation이 아닌 이유</strong> — 원문: "CORS는 '웹 서버의 인프라 수준 설정'입니다. 비즈니스 로직과 무관하고, 어떤 origin을 허용할지는 배포 환경에 따라 달라지는 인프라 설정입니다. Django로 비유하면: <code>views.py</code>에 CORS 설정을 넣지 않고, <code>settings.py</code>에 넣는 것과 같은 논리입니다."
+</div>
+
+<p>그래서 <code>WebConfig.kt</code>는 <code>infrastructure/config/</code>에 위치.</p>
+
+<h3>④ 네이밍 전략은 글로벌 설정으로</h3>
+
+<pre><code><span class="cmt"># application.yml — 모든 DTO에 자동 적용</span>
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+</code></pre>
+
+<p>각 DTO마다 <code>@JsonProperty("image_url")</code> 붙이지 않고 전역 설정. "글로벌 서비스 관점에서 API 응답 필드 네이밍을 한 곳에서 통제".</p>
+
+<h2>Parser 아키텍처 6단계 진화 (BE3~BE5)</h2>
+
+<p>이미 <a href="07-parser-evolution.html">06 챕터</a>에서 다뤘지만 결정 기록 관점으로 요약:</p>
+
+<table>
+  <tr><th>PR</th><th>결정</th><th>이유</th></tr>
+  <tr><td>PR 2</td><td>OgParser만, ProductParser 인터페이스 미리 준비</td><td>쿠팡/11번가 추가 예정이라 뼈대 만들기</td></tr>
+  <tr><td>PR 3</td><td>ParserFactory로 URL→파서 라우팅 + Fallback chain</td><td>전용 API 실패 시 OG로 graceful degradation</td></tr>
+  <tr><td>PR 3 후반</td><td>ParserFactory를 infrastructure → <strong>application으로 이동</strong></td><td>원문 (pr3.html): "파서를 실제로 고르는 판단은 '이 유스케이스에서 어떤 전략을 먼저 쓸 것인가'에 가깝다. UseCase가 infrastructure 구현체에 직접 의존하지 않도록"</td></tr>
+  <tr><td>BE3</td><td>포트 3분할 (Dedicated / Fallback / Base)</td><td>Spring DI ambiguous 회피 + 역할을 타입으로 표현</td></tr>
+  <tr><td>BE3</td><td>ParserFactory → <strong>ParserResolver</strong> 이름 변경</td><td>"Factory"는 생성 뉘앙스, 실제는 선택. 이름과 책임 일치.</td></tr>
+  <tr><td>BE4</td><td>String → <strong>ParserName enum</strong></td><td>컴파일러가 오타 잡음. Mall 선례 일관.</td></tr>
+  <tr><td>BE5</td><td><strong>ParserPipeline 분리</strong></td><td>UseCase 슬림화, @Cacheable 경계 명확화</td></tr>
+</table>
+
+<h2>외부 API 운영 원칙 — pr3.html 인용</h2>
+
+<div class="callout ok">
+  <strong>"실패 결과는 캐시하지 않는다"</strong>
+  <br>원문: "실패 결과는 캐시하지 않는 것도 중요하다. 외부 API가 잠깐 흔들렸을 때 실패를 오래 보관하면, 실제 복구 뒤에도 계속 실패를 재사용하게 되기 때문이다."
+</div>
+
+<pre><code><span class="cmt">// ParseProductUseCase.kt의 @Cacheable</span>
+<span class="cmt">@</span><span class="fn">Cacheable</span>(
+    cacheNames = [<span class="str">"products"</span>],
+    key = <span class="str">"#url"</span>,
+    unless = <span class="str">"#result instanceof T(com.linkcart.domain.model.ParseResult$Failure)"</span>,  <span class="cmt">// ← 실패는 미캐시</span>
+)
+<span class="kw">fun</span> <span class="fn">execute</span>(url: <span class="cls">String</span>): ParseResult = ...
+</code></pre>
+
+<p><code>unless</code>로 Failure 제외. 5분 후에라도 외부 API 복구되면 즉시 성공 반영.</p>
+
+<h2>URL 검증의 3레이어 책임 분리 (plan.md 인용)</h2>
+
+<p>한 URL에 대한 검증을 어느 레이어에서 해야 하나? 이 프로젝트는 3단계로 나눴다:</p>
+
+<table>
+  <tr><th>레이어</th><th>책임</th><th>예시</th></tr>
+  <tr><td><strong>Presentation</strong></td><td>URL <em>형식</em> 검증</td><td>@Pattern("^https?://.+") / @field:NotBlank / ParseRequest DTO</td></tr>
+  <tr><td><strong>Application</strong></td><td><em>지원 대상</em> 여부 확인</td><td>ParserResolver.resolve(url) → DedicatedParser 있나 없나</td></tr>
+  <tr><td><strong>Infrastructure</strong></td><td><em>기술적 가능성</em></td><td>SafeUrlChecker (SSRF) / 실제 HTTP 접근 / API 응답 파싱</td></tr>
+</table>
+
+<div class="callout info">
+  <strong>왜 한 곳에서 안 하나</strong> — 형식이 맞는다고 안전한 URL은 아님 (SSRF). 지원 몰이 맞다고 파싱 가능한 건 아님 (API 장애). 각 레이어의 관심사가 다름. 한 곳에서 다 하려 하면 결국 그 한 곳이 god-object가 됨.
+</div>
+
+<h2>Plan Review 결과 반영 — plan.md에서 결정된 16개</h2>
+
+<p>초기 계획을 검토하며 내린 결정들:</p>
+
+<table>
+  <tr><th>#</th><th>결정</th><th>이유</th></tr>
+  <tr><td>1</td><td>쿠팡 파싱 — Playwright 기각, 어필리에이트 API 채택</td><td>무거움, 공식 API가 더 안정적</td></tr>
+  <tr><td>2</td><td>Fallback chain 도입</td><td>전용 API 실패 시 graceful degradation</td></tr>
+  <tr><td>3</td><td>OpenAPI codegen 파이프라인</td><td>BE-FE 타입 수동 유지 비용 제거</td></tr>
+  <tr><td>4</td><td>ProductRepository Port만 유지, 구현체는 Phase 2</td><td>Phase 1은 stateless. 인터페이스만 선행해 미래 대비.</td></tr>
+  <tr><td>5</td><td>Partial을 ParseResult DTO로 분리 (Product에 nullable 필드 추가 ❌)</td><td>도메인 Product는 모든 필드 required 유지. 부분 성공은 별도 타입.</td></tr>
+  <tr><td>6</td><td>ApiResult&lt;T&gt; Result 타입 도입 (FE)</td><td>try/catch 대신 타입으로 실패 강제 처리</td></tr>
+  <tr><td>7</td><td>Mock 우선 + Live 주 1회</td><td>CI는 빠르게, 실제 API 변경은 주기적 감시</td></tr>
+  <tr><td>8</td><td>URL 검증을 3레이어로 분리</td><td>위 섹션 참조</td></tr>
+  <tr><td>9</td><td>5개 fallback 시나리오 통합 테스트</td><td>전용성공/전용실패→OG성공/부분/타임아웃/전체실패</td></tr>
+  <tr><td>10</td><td>파서별 에러 fixture</td><td>쿠팡 404, 11번가 timeout 등 구체 사례</td></tr>
+  <tr><td>11</td><td>FE 엣지 3개만 E2E로</td><td>happy/empty/error. 전체 조합 전수는 비용 대비 효과 낮음</td></tr>
+  <tr><td>12</td><td>E2E 5+2 시나리오</td><td>웹 5개 + 모바일 스모크 2개</td></tr>
+  <tr><td>13</td><td>단계별 진행 UX (validating/parsing/success)</td><td>사용자가 "앱이 죽었나" 판단 못 하게</td></tr>
+  <tr><td>14</td><td>어필리에이트 API 우선</td><td>공식 데이터가 HTML 파싱보다 신뢰 높음</td></tr>
+  <tr><td>15</td><td>프론트 + TTL 양쪽 중복 방지</td><td>FE 리스트에 있으면 API 호출 자체 안 함</td></tr>
+  <tr><td>16</td><td>이미지 프록시 엔드포인트 추가</td><td>CORS/핫링크 대응. 단 SSRF 방어 필수 동반</td></tr>
+</table>
+
+<h2>Phase 2 설계 결정 (P2-1 ~ P2-4)</h2>
+
+<table>
+  <tr><th>PR</th><th>결정</th><th>이유</th></tr>
+  <tr><td>P2-1</td><td>User 도메인과 JPA Entity 분리</td><td>도메인이 JPA에 의존하지 않게 (Phase 1의 원칙 유지)</td></tr>
+  <tr><td>P2-1</td><td>@Enumerated(STRING) + @JsonValue (converter 미도입)</td><td>Mall 선례 일관. DB는 enum name, JSON만 lowercase.</td></tr>
+  <tr><td>P2-1</td><td>BIGINT GENERATED ALWAYS AS IDENTITY</td><td>SQL 표준. BIGSERIAL보다 권장.</td></tr>
+  <tr><td>P2-1</td><td>updated_at DB trigger (JPA @PreUpdate 대신)</td><td>raw SQL 경로도 갱신 커버</td></tr>
+  <tr><td>P2-1</td><td>open-in-view: false</td><td>lazy loading 암묵 의존 방지. 면접 단골 안티패턴 회피.</td></tr>
+  <tr><td>P2-2</td><td>JWT (세션 대신)</td><td>모바일 클라이언트 존재. Bearer 헤더로 웹/앱 통일.</td></tr>
+  <tr><td>P2-2</td><td>JWT payload에 sub(userId)만</td><td>PII 로그 유출 방지</td></tr>
+  <tr><td>P2-2</td><td>Google ID Token audience=clientId 검증</td><td>다른 앱 토큰이 통과하지 않도록</td></tr>
+  <tr><td>P2-3</td><td>Refresh token = opaque (JWT 아님)</td><td>어차피 DB 조회 필요. JWT의 stateless 이점 없음.</td></tr>
+  <tr><td>P2-3</td><td>DB에 SHA-256 해시만 저장</td><td>DB 유출 시 원본 복구 불가</td></tr>
+  <tr><td>P2-3</td><td>Rotation + reuse 감지 시 family revoke</td><td>탈취 시 창 축소. 정상 사용자 재로그인 감수.</td></tr>
+  <tr><td>P2-4</td><td>DELETE 타인 소유 시 404 (403 대신)</td><td>존재 정보 노출 방지 (enumeration 공격)</td></tr>
+</table>
+
+<h2>보안 리뷰에서 반영한 CRITICAL 3건 (P2-2)</h2>
+
+<ol>
+  <li><strong>SecurityConfig에 <code>.cors()</code> 누락</strong> → Spring Security 필터 체인이 CORS 무시. 추가.</li>
+  <li><strong>Google OAuth 원본 에러 메시지가 응답에 노출 가능</strong> → 로깅만 하고 클라이언트엔 추상 메시지.</li>
+  <li><strong>JWT secret 길이 검증 lazy init</strong> → eager로 변경. fail-fast.</li>
+</ol>
+
+<h2>미해결 / 다음 세션 과제</h2>
+
+<table>
+  <tr><th>항목</th><th>현재</th><th>계획</th></tr>
+  <tr><td>Rancher Desktop docker socket + Testcontainers</td><td>@Disabled, H2 fallback</td><td>Administrative Access 토글 또는 socket path 재설정</td></tr>
+  <tr><td>DNS rebinding 방어</td><td>미구현 (문서 명시)</td><td>실제 peer IP 재검증 로직 별도 PR</td></tr>
+  <tr><td>Redirect chase SSRF</td><td>미구현</td><td>RestTemplate follow=false + 최종 URL 재검증</td></tr>
+  <tr><td>이미지 magic byte 검증</td><td>Content-Type만 신뢰</td><td>파일 헤더 체크 추가</td></tr>
+  <tr><td>OpenAPI 재생성 + FE 타입 동기화</td><td>P2-4 후 필요</td><td>packages/shared/api.gen.ts 재생성</td></tr>
+  <tr><td>Kakao/Apple OAuth</td><td>미구현</td><td>Google 검증 후 추가</td></tr>
+  <tr><td>AuthController MockMvc 통합 테스트</td><td>유닛만 있음</td><td>Google SDK mock으로 보강</td></tr>
+</table>
+
+<h2>왜 이 기록이 중요한가</h2>
+
+<div class="callout tip">
+  <strong>결정 기록 = ADR (Architecture Decision Records)</strong>
+  <br>"이 선택을 한 이유"를 남기지 않으면 3개월 후 내가, 6개월 후 동료가 "왜 이렇게 했지?" 혼란에 빠진다. 이 챕터는 일종의 ADR 요약. 티니어 면접에서 "설계 결정에 대한 근거" 질문 시 그대로 답변 재료.
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="14-frontend-integration.html">16. 프론트엔드 통합</a>
+  <a class="next" href="19-glossary.html">18. 용어집</a>
+</div>
+
+</div>
+</body>
+</html>

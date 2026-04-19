@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>13. Refresh Token rotation</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 13. Refresh Token rotation</span>
+</div>
+<div class="layout">
+
+<h1>13. Refresh Token rotation</h1>
+<p class="subtitle">Access 15분 + Refresh 14일. 재사용 감지 시 family revoke.</p>
+
+<div class="callout info">
+  <strong>이 챕터의 핵심 용어</strong> —
+  <a class="gref" href="19-glossary.html#g-refresh-token">Refresh Token</a> ·
+  <a class="gref" href="19-glossary.html#g-access-token">Access Token</a> ·
+  <a class="gref" href="19-glossary.html#g-rotation">Rotation</a> ·
+  <a class="gref" href="19-glossary.html#g-jwt">JWT</a> ·
+  <a class="gref" href="19-glossary.html#g-bearer">Bearer</a>
+</div>
+
+<h2>왜 Refresh Token이 필요한가</h2>
+
+<p>Access JWT가 15분 수명이면, 사용자는 15분마다 재로그인해야 하나? 그러면 UX 끔찍. <strong>Refresh Token</strong>이 해결:</p>
+
+<ul class="arrow-list">
+  <li>로그인 성공 시 Access (15분) + Refresh (14일) 동시 발급</li>
+  <li>Access 만료 임박 시 클라가 Refresh를 BE에 전달 → 새 Access + 새 Refresh 받음</li>
+  <li>사용자는 14일 동안 재로그인 안 해도 됨</li>
+</ul>
+
+<h2>Rotation이 뭔가</h2>
+
+<div class="callout info">
+  <strong>Rotation = Refresh 때마다 Refresh token을 <em>새로 발급</em>하고 기존 건 <em>폐기</em>하는 전략</strong>.
+  반대는 "Refresh token은 그대로, Access만 재발급". 둘 중 무엇이 안전한가?
+</div>
+
+<h2>Rotation 없을 때의 공격 시나리오</h2>
+
+<div class="diagram">
+  <svg width="720" height="260" viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+      </marker>
+    </defs>
+
+    <text x="360" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#dc2626">Rotation 없음 — 탈취 후</text>
+
+    <rect x="20" y="50" width="120" height="40" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="80" y="75" text-anchor="middle" font-size="12" fill="#4338ca">정상 사용자</text>
+
+    <rect x="20" y="110" width="120" height="40" rx="8" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="80" y="135" text-anchor="middle" font-size="12" fill="#991b1b">공격자 (탈취)</text>
+
+    <rect x="560" y="80" width="140" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="630" y="105" text-anchor="middle" font-size="12" fill="#92400e">서버</text>
+
+    <text x="160" y="55" font-size="10" fill="#374151">Refresh token R1 보유</text>
+    <text x="160" y="115" font-size="10" fill="#991b1b">Refresh token R1 복사</text>
+
+    <line x1="140" y1="75" x2="555" y2="85" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a10)"/>
+    <text x="350" y="70" font-size="10" fill="#6366f1">R1로 Access 갱신 (정상)</text>
+
+    <line x1="140" y1="130" x2="555" y2="105" stroke="#dc2626" stroke-width="1.5" marker-end="url(#a10)"/>
+    <text x="350" y="130" font-size="10" fill="#dc2626">R1로 Access 갱신 (공격자)</text>
+
+    <line x1="555" y1="115" x2="140" y2="140" stroke="#d97706" stroke-width="1.5" marker-end="url(#a10)"/>
+    <text x="350" y="165" font-size="10" fill="#d97706">"OK, 새 Access 여기"</text>
+
+    <text x="360" y="220" text-anchor="middle" font-size="13" fill="#dc2626" font-weight="600">
+      문제: R1은 평생 유효 → 공격자가 계속 Access 갱신 가능. 탐지 불가.
+    </text>
+  </svg>
+  <div class="diagram-caption">Rotation 없으면 한 번 탈취된 Refresh는 14일간 유효</div>
+</div>
+
+<h2>Rotation이 있을 때</h2>
+
+<div class="diagram">
+  <svg width="720" height="340" viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+      </marker>
+    </defs>
+
+    <text x="360" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#065f46">Rotation — 탈취 감지됨</text>
+
+    <rect x="20" y="45" width="120" height="35" rx="6" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="80" y="67" text-anchor="middle" font-size="11" fill="#4338ca">정상 사용자</text>
+
+    <rect x="20" y="95" width="120" height="35" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="80" y="117" text-anchor="middle" font-size="11" fill="#991b1b">공격자</text>
+
+    <rect x="560" y="60" width="140" height="40" rx="6" fill="#fef3c7" stroke="#d97706"/>
+    <text x="630" y="85" text-anchor="middle" font-size="11" fill="#92400e">서버 (DB 체크)</text>
+
+    <line x1="140" y1="70" x2="555" y2="75" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a11)"/>
+    <text x="350" y="65" font-size="10" fill="#6366f1">R1로 갱신 요청</text>
+    <line x1="555" y1="88" x2="140" y2="85" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a11)"/>
+    <text x="350" y="102" font-size="10" fill="#059669">✅ R1 revoke + R2 발급</text>
+
+    <text x="360" y="140" text-anchor="middle" font-size="11" fill="#6b7280">--- 시간 흐름 ---</text>
+
+    <line x1="140" y1="155" x2="555" y2="165" stroke="#dc2626" stroke-width="1.5" marker-end="url(#a11)"/>
+    <text x="350" y="148" font-size="10" fill="#dc2626">공격자: 훔친 R1로 갱신 요청</text>
+
+    <rect x="200" y="170" width="320" height="60" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="360" y="190" text-anchor="middle" font-size="12" font-weight="600" fill="#991b1b">서버: "R1은 이미 revoked (사용자가 R2로 rotate 후)"</text>
+    <text x="360" y="207" text-anchor="middle" font-size="12" font-weight="600" fill="#991b1b">→ 재사용 감지 = 탈취 의심</text>
+    <text x="360" y="223" text-anchor="middle" font-size="12" font-weight="600" fill="#991b1b">→ 이 user의 모든 active Refresh revoke</text>
+
+    <line x1="555" y1="180" x2="140" y2="135" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#a11)"/>
+    <text x="350" y="260" text-anchor="middle" font-size="11" fill="#4338ca">→ 정상 사용자도 강제 로그아웃. 안전 쪽.</text>
+
+    <text x="360" y="290" text-anchor="middle" font-size="12" fill="#065f46" font-weight="600">결과: 탈취가 탐지되고 전체 세션 무효화됨</text>
+    <text x="360" y="310" text-anchor="middle" font-size="10" fill="#6b7280">사용자는 재로그인 + 이상 활동 알림 받음</text>
+  </svg>
+  <div class="diagram-caption">Rotation이 "탈취가 어디선가 일어났다"는 신호로 작동</div>
+</div>
+
+<h2>핵심 논리 — "Reuse Detection"</h2>
+
+<p>Refresh token은 <strong>딱 한 번</strong> 쓸 수 있다. 한 번 쓰면 revoke. 동일 token을 두 번째 쓰려는 시도 = 탈취 의심.</p>
+
+<pre><code><span class="cmt">// RefreshTokensUsecase.kt (이 프로젝트)</span>
+<span class="cmt">@</span><span class="fn">Transactional</span>
+<span class="kw">fun</span> <span class="fn">execute</span>(rawRefreshToken: <span class="cls">String</span>): IssueTokensUsecase.IssueResult {
+    <span class="kw">val</span> now = clock.instant()
+    <span class="kw">val</span> tokenHash = refreshTokenGenerator.hash(rawRefreshToken)
+    <span class="kw">val</span> existing = refreshTokenRepository.findByTokenHash(tokenHash)
+        ?: <span class="kw">throw</span> InvalidRefreshTokenException(<span class="str">"Refresh token을 찾을 수 없습니다"</span>)
+
+    <span class="kw">if</span> (existing.isExpiredAt(now)) {
+        <span class="kw">throw</span> InvalidRefreshTokenException(<span class="str">"Refresh token이 만료되었습니다"</span>)
+    }
+
+    <span class="kw">if</span> (!existing.isActive) {
+        <span class="cmt">// ⬇ REUSE 감지: 이미 revoked된 token을 또 썼다</span>
+        refreshTokenRepository.revokeAllActiveForUser(existing.userId, now)  <span class="cmt">// 전체 revoke</span>
+        <span class="kw">throw</span> InvalidRefreshTokenException(<span class="str">"Refresh token 재사용이 감지되었습니다"</span>)
+    }
+
+    <span class="kw">val</span> newIssue = issueTokensUsecase.execute(existing.userId)  <span class="cmt">// 새 Access + Refresh</span>
+    refreshTokenRepository.markRevoked(                          <span class="cmt">// 기존 revoke</span>
+        id = existing.id!!,
+        revokedAt = now,
+        replacedByTokenId = newIssue.refreshTokenId,              <span class="cmt">// rotation 체인 기록</span>
+    )
+    <span class="kw">return</span> newIssue
+}
+</code></pre>
+
+<h2>Refresh Token 자체의 형태</h2>
+
+<p>Access는 JWT. Refresh는? 이 프로젝트는 <strong>opaque token</strong> (의미 없는 무작위 문자열).</p>
+
+<div class="tradeoff">
+  <div class="tradeoff-head">
+    <span class="badge">결정</span>
+    <strong>Refresh token 형태</strong>
+  </div>
+  <div class="tradeoff-table">
+    <div class="th">후보</div><div class="th">장점</div><div class="th">단점</div>
+
+    <div><strong>A. JWT (Access와 같은 서명)</strong></div>
+    <div>통일성. 검증 단순.</div>
+    <div>JWT는 stateless가 장점인데 Refresh는 어차피 DB 조회 필요. 이점 사라짐. payload 노출.</div>
+
+    <div><strong>B. Opaque (SecureRandom)</strong></div>
+    <div>의미 없는 문자열 → 노출돼도 그 자체엔 정보 없음. DB 해시 저장으로 완전 state 제어.</div>
+    <div>JWT와 다른 검증 경로 구현 필요 (약간 복잡)</div>
+  </div>
+  <div class="tradeoff-choice">
+    <strong>→ B 채택</strong>. Refresh는 애초에 stateful(DB에서 revoke 가능해야)이므로 JWT 이점 없음. opaque가 정직.
+  </div>
+</div>
+
+<h3>Opaque 토큰 생성</h3>
+
+<pre><code><span class="cmt">// SecureRandomRefreshTokenGenerator.kt</span>
+<span class="kw">override fun</span> <span class="fn">generate</span>(): <span class="cls">String</span> {
+    <span class="kw">val</span> bytes = ByteArray(<span class="num">32</span>)                   <span class="cmt">// 256-bit entropy</span>
+    random.nextBytes(bytes)                       <span class="cmt">// java.security.SecureRandom</span>
+    <span class="kw">return</span> encoder.encodeToString(bytes)          <span class="cmt">// URL-safe Base64</span>
+}
+</code></pre>
+
+<p>32 bytes = 256 bits = 2^256가지 조합. 브루트포스 불가능.</p>
+
+<h2>DB에 해시 저장 — "원본 탈취돼도 DB에서 복구 불가"</h2>
+
+<div class="compare">
+  <div class="compare-cell" style="border-left: 4px solid #ef4444;">
+    <div class="label">❌ 잘못된 저장</div>
+<pre><code><span class="kw">INSERT INTO</span> refresh_tokens (token)
+<span class="kw">VALUES</span> (<span class="str">'abc123xyz...'</span>);
+
+<span class="cmt">// DB가 유출되면 모든 활성 토큰 원본 노출</span>
+<span class="cmt">// 공격자는 그걸로 각 유저의 Access 갱신 가능</span></code></pre>
+  </div>
+  <div class="compare-cell" style="border-left: 4px solid #059669;">
+    <div class="label">✅ 해시 저장</div>
+<pre><code><span class="kw">INSERT INTO</span> refresh_tokens (token_hash)
+<span class="kw">VALUES</span> (<span class="str">'sha256(abc123xyz...) = '</span>);
+
+<span class="cmt">// DB 유출돼도 해시만 노출</span>
+<span class="cmt">// SHA-256 역산 불가 → 원본 복구 불가</span>
+<span class="cmt">// 공격자는 유출된 DB로 아무것도 못 함</span></code></pre>
+  </div>
+</div>
+
+<h3>해시 비교 흐름</h3>
+
+<ol>
+  <li>클라가 Refresh <code>"abc123xyz..."</code>를 POST /auth/refresh로 전달</li>
+  <li>서버가 SHA-256 해시 → <code>"5f4dcc3b..."</code></li>
+  <li>DB에서 token_hash 컬럼으로 조회 → 있으면 그 row의 userId 획득</li>
+  <li>없으면 401</li>
+</ol>
+
+<div class="callout info">
+  <strong>비밀번호 해시와 비슷하지만 다른 점</strong> — 비밀번호는 bcrypt/argon2로 <em>느린</em> 해시. 이유: 사용자가 약한 비번을 선택하므로 무차별 공격 방어. Refresh token은 이미 256-bit 무작위라 브루트포스 불가. <em>빠른</em> SHA-256으로 충분.
+</div>
+
+<h2>DB 스키마 (V2 마이그레이션)</h2>
+
+<pre><code><span class="kw">CREATE TABLE</span> refresh_tokens (
+    id <span class="kw">UUID PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+    user_id <span class="kw">BIGINT NOT NULL REFERENCES</span> users(id) <span class="kw">ON DELETE CASCADE</span>,
+    token_hash <span class="kw">CHAR</span>(<span class="num">64</span>) <span class="kw">NOT NULL UNIQUE</span>,        <span class="cmt">-- SHA-256 hex 64자</span>
+    issued_at <span class="kw">TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT</span> NOW(),
+    expires_at <span class="kw">TIMESTAMP WITH TIME ZONE NOT NULL</span>,
+    revoked_at <span class="kw">TIMESTAMP WITH TIME ZONE</span>,            <span class="cmt">-- null = active</span>
+    replaced_by_token_id <span class="kw">UUID REFERENCES</span> refresh_tokens(id) <span class="kw">ON DELETE SET NULL</span>
+);
+
+<span class="cmt">-- 활성 token만 빠른 조회 (부분 인덱스)</span>
+<span class="kw">CREATE INDEX</span> idx_refresh_tokens_user_active
+    <span class="kw">ON</span> refresh_tokens(user_id) <span class="kw">WHERE</span> revoked_at <span class="kw">IS NULL</span>;
+</code></pre>
+
+<h3>replaced_by_token_id의 용도</h3>
+
+<p>rotation 체인을 기록한다: R1 → R2 → R3. 만약 R1 재사용 감지되면, 감사 로그에서 "R1이 R2에 의해 교체됐고 R2도 R3에 의해 교체됐다"는 체인을 추적 가능. 운영/보안 사건 조사에 유용.</p>
+
+<h2>시간 흐름 종합</h2>
+
+<div class="diagram">
+  <svg width="720" height="230" viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg">
+    <line x1="30" y1="180" x2="680" y2="180" stroke="#6b7280" stroke-width="2"/>
+
+    <circle cx="50" cy="180" r="6" fill="#6366f1"/>
+    <text x="50" y="200" text-anchor="middle" font-size="10" fill="#374151">T=0</text>
+    <text x="50" y="215" text-anchor="middle" font-size="10" fill="#6b7280">로그인</text>
+    <line x1="50" y1="180" x2="50" y2="60" stroke="#9ca3af" stroke-width="1" stroke-dasharray="2,2"/>
+    <rect x="30" y="30" width="40" height="30" rx="4" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="50" y="50" text-anchor="middle" font-size="10" fill="#4338ca">A1</text>
+
+    <line x1="70" y1="45" x2="195" y2="45" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,3"/>
+
+    <circle cx="200" cy="180" r="6" fill="#6366f1"/>
+    <text x="200" y="200" text-anchor="middle" font-size="10" fill="#374151">T=15분</text>
+    <text x="200" y="215" text-anchor="middle" font-size="9" fill="#6b7280">Access 만료</text>
+    <line x1="200" y1="180" x2="200" y2="60" stroke="#9ca3af" stroke-width="1" stroke-dasharray="2,2"/>
+
+    <circle cx="210" cy="180" r="6" fill="#d97706"/>
+    <text x="210" y="200" text-anchor="middle" font-size="9" fill="#374151"></text>
+    <text x="230" y="215" text-anchor="middle" font-size="9" fill="#6b7280">Refresh 호출 → A2/R2</text>
+    <rect x="190" y="30" width="40" height="30" rx="4" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="210" y="50" text-anchor="middle" font-size="10" fill="#5b21b6">A2</text>
+
+    <line x1="230" y1="45" x2="420" y2="45" stroke="#7c3aed" stroke-width="1" stroke-dasharray="3,3"/>
+
+    <circle cx="430" cy="180" r="6" fill="#d97706"/>
+    <text x="430" y="215" text-anchor="middle" font-size="9" fill="#6b7280">다시 Refresh → A3/R3</text>
+    <rect x="410" y="30" width="40" height="30" rx="4" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="430" y="50" text-anchor="middle" font-size="10" fill="#5b21b6">A3</text>
+
+    <text x="550" y="100" font-size="10" fill="#dc2626">⚠ R1을 지금 또 쓰면?</text>
+    <rect x="520" y="105" width="150" height="50" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="595" y="123" text-anchor="middle" font-size="10" fill="#991b1b">서버: "R1 이미 revoked"</text>
+    <text x="595" y="138" text-anchor="middle" font-size="10" fill="#991b1b">→ family revoke (R2, R3)</text>
+    <text x="595" y="152" text-anchor="middle" font-size="10" fill="#991b1b">→ 401 + 탈취 로그</text>
+
+    <text x="360" y="20" text-anchor="middle" font-size="12" fill="#4338ca" font-weight="600">Access token 수명 (15분씩)</text>
+  </svg>
+  <div class="diagram-caption">정상 흐름: A1→A2→A3로 회전. R1 재사용 감지 시 전체 revoke.</div>
+</div>
+
+<h2>엔드포인트 3종 정리</h2>
+
+<table>
+  <tr><th>엔드포인트</th><th>입력</th><th>성공 응답</th><th>실패</th></tr>
+  <tr><td>POST /auth/oauth/google</td><td>{code, redirect_uri}</td><td>200 + {access, refresh, user}</td><td>401 OAuth 실패</td></tr>
+  <tr><td>POST /auth/refresh</td><td>{refresh_token}</td><td>200 + {new_access, new_refresh}</td><td>401 만료/없음/reuse</td></tr>
+  <tr><td>POST /auth/logout</td><td>{refresh_token}</td><td>204 No Content</td><td>(존재 안해도 204)</td></tr>
+</table>
+
+<div class="callout tip">
+  <strong>logout을 204로 통일한 이유</strong> — 존재하지 않는 token으로 logout 요청해도 204 반환. 공격자가 "이 token이 유효했나" 탐지 못 함 (timing attack 방지).
+</div>
+
+<h2>정리</h2>
+
+<ul class="arrow-list">
+  <li>Access 15분 + Refresh 14일 하이브리드</li>
+  <li>Refresh는 rotation: 쓰면 즉시 revoke + 새 발급</li>
+  <li>Reuse 감지 (이미 revoke된 Refresh 재사용) → 해당 user의 전체 active 토큰 revoke (family revoke)</li>
+  <li>Refresh는 opaque (JWT 아님), DB엔 SHA-256 해시만 저장</li>
+  <li>replaced_by_token_id로 rotation 체인 추적</li>
+</ul>
+
+<div class="callout tip">
+  <strong>면접에서</strong> — "왜 family revoke까지?" 질문이 자주 나온다. 답: "reuse는 <em>어디선가 탈취가 있었다</em>는 강한 신호. 그 시점부터 이 user의 모든 세션이 의심스럽다. 정상 사용자가 재로그인하는 불편 vs 공격 창 확장. 안전 쪽을 택한다."
+</div>
+
+<div class="source-files">
+  <h3>이 챕터 관련 소스 파일</h3>
+  <ul>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/domain/entity/RefreshToken.kt">domain/entity/RefreshToken.kt</a><span class="comment">Entity (tokenId, userId, familyId, status, expiresAt)</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/domain/port/RefreshTokenRepository.kt">domain/port/RefreshTokenRepository.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/auth/usecase/RefreshTokensUsecase.kt">application/auth/usecase/RefreshTokensUsecase.kt</a><span class="comment">회전 + 재사용 탐지</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/auth/usecase/IssueTokensUsecase.kt">application/auth/usecase/IssueTokensUsecase.kt</a><span class="comment">신규 pair 발급</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/auth/usecase/LogoutUsecase.kt">application/auth/usecase/LogoutUsecase.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/auth/port/RefreshTokenGenerator.kt">application/auth/port/RefreshTokenGenerator.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/auth/SecureRandomRefreshTokenGenerator.kt">infrastructure/adapter/auth/SecureRandomRefreshTokenGenerator.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/refreshtoken/RefreshTokenEntity.kt">infrastructure/adapter/persistence/refreshtoken/RefreshTokenEntity.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/refreshtoken/RefreshTokenJpaRepository.kt">infrastructure/adapter/persistence/refreshtoken/RefreshTokenJpaRepository.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/refreshtoken/RefreshTokenRepositoryAdapter.kt">infrastructure/adapter/persistence/refreshtoken/RefreshTokenRepositoryAdapter.kt</a></li>
+  </ul>
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="11-jwt-vs-session.html">09. JWT vs 세션</a>
+  <a class="next" href="10-ssrf-defense.html">11. SSRF 방어</a>
+</div>
+
+</div>
+</body>
+</html>

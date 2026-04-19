@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>linkcart 학습 문서 — 총정리본</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <h1>linkcart 학습 문서 총정리</h1>
+  <p class="subtitle">
+    Python/Django 개발자가 티니어 백엔드 포지션(Kotlin/Spring Boot) 준비를 위해
+    쇼핑몰 링크 파서 linkcart를 만들며 쌓은 기록의 통합본.
+    <br><strong>번호 = 학습 순서</strong>. 01부터 19까지 순서대로 읽으면 된다.
+  </p>
+
+  <div class="callout info">
+    <strong>이 문서의 기반</strong>
+    <br>기존 <code>docs/architecture.html</code> + <code>docs/guide.html</code> + <code>docs/pr/*.html</code> +
+    <code>plan.md</code> / <code>plan-v2.md</code> / <code>kotlin-spring-study-test.md</code> /
+    <code>tnear-backend-prep-test.md</code> + 각 PR plan 문서를 모두 읽고,
+    중복을 제거하면서 내용을 빠짐없이 모은 19개 챕터.
+  </div>
+
+  <h2>학습 철학 (tnear-backend-prep-test.md 인용)</h2>
+
+  <div class="callout tip">
+    <strong>세 가지 원칙</strong>
+    <ol>
+      <li>이미 있는 <strong>Python/Django 실무 강점을 버리지 않는다</strong></li>
+      <li>그 강점을 <strong>Kotlin/Spring 문법과 구조로 번역</strong>한다</li>
+      <li><strong>linkcart를 티니어가 좋아할 만한 방향으로 진화</strong>시킨다</li>
+    </ol>
+  </div>
+
+  <h2>티니어 공고 요구 역량 7종</h2>
+
+  <table>
+    <tr><td>① Kotlin/Java + Spring 기반 서버 개발</td></tr>
+    <tr><td>② 안정적인 운영과 장애 대응 (24/365)</td></tr>
+    <tr><td>③ 글로벌 멀티 플랫폼 API 설계</td></tr>
+    <tr><td>④ AWS/로그/모니터링/알림에 대한 운영 관점</td></tr>
+    <tr><td>⑤ RDBMS/NoSQL 데이터 모델링</td></tr>
+    <tr><td>⑥ 테스트, 코드 리뷰, 협업</td></tr>
+    <tr><td>⑦ 작게 만들고 빨리 검증하는 실행 방식</td></tr>
+  </table>
+
+  <h2>목차 — 19개 챕터 (번호 = 학습 순서)</h2>
+
+  <div class="section-divider">Part 0 — 시작하기</div>
+  <div class="index-grid">
+    <a class="index-card" href="01-project-overview.html">
+      <div class="num">01</div>
+      <div class="title">프로젝트 개요</div>
+      <div class="desc">linkcart가 무엇이고 왜 이 구조·스택인가. 티니어 포지션과의 매핑.</div>
+    </a>
+    <a class="index-card" href="02-env-setup.html">
+      <div class="num">02</div>
+      <div class="title">환경 설정</div>
+      <div class="desc">JDK / JAVA_HOME / brew / 모노레포. Python venv와 무엇이 다른가.</div>
+    </a>
+  </div>
+
+  <div class="section-divider">Part 1 — 언어와 플랫폼</div>
+  <div class="index-grid">
+    <a class="index-card" href="03-kotlin-basics.html">
+      <div class="num">03</div>
+      <div class="title">Kotlin 기초</div>
+      <div class="desc">val/var, null safety, data class, sealed, when. Python 비교 중심.</div>
+    </a>
+    <a class="index-card" href="04-spring-boot-basics.html">
+      <div class="num">04</div>
+      <div class="title">Spring Boot 기초</div>
+      <div class="desc">DI / @Component / @RestController. Django URLconf+View와 대조.</div>
+    </a>
+    <a class="index-card" href="05-gradle-build.html">
+      <div class="num">05</div>
+      <div class="title">Gradle &amp; 빌드</div>
+      <div class="desc">build.gradle.kts, wrapper, starter, implementation/runtimeOnly.</div>
+    </a>
+  </div>
+
+  <div class="section-divider">Part 2 — 아키텍처와 설계</div>
+  <div class="index-grid">
+    <a class="index-card" href="06-clean-architecture.html">
+      <div class="num">06</div>
+      <div class="title">클린 아키텍처 4 레이어</div>
+      <div class="desc">domain/application/infrastructure/presentation. 헥사고날/DDD/CQS 통합.</div>
+    </a>
+    <a class="index-card" href="07-parser-evolution.html">
+      <div class="num">07</div>
+      <div class="title">파서 설계의 진화</div>
+      <div class="desc">PR2~BE5 6단계 리팩토링. Factory → Resolver → Pipeline. 실패 비캐시 원칙.</div>
+    </a>
+    <a class="index-card" href="08-jpa-flyway.html">
+      <div class="num">08</div>
+      <div class="title">DB 영속성 (JPA + Flyway)</div>
+      <div class="desc">Spring Data JPA vs Django ORM. Flyway SQL 마이그레이션. open-in-view.</div>
+    </a>
+  </div>
+
+  <div class="section-divider">Part 3 — HTTP / API / 보안</div>
+  <div class="index-grid">
+    <a class="index-card" href="09-http-api-design.html">
+      <div class="num">09</div>
+      <div class="title">HTTP API 설계 + CORS + 이미지 프록시</div>
+      <div class="desc">DTO 분리, @Valid, GlobalException, SOP→CORS→핫링크→프록시 재귀 설명.</div>
+    </a>
+    <a class="index-card" href="10-ssrf-defense.html">
+      <div class="num">10</div>
+      <div class="title">SSRF 방어</div>
+      <div class="desc">URL-encoded, 짧은 IP, link-local, SVG. 7단계 allow-list 전략.</div>
+    </a>
+  </div>
+
+  <div class="section-divider">Part 4 — 인증 시스템</div>
+  <div class="index-grid">
+    <a class="index-card" href="11-jwt-vs-session.html">
+      <div class="num">11</div>
+      <div class="title">JWT vs 세션</div>
+      <div class="desc">왜 JWT인가 — 모바일 클라이언트가 있기 때문. 두 방식의 근본 비교.</div>
+    </a>
+    <a class="index-card" href="12-oauth-jwt.html">
+      <div class="num">12</div>
+      <div class="title">OAuth + Access JWT</div>
+      <div class="desc">Authorization Code flow, Google ID Token 검증, HMAC-SHA256 JWT.</div>
+    </a>
+    <a class="index-card" href="13-refresh-rotation.html">
+      <div class="num">13</div>
+      <div class="title">Refresh Token rotation</div>
+      <div class="desc">opaque + SHA-256 해시. Reuse 감지 시 family revoke.</div>
+    </a>
+  </div>
+
+  <div class="section-divider">Part 5 — 프론트엔드 통합</div>
+  <div class="index-grid">
+    <a class="index-card" href="14-frontend-integration.html">
+      <div class="num">14</div>
+      <div class="title">프론트엔드 통합</div>
+      <div class="desc">OpenAPI codegen + Next.js App Router + Expo + shared 패키지.</div>
+    </a>
+  </div>
+
+  <div class="section-divider">Part 6 — 테스트와 품질</div>
+  <div class="index-grid">
+    <a class="index-card" href="15-testing.html">
+      <div class="num">15</div>
+      <div class="title">테스트 전략</div>
+      <div class="desc">단위 / 슬라이스(@WebMvcTest) / 통합(Testcontainers). 피라미드.</div>
+    </a>
+  </div>
+
+  <div class="section-divider">Part 7 — 회고와 면접</div>
+  <div class="index-grid">
+    <a class="index-card" href="16-lessons-decisions.html">
+      <div class="num">16</div>
+      <div class="title">리뷰에서 배운 것 + 결정 기록</div>
+      <div class="desc">PR별 리뷰 피드백, URL 검증 3레이어, Plan Review 16 결정.</div>
+    </a>
+    <a class="index-card" href="17-summary-interview.html">
+      <div class="num">17</div>
+      <div class="title">프로젝트 요약 + 면접 포인트</div>
+      <div class="desc">PR 목록, 티니어 매핑, 면접 답변 6종, 약점 대응.</div>
+    </a>
+    <a class="index-card" href="18-quiz-exam.html">
+      <div class="num">18</div>
+      <div class="title">퀴즈 / 시험 — 면접 대비</div>
+      <div class="desc">pr1-quiz 32문항 + study-test + tnear-prep 핵심. Show Answer 토글.</div>
+    </a>
+    <a class="index-card" href="19-glossary.html">
+      <div class="num">19</div>
+      <div class="title">용어집</div>
+      <div class="desc">Kotlin/Spring/JPA/OAuth/보안 약어 + Python/Django 대응. 핫링크/OG parser 상세 포함. 주요 용어에 <code>#g-</code> 앵커 — 챕터에서 링크로 이동.</div>
+    </a>
+  </div>
+
+  <h2>읽는 순서 가이드</h2>
+
+  <div class="callout tip">
+    <strong>처음부터 끝까지 학습</strong>
+    <br>01 → 02 → 03 → 04 → ⋯ → 19. 파일명 번호 순서가 곧 학습 순서.
+  </div>
+
+  <div class="callout info">
+    <strong>면접 직전 빠른 복습</strong>
+    <br>17 (요약) → 11 (JWT 선택 근거) → 13 (Refresh rotation) → 07 (파서 진화) → 10 (SSRF) → 18 (퀴즈로 약점 진단)
+  </div>
+
+  <div class="callout ok">
+    <strong>특정 주제만 필요할 때</strong>
+    <br>각 챕터는 독립적으로 읽히도록 구성. 모르는 용어는 19 용어집.
+  </div>
+
+  <h2>기술 스펙 요약</h2>
+
+  <table>
+    <tr><th>영역</th><th>선택</th><th>이유</th></tr>
+    <tr><td>언어</td><td>Kotlin 1.9.25</td><td>티니어 요구사항 + JVM 생태계</td></tr>
+    <tr><td>프레임워크</td><td>Spring Boot 3.5</td><td>티니어 요구사항</td></tr>
+    <tr><td>DB</td><td>PostgreSQL 16</td><td>실무 표준</td></tr>
+    <tr><td>ORM</td><td>Spring Data JPA + Hibernate</td><td>Spring 생태계 표준</td></tr>
+    <tr><td>마이그레이션</td><td>Flyway</td><td>SQL 명시적</td></tr>
+    <tr><td>인증</td><td>Spring Security + JWT (HS256)</td><td>웹/앱 통일</td></tr>
+    <tr><td>OAuth</td><td>Google Authorization Code</td><td>실무 표준</td></tr>
+    <tr><td>캐시</td><td>Caffeine (TTL 5분)</td><td>Spring @Cacheable 기본</td></tr>
+    <tr><td>빌드</td><td>Gradle Kotlin DSL</td><td>Kotlin 프로젝트 표준</td></tr>
+    <tr><td>테스트</td><td>JUnit 5 + MockMvc + Testcontainers</td><td>Spring 관용</td></tr>
+    <tr><td>Web FE</td><td>Next.js 15</td><td>SSR + React 최신</td></tr>
+    <tr><td>Mobile FE</td><td>Expo / React Native</td><td>iOS/Android 동시</td></tr>
+    <tr><td>공유 타입</td><td>OpenAPI codegen → TS</td><td>BE-FE 계약 자동 동기화</td></tr>
+  </table>
+
+  <h2>PR 목록 요약 — 18개</h2>
+
+  <table>
+    <tr><th>#</th><th>제목</th><th>Phase</th></tr>
+    <tr><td>1~7</td><td>Phase 1 기본 구현</td><td>Phase 1</td></tr>
+    <tr><td>8 BE1</td><td>파서 엣지 케이스 테스트 13개</td><td>리팩토링</td></tr>
+    <tr><td>9 BE2</td><td>컨트롤러 + SafeUrlChecker 테스트 13개</td><td>리팩토링</td></tr>
+    <tr><td>10 BE3</td><td>Parser 아키텍처 명확화 (포트 3분할, Resolver)</td><td>리팩토링</td></tr>
+    <tr><td>11</td><td>docs: BE1~3 plan 문서</td><td>문서</td></tr>
+    <tr><td>12 BE4</td><td>ParserName enum 전환</td><td>리팩토링</td></tr>
+    <tr><td>13 BE5</td><td>ParserPipeline 응집</td><td>리팩토링</td></tr>
+    <tr><td>14 BE6</td><td>SSRF 방어 강화</td><td>보안</td></tr>
+    <tr><td>15 P2-1</td><td>DB 인프라 + User 도메인</td><td>Phase 2</td></tr>
+    <tr><td>16 P2-2</td><td>Spring Security + Google OAuth + Access JWT</td><td>Phase 2</td></tr>
+    <tr><td>17 P2-3</td><td>Refresh Token + 로그아웃</td><td>Phase 2</td></tr>
+    <tr><td>18 P2-4</td><td>사용자별 상품 저장 API</td><td>Phase 2</td></tr>
+  </table>
+
+  <h2>기존 문서 ↔ 이 통합본 매핑</h2>
+
+  <table>
+    <tr><th>기존 파일</th><th>흡수된 챕터</th></tr>
+    <tr><td><code>architecture.html</code> (탭 5개)</td><td>01, 04, 06, 07</td></tr>
+    <tr><td><code>guide.html</code> (7챕터, 1811줄)</td><td>02, 03, 04, 05, 06, 15, 19</td></tr>
+    <tr><td><code>pr/pr1.html</code></td><td>01, 06, 16</td></tr>
+    <tr><td><code>pr/pr1-quiz.html</code> 32문항</td><td>18</td></tr>
+    <tr><td><code>pr/pr3.html</code></td><td>07, 16</td></tr>
+    <tr><td><code>pr/pr4.html</code></td><td>09, 10</td></tr>
+    <tr><td><code>pr/pr5.html</code></td><td>14</td></tr>
+    <tr><td><code>pr/pr6.html</code></td><td>14</td></tr>
+    <tr><td><code>kotlin-spring-study-test.md</code></td><td>18</td></tr>
+    <tr><td><code>tnear-backend-prep-test.md</code></td><td>01, 17, 18</td></tr>
+    <tr><td><code>plan.md</code> (Python 아카이브)</td><td>16</td></tr>
+    <tr><td><code>plan-v2.md</code></td><td>07, 17</td></tr>
+    <tr><td><code>phase1-refactoring-backlog.md</code></td><td>14, 17</td></tr>
+    <tr><td><code>pr-be*/plan.md</code>, <code>pr-p2/**/plan.md</code></td><td>07, 08, 12, 13, 10, 16</td></tr>
+  </table>
+
+  <div class="callout ok">
+    <strong>기존 문서는 지우지 마세요</strong> — 이 통합본은 <em>내용</em>을 포함하지만 원본의 <em>UX</em>(<code>architecture.html</code> 탭, <code>pr1-quiz.html</code> Show Answer JS + 진행률 바, <code>guide.html</code> 사이드바 nav)는 원본에서만 체험 가능. 참조 레퍼런스로 병행 활용.
+  </div>
+
+</div>
+</body>
+</html>

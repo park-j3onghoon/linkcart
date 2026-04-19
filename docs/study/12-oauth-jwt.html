@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>12. OAuth + Access JWT</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 12. OAuth + Access JWT</span>
+</div>
+<div class="layout">
+
+<h1>12. OAuth + Access JWT</h1>
+<p class="subtitle">Google 로그인은 어떻게 동작하고, JWT는 어떻게 서명되는가.</p>
+
+<div class="callout info">
+  <strong>이 챕터의 핵심 용어</strong> —
+  <a class="gref" href="19-glossary.html#g-jwt">JWT</a> ·
+  <a class="gref" href="19-glossary.html#g-hs256">HS256</a> ·
+  <a class="gref" href="19-glossary.html#g-rs256">RS256</a> ·
+  <a class="gref" href="19-glossary.html#g-bearer">Bearer</a> ·
+  <a class="gref" href="19-glossary.html#g-access-token">Access Token</a> ·
+  <a class="gref" href="19-glossary.html#g-refresh-token">Refresh Token</a>
+</div>
+
+<h2>OAuth — 왜 이런 복잡한 흐름이 생겼나</h2>
+
+<p>서비스A(linkcart)가 사용자의 Google 정보(이메일, 이름)를 얻고 싶다. 가장 단순한 방법:</p>
+
+<div class="callout danger">
+  <strong>최악의 방법 (2000년대 초)</strong> — "Google 비밀번호를 linkcart에 입력하세요" → linkcart가 Google 서버에 그 계정으로 로그인 → 정보 긁어옴.
+  <br>문제: linkcart가 사용자 Google 비번을 저장함. 사용자는 linkcart를 신뢰해야 함. 유출 시 Google 계정 전체가 털림.
+</div>
+
+<p><strong>OAuth 2.0은 이 문제를 해결한다:</strong></p>
+
+<ul class="arrow-list">
+  <li>사용자는 Google 비번을 linkcart에 <strong>절대</strong> 주지 않는다</li>
+  <li>사용자는 Google에만 로그인한다</li>
+  <li>Google이 "이 사람이 linkcart에게 이메일/이름 제공을 허락함"을 증명하는 <em>짧은 수명의 토큰</em>을 발급</li>
+  <li>linkcart는 그 토큰으로만 Google에 사용자 정보 요청</li>
+</ul>
+
+<h2>Authorization Code Flow — 이 프로젝트가 쓰는 방식</h2>
+
+<div class="diagram">
+  <svg width="720" height="460" viewBox="0 0 720 460" xmlns="http://www.w3.org/2000/svg">
+    <!-- columns -->
+    <line x1="90" y1="50" x2="90" y2="430" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,4"/>
+    <line x1="300" y1="50" x2="300" y2="430" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,4"/>
+    <line x1="510" y1="50" x2="510" y2="430" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,4"/>
+    <line x1="660" y1="50" x2="660" y2="430" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,4"/>
+
+    <rect x="40" y="20" width="100" height="28" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="90" y="39" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">사용자</text>
+    <rect x="250" y="20" width="100" height="28" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="300" y="39" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">FE / App</text>
+    <rect x="460" y="20" width="100" height="28" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="510" y="39" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">linkcart BE</text>
+    <rect x="610" y="20" width="100" height="28" rx="8" fill="#d1fae5" stroke="#059669"/>
+    <text x="660" y="39" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">Google</text>
+
+    <!-- steps -->
+    <text x="40" y="80" font-size="11" fill="#374151">1.</text>
+    <line x1="90" y1="75" x2="295" y2="75" stroke="#4338ca" stroke-width="1.5"/>
+    <text x="190" y="70" text-anchor="middle" font-size="11" fill="#4338ca">로그인 버튼 클릭</text>
+
+    <text x="40" y="110" font-size="11" fill="#374151">2.</text>
+    <line x1="300" y1="105" x2="655" y2="105" stroke="#059669" stroke-width="1.5"/>
+    <text x="480" y="100" text-anchor="middle" font-size="11" fill="#059669">Google consent 페이지로 redirect</text>
+
+    <text x="40" y="145" font-size="11" fill="#374151">3.</text>
+    <line x1="660" y1="130" x2="95" y2="130" stroke="#059669" stroke-width="1.5"/>
+    <text x="380" y="125" text-anchor="middle" font-size="11" fill="#059669">"linkcart에게 이메일 제공 허락?"</text>
+
+    <text x="40" y="175" font-size="11" fill="#374151">4.</text>
+    <line x1="90" y1="160" x2="655" y2="160" stroke="#059669" stroke-width="1.5"/>
+    <text x="380" y="155" text-anchor="middle" font-size="11" fill="#059669">"허락" 클릭 (Google 로그인 중일 때)</text>
+
+    <text x="40" y="205" font-size="11" fill="#374151">5.</text>
+    <line x1="660" y1="185" x2="305" y2="185" stroke="#059669" stroke-width="1.5"/>
+    <text x="480" y="180" text-anchor="middle" font-size="11" fill="#059669">FE로 redirect + <em>auth code</em></text>
+
+    <text x="40" y="240" font-size="11" fill="#374151">6.</text>
+    <line x1="300" y1="225" x2="505" y2="225" stroke="#6366f1" stroke-width="1.5"/>
+    <text x="400" y="220" text-anchor="middle" font-size="11" fill="#6366f1">POST /auth/oauth/google {code}</text>
+
+    <text x="40" y="275" font-size="11" fill="#374151">7.</text>
+    <line x1="510" y1="260" x2="655" y2="260" stroke="#d97706" stroke-width="1.5"/>
+    <text x="580" y="255" text-anchor="middle" font-size="11" fill="#d97706">code + client_secret 전달</text>
+
+    <text x="40" y="305" font-size="11" fill="#374151">8.</text>
+    <line x1="660" y1="290" x2="515" y2="290" stroke="#d97706" stroke-width="1.5"/>
+    <text x="580" y="285" text-anchor="middle" font-size="11" fill="#d97706">id_token (JWT) 반환</text>
+
+    <rect x="420" y="305" width="180" height="48" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="510" y="322" text-anchor="middle" font-size="10" fill="#92400e">9. ID Token 서명 검증</text>
+    <text x="510" y="336" text-anchor="middle" font-size="10" fill="#92400e">10. sub/email 추출</text>
+    <text x="510" y="350" text-anchor="middle" font-size="10" fill="#92400e">11. User 찾거나 생성</text>
+
+    <text x="40" y="385" font-size="11" fill="#374151">12.</text>
+    <line x1="510" y1="370" x2="305" y2="370" stroke="#6366f1" stroke-width="1.5"/>
+    <text x="400" y="365" text-anchor="middle" font-size="11" fill="#6366f1">linkcart JWT (access+refresh) 반환</text>
+
+    <text x="40" y="415" font-size="11" fill="#374151">13.</text>
+    <line x1="300" y1="400" x2="95" y2="400" stroke="#4338ca" stroke-width="1.5"/>
+    <text x="190" y="395" text-anchor="middle" font-size="11" fill="#4338ca">로그인 완료</text>
+  </svg>
+  <div class="diagram-caption">Google이 보증한 "ID Token"을 linkcart JWT로 교환하는 흐름</div>
+</div>
+
+<h2>ID Token 검증이 왜 필요한가</h2>
+
+<p>누군가가 가짜 id_token을 "내가 Google에서 받은 거다"며 linkcart에 보낼 수 있다. 그래서 linkcart는 반드시 <strong>Google이 정말 서명했는지</strong> 검증한다.</p>
+
+<p>Google의 ID Token은 JWT이고, RSA 서명이다. Google이 공개키를 <a href="https://www.googleapis.com/oauth2/v3/certs" target="_blank">jwks URL</a>에 공개하고, 서비스들은 그 공개키로 서명 검증.</p>
+
+<pre><code><span class="cmt">// GoogleOAuthAdapter.kt (이 프로젝트)</span>
+<span class="kw">internal val</span> idTokenVerifier: GoogleIdTokenVerifier = GoogleIdTokenVerifier.Builder(
+    NetHttpTransport(),
+    GsonFactory.getDefaultInstance(),
+).setAudience(Collections.singletonList(clientId)).build()  <span class="cmt">// aud가 우리 clientId인지 체크</span>
+
+<span class="kw">val</span> idToken = idTokenVerifier.verify(idTokenString)
+    ?: <span class="kw">throw</span> GoogleOAuthException(<span class="str">"Google 인증에 실패했습니다"</span>)
+<span class="cmt">// verify가 내부에서: 서명 체크 + exp 체크 + iss(=accounts.google.com) 체크 + aud 체크</span>
+</code></pre>
+
+<div class="callout tip">
+  <strong>aud(audience) 체크가 핵심</strong> — 만약 이걸 안 하면, 다른 Google 앱(예: "악성앱A")을 위한 id_token을 linkcart에 보내도 통과된다. aud가 내 clientId인지 확인해야 <em>진짜 나에게 온 토큰</em>임이 보장.
+</div>
+
+<h2>linkcart가 발행하는 JWT</h2>
+
+<p>Google 검증 통과 후 linkcart는 자신의 Access JWT를 만든다. Google ID Token을 그대로 쓰면 될까? 안 된다:</p>
+
+<ul class="arrow-list">
+  <li>Google 토큰은 <em>수명이 짧음</em> (1시간). Refresh하려면 Google에 매번 요청 (부담)</li>
+  <li>Google 토큰의 <em>sub</em>은 Google 사용자 id. linkcart는 <em>자기 DB의 user.id</em>로 식별하고 싶음</li>
+  <li>로그아웃, 권한 변경 등을 linkcart가 제어해야 함</li>
+</ul>
+
+<h2>JWT 구조 — 3 part</h2>
+
+<div class="diagram">
+  <svg width="680" height="200" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="30" width="200" height="60" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="120" y="52" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">Header</text>
+    <text x="120" y="70" text-anchor="middle" font-size="10" fill="#6b7280">{"alg":"HS256","typ":"JWT"}</text>
+    <text x="120" y="82" text-anchor="middle" font-size="10" fill="#6b7280">→ Base64URL</text>
+
+    <text x="230" y="65" text-anchor="middle" font-size="16" fill="#6b7280">.</text>
+
+    <rect x="240" y="30" width="200" height="60" rx="8" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="340" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="#5b21b6">Payload (Claims)</text>
+    <text x="340" y="62" text-anchor="middle" font-size="9" fill="#6b7280">{"sub":"42","iss":"linkcart",</text>
+    <text x="340" y="74" text-anchor="middle" font-size="9" fill="#6b7280">"aud":"linkcart-api","exp":..}</text>
+    <text x="340" y="85" text-anchor="middle" font-size="10" fill="#6b7280">→ Base64URL</text>
+
+    <text x="450" y="65" text-anchor="middle" font-size="16" fill="#6b7280">.</text>
+
+    <rect x="460" y="30" width="200" height="60" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="560" y="52" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">Signature</text>
+    <text x="560" y="68" text-anchor="middle" font-size="10" fill="#6b7280">HMAC-SHA256(secret,</text>
+    <text x="560" y="82" text-anchor="middle" font-size="10" fill="#6b7280">Header.Payload)</text>
+
+    <rect x="20" y="115" width="640" height="70" rx="10" fill="#fafafa" stroke="#d1d5db"/>
+    <text x="340" y="140" text-anchor="middle" font-size="11" fill="#374151" font-family="monospace">eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MiIsImlzcyI6...</text>
+    <text x="340" y="160" text-anchor="middle" font-size="11" fill="#374151" font-family="monospace">eyJzdWIiOi...Pi0OW1zSiw7.EghlX...WRn3e</text>
+    <text x="340" y="178" text-anchor="middle" font-size="10" fill="#6b7280" font-style="italic">한 문자열 전체가 JWT. 점(.) 2개로 3부분 구분.</text>
+  </svg>
+  <div class="diagram-caption">Header와 Payload는 Base64 디코딩만 하면 읽힘 — 암호화 아님. Signature만 위조 방지.</div>
+</div>
+
+<h3>이 프로젝트의 JWT payload</h3>
+
+<pre><code>{
+  <span class="str">"sub"</span>: <span class="str">"42"</span>,                         <span class="cmt">// = linkcart user.id (내부 식별자)</span>
+  <span class="str">"iss"</span>: <span class="str">"linkcart"</span>,                   <span class="cmt">// issuer</span>
+  <span class="str">"aud"</span>: <span class="str">"linkcart-api"</span>,               <span class="cmt">// audience</span>
+  <span class="str">"iat"</span>: <span class="num">1712937600</span>,                   <span class="cmt">// issued at (epoch seconds)</span>
+  <span class="str">"exp"</span>: <span class="num">1712938500</span>                    <span class="cmt">// expires at = iat + 900 (15분)</span>
+}
+</code></pre>
+
+<div class="callout warn">
+  <strong>payload에 PII 금지</strong> — email, name 같은 개인정보를 JWT에 넣으면 로그/CDN 캐시/통신 내역에 흘러나감. JWT는 "이 사람은 userId 42다"만 말하고, 자세한 정보는 DB 조회로. 이 프로젝트의 JWT는 <code>sub</code>만 본다.
+</div>
+
+<h2>HMAC-SHA256 서명 — 어떻게 위조 방지?</h2>
+
+<p>Signature = HMAC-SHA256("&lt;header&gt;.&lt;payload&gt;", <strong>secret</strong>)</p>
+
+<ul class="arrow-list">
+  <li>서버만 <code>secret</code>을 안다 (환경변수)</li>
+  <li>누군가 payload의 "sub"을 42→999로 바꾸면? Signature가 안 맞음</li>
+  <li>클라이언트는 payload는 읽을 수 있지만 (base64 decode) 고치진 못함 (secret 없으니 재서명 불가)</li>
+  <li>secret 키 길이 ≥ 32 bytes (HMAC-SHA256 권장)</li>
+</ul>
+
+<h3>이 프로젝트의 발행 코드</h3>
+
+<pre><code><span class="cmt">// JwtAccessTokenIssuer.kt</span>
+<span class="kw">override fun</span> <span class="fn">issue</span>(userId: <span class="cls">Long</span>): AccessToken {
+    <span class="kw">val</span> issuedAt = clock.instant()
+    <span class="kw">val</span> expiresAt = issuedAt.plus(Duration.ofSeconds(ttlSeconds))  <span class="cmt">// 900s</span>
+
+    <span class="kw">val</span> token = Jwts.builder()
+        .subject(userId.toString())
+        .issuer(issuer)
+        .audience().add(audience).and()
+        .issuedAt(Date.from(issuedAt))
+        .expiration(Date.from(expiresAt))
+        .signWith(signingKey, Jwts.SIG.HS256)
+        .compact()
+
+    <span class="kw">return</span> AccessToken(token = token, expiresAt = expiresAt)
+}
+</code></pre>
+
+<h2>클라이언트가 JWT를 보낼 때 — Bearer 헤더</h2>
+
+<pre><code>GET /api/v1/auth/me HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIi...
+</code></pre>
+
+<p><code>Authorization</code> 헤더, <code>Bearer</code> prefix. 이게 업계 표준 (RFC 6750).</p>
+
+<h2>서버 측 검증 — JwtAuthenticationFilter</h2>
+
+<pre><code><span class="cmt">// JwtAuthenticationFilter.kt</span>
+<span class="kw">override fun</span> <span class="fn">doFilterInternal</span>(request, response, chain) {
+    <span class="kw">val</span> token = extractBearerToken(request)  <span class="cmt">// "Bearer XXX" → "XXX"</span>
+    <span class="kw">if</span> (token != <span class="kw">null</span>) {
+        <span class="kw">try</span> {
+            <span class="kw">val</span> userId = accessTokenIssuer.verify(token)
+            <span class="kw">val</span> authentication = UsernamePasswordAuthenticationToken(userId, <span class="kw">null</span>, emptyList())
+            SecurityContextHolder.getContext().authentication = authentication
+        } <span class="kw">catch</span> (_: InvalidAccessTokenException) {
+            SecurityContextHolder.clearContext()  <span class="cmt">// 401로 이어짐</span>
+        }
+    }
+    chain.doFilter(request, response)
+}
+</code></pre>
+
+<p>Controller에서는 <code>@AuthenticationPrincipal userId: Long</code>으로 주입받아 사용.</p>
+
+<h2>Spring Security FilterChain — 전체 그림</h2>
+
+<div class="diagram">
+  <svg width="680" height="180" viewBox="0 0 680 180" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/>
+      </marker>
+    </defs>
+    <rect x="20" y="60" width="90" height="50" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="65" y="85" text-anchor="middle" font-size="12" fill="#4338ca">요청</text>
+
+    <line x1="110" y1="85" x2="145" y2="85" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a8)"/>
+
+    <rect x="150" y="60" width="140" height="50" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="220" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e">JwtAuthentication</text>
+    <text x="220" y="95" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e">Filter</text>
+    <text x="220" y="130" text-anchor="middle" font-size="10" fill="#6b7280">Bearer 토큰 검증</text>
+
+    <line x1="290" y1="85" x2="325" y2="85" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a8)"/>
+
+    <rect x="330" y="60" width="160" height="50" rx="8" fill="#fef3c7" stroke="#d97706"/>
+    <text x="410" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e">AuthorizationFilter</text>
+    <text x="410" y="95" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e">(Spring 내장)</text>
+    <text x="410" y="130" text-anchor="middle" font-size="10" fill="#6b7280">경로별 권한 체크</text>
+
+    <line x1="490" y1="85" x2="525" y2="85" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a8)"/>
+
+    <rect x="530" y="60" width="130" height="50" rx="8" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="595" y="85" text-anchor="middle" font-size="12" fill="#5b21b6">Controller</text>
+    <text x="595" y="130" text-anchor="middle" font-size="10" fill="#6b7280">@PostMapping 등</text>
+
+    <text x="410" y="160" text-anchor="middle" font-size="11" fill="#dc2626">실패 시 → JsonAuthenticationEntryPoint → 401 JSON</text>
+  </svg>
+  <div class="diagram-caption">필터 체인: Spring Security가 제공하는 pipeline에 내 필터를 끼움</div>
+</div>
+
+<h2>SecurityConfig 핵심 설정</h2>
+
+<pre><code><span class="cmt">@</span><span class="fn">Bean</span>
+<span class="kw">fun</span> <span class="fn">filterChain</span>(http: HttpSecurity, ...) = http
+    .csrf { it.disable() }                        <span class="cmt">// JWT는 쿠키 기반 아님 → CSRF 불필요</span>
+    .cors { }                                     <span class="cmt">// CORS는 WebConfig와 연동</span>
+    .sessionManagement { it.sessionCreationPolicy(STATELESS) }  <span class="cmt">// 세션 사용 안 함</span>
+    .authorizeHttpRequests {
+        it.requestMatchers(
+            <span class="str">"/api/v1/auth/oauth/**"</span>,                 <span class="cmt">// 로그인 전</span>
+            <span class="str">"/api/v1/products/parse"</span>, <span class="str">"/api/v1/images/proxy"</span>,  <span class="cmt">// Phase 1 공개 API</span>
+            <span class="str">"/openapi.json"</span>, <span class="str">"/docs/**"</span>,
+        ).permitAll()
+            .anyRequest().authenticated()          <span class="cmt">// 나머지는 JWT 필요</span>
+    }
+    .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+    .exceptionHandling { it.authenticationEntryPoint(jsonAuthenticationEntryPoint) }
+    .build()
+</code></pre>
+
+<h2>정리</h2>
+
+<ul class="arrow-list">
+  <li>Google OAuth Authorization Code flow 선택 (FE가 code 전달 → BE가 토큰 교환)</li>
+  <li>ID Token은 Google 서명 검증 (google-api-client, aud=clientId 매칭)</li>
+  <li>linkcart 자체 Access JWT (HS256, 15분, sub=userId만)</li>
+  <li>Spring Security는 STATELESS + JwtAuthenticationFilter 추가</li>
+  <li>401 응답은 JSON 포맷 통일 (JsonAuthenticationEntryPoint)</li>
+  <li>JWT payload에 PII 넣지 않음 (로그 유출 방어)</li>
+</ul>
+
+<div class="source-files">
+  <h3>이 챕터 관련 소스 파일</h3>
+  <ul>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/auth/port/GoogleOAuthClient.kt">application/auth/port/GoogleOAuthClient.kt</a><span class="comment">포트</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/auth/GoogleOAuthAdapter.kt">infrastructure/adapter/auth/GoogleOAuthAdapter.kt</a><span class="comment">Google API 호출 + ID Token 검증</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/auth/usecase/LoginWithGoogleUsecase.kt">application/auth/usecase/LoginWithGoogleUsecase.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/auth/usecase/IssueTokensUsecase.kt">application/auth/usecase/IssueTokensUsecase.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/auth/port/AccessTokenIssuer.kt">application/auth/port/AccessTokenIssuer.kt</a><span class="comment">JWT 포트</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/auth/JwtAccessTokenIssuer.kt">infrastructure/adapter/auth/JwtAccessTokenIssuer.kt</a><span class="comment">HS256 서명</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/auth/JwtAuthenticationFilter.kt">infrastructure/adapter/auth/JwtAuthenticationFilter.kt</a><span class="comment">Bearer 검증</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/config/security/SecurityConfig.kt">infrastructure/config/security/SecurityConfig.kt</a><span class="comment">Spring Security 설정</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/domain/model/GoogleIdentity.kt">domain/model/GoogleIdentity.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/presentation/api/AuthController.kt">presentation/api/AuthController.kt</a></li>
+  </ul>
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="08-jpa-flyway.html">07. JPA + Flyway</a>
+  <a class="next" href="11-jwt-vs-session.html">09. JWT vs 세션</a>
+</div>
+
+</div>
+</body>
+</html>

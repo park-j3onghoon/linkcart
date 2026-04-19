@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>14. 프론트엔드 통합 (OpenAPI + Next.js + Expo)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 14. 프론트엔드 통합</span>
+</div>
+<div class="layout">
+
+<h1>14. 프론트엔드 통합</h1>
+<p class="subtitle">BE OpenAPI → TS 타입 codegen → shared 패키지 → Web(Next.js) / Mobile(Expo)로 한 번에.</p>
+
+<div class="callout info">
+  <strong>이 챕터는</strong> — 이 프로젝트가 BE 단독이 아니라 글로벌 멀티플랫폼을 어떻게 구성하는지를 설명한다. 티니어 채용공고의 "글로벌 멀티 플랫폼 API 설계" 요구와 직결.
+</div>
+
+<h2>전체 흐름 — Spec 한 번, 두 플랫폼</h2>
+
+<div class="diagram">
+  <svg width="720" height="340" viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a16" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="160" height="55" rx="10" fill="#fef3c7" stroke="#d97706"/>
+    <text x="100" y="43" text-anchor="middle" font-size="13" font-weight="700" fill="#92400e">backend (Kotlin)</text>
+    <text x="100" y="60" text-anchor="middle" font-size="10" fill="#78350f">ParseResponse DTO</text>
+
+    <line x1="180" y1="47" x2="215" y2="47" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a16)"/>
+
+    <rect x="220" y="20" width="160" height="55" rx="10" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="300" y="43" text-anchor="middle" font-size="13" font-weight="700" fill="#4338ca">springdoc</text>
+    <text x="300" y="60" text-anchor="middle" font-size="10" fill="#4338ca">/openapi.json</text>
+
+    <line x1="380" y1="47" x2="415" y2="47" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a16)"/>
+
+    <rect x="420" y="20" width="180" height="55" rx="10" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="510" y="43" text-anchor="middle" font-size="13" font-weight="700" fill="#5b21b6">openapi-typescript</text>
+    <text x="510" y="60" text-anchor="middle" font-size="10" fill="#5b21b6">npm run codegen</text>
+
+    <line x1="510" y1="80" x2="510" y2="110" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a16)"/>
+
+    <rect x="260" y="120" width="500" height="55" rx="10" fill="#d1fae5" stroke="#059669"/>
+    <text x="510" y="143" text-anchor="middle" font-size="13" font-weight="700" fill="#065f46">packages/shared/src/types/api.gen.ts</text>
+    <text x="510" y="160" text-anchor="middle" font-size="10" fill="#065f46">type ParseResponse = { name: string | null, image_url: string | null, ... }</text>
+
+    <line x1="400" y1="175" x2="200" y2="225" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a16)"/>
+    <line x1="600" y1="175" x2="600" y2="225" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a16)"/>
+
+    <rect x="80" y="230" width="260" height="90" rx="10" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="210" y="253" text-anchor="middle" font-size="13" font-weight="700" fill="#4338ca">apps/web (Next.js)</text>
+    <text x="210" y="273" text-anchor="middle" font-size="11" fill="#4338ca">import { createApiClient } from '@linkcart/shared'</text>
+    <text x="210" y="292" text-anchor="middle" font-size="11" fill="#4338ca">useProducts + useLocalStorage</text>
+    <text x="210" y="310" text-anchor="middle" font-size="11" fill="#4338ca">UrlInput / ProductCard / ProductList</text>
+
+    <rect x="460" y="230" width="260" height="90" rx="10" fill="#ede9fe" stroke="#7c3aed"/>
+    <text x="590" y="253" text-anchor="middle" font-size="13" font-weight="700" fill="#5b21b6">apps/mobile (Expo)</text>
+    <text x="590" y="273" text-anchor="middle" font-size="11" fill="#5b21b6">import { createApiClient } from '@linkcart/shared'</text>
+    <text x="590" y="292" text-anchor="middle" font-size="11" fill="#5b21b6">useProducts + useAsyncStorage</text>
+    <text x="590" y="310" text-anchor="middle" font-size="11" fill="#5b21b6">TextInput / FlatList / ActivityIndicator</text>
+  </svg>
+  <div class="diagram-caption">한 DTO에서 시작해 두 플랫폼의 타입과 API 클라이언트가 자동 생성됨</div>
+</div>
+
+<h2>왜 OpenAPI codegen을 먼저 붙이나</h2>
+
+<p>원문 (pr5.html): "백엔드 DTO와 프론트 타입을 사람이 각각 관리하면 snake_case/camelCase, nullable 여부 같은 계약이 쉽게 어긋난다. 그래서 스펙을 한 번만 만들고, 프론트는 그 산출물을 재사용한다."</p>
+
+<pre><code><span class="cmt"># packages/shared/package.json</span>
+{
+  <span class="str">"scripts"</span>: {
+    <span class="str">"codegen"</span>: <span class="str">"npx openapi-typescript http://localhost:8080/openapi.json -o src/types/api.gen.ts"</span>
+  }
+}
+</code></pre>
+
+<div class="callout tip">
+  <strong>계약 정합성 에피소드</strong> — ParseResponse OpenAPI 필드가 처음엔 camelCase <code>imageUrl</code>로 나왔다. 프론트는 snake_case <code>image_url</code>을 기대. 해결: BE의 <code>@JsonNaming(SnakeCaseStrategy)</code>로 실제 JSON + OpenAPI 모두 snake_case로 통일. <em>"한 곳을 고쳐 두 곳이 자동으로 맞춰지는 것"이 스펙-우선 개발의 진짜 가치.</em>
+</div>
+
+<h2>packages/shared — 공통 코드의 실체</h2>
+
+<pre><code>packages/shared/
+├── src/
+│   ├── types/
+│   │   ├── api.gen.ts       <span class="cmt">// 자동 생성, 손대지 않음</span>
+│   │   └── product.ts       <span class="cmt">// api.gen.ts 기반 도메인 타입 재수출</span>
+│   ├── api/
+│   │   └── client.ts        <span class="cmt">// createApiClient (fetch + timeout + ApiResult)</span>
+│   └── validation/
+│       └── url.ts           <span class="cmt">// 웹/앱 공통 URL 검증</span>
+└── package.json
+</code></pre>
+
+<h3>ApiResult — Result 타입</h3>
+
+<pre><code><span class="kw">export type</span> ApiResult&lt;T&gt; =
+  | { ok: <span class="kw">true</span>; data: T }
+  | { ok: <span class="kw">false</span>; error: ApiError }
+
+<span class="kw">export type</span> ApiError = {
+  kind: <span class="str">'NETWORK'</span> | <span class="str">'PARSE_FAILED'</span> | <span class="str">'TIMEOUT'</span> | <span class="str">'UNKNOWN'</span>
+  message: <span class="kw">string</span>
+}
+</code></pre>
+
+<p>
+  Rust의 <code>Result&lt;T, E&gt;</code> 철학. "성공/실패"를 타입 시스템이 강제. FE 코드는 <code>if (result.ok) { ... } else { showError(result.error) }</code>로 분기하여 실수로 에러 처리를 빼먹지 않음.
+</p>
+
+<div class="callout info">
+  <strong>BE의 ParseResult와 유사한 사상</strong> — Kotlin의 <code>sealed interface ParseResult { Success / Partial / Failure }</code>와 같은 구조를 TypeScript의 discriminated union으로 구현. BE·FE 모두 "예외로 던지지 않고 타입으로 표현"하는 Railway-Oriented Programming 스타일.
+</div>
+
+<h2>Next.js — App Router (Django URLconf와 비교)</h2>
+
+<div class="compare">
+  <div class="compare-cell py">
+    <div class="label">Django URLconf + template</div>
+<pre><code><span class="cmt"># urls.py</span>
+urlpatterns = [
+    path(<span class="str">''</span>, views.home, name=<span class="str">'home'</span>),
+    path(<span class="str">'products/'</span>, views.products),
+]
+
+<span class="cmt"># views.py</span>
+<span class="kw">def</span> <span class="fn">home</span>(request):
+    <span class="kw">return</span> render(request, <span class="str">'home.html'</span>)
+
+<span class="cmt"># templates/home.html</span>
+...</code></pre>
+  </div>
+  <div class="compare-cell" style="border-left: 4px solid #6366f1;">
+    <div class="label">Next.js App Router</div>
+<pre><code><span class="cmt">// 디렉토리 = URL, page.tsx = view</span>
+app/
+├── layout.tsx          <span class="cmt">// /, /products/* 공통</span>
+├── page.tsx            <span class="cmt">// GET /</span>
+└── products/
+    └── page.tsx        <span class="cmt">// GET /products</span>
+
+<span class="cmt">// 파일 기반 라우팅 → urls.py 불필요</span></code></pre>
+  </div>
+</div>
+
+<p>원문 (pr5.html): "Next.js App Router는 Django의 URLconf + template 입구를 파일 구조로 옮긴 느낌이다."</p>
+
+<h3>layout.tsx vs page.tsx 구분</h3>
+
+<ul class="arrow-list">
+  <li><strong>layout.tsx</strong>: 공통 html/body, 메타데이터, 폰트, 네비게이션 등 바깥 껍질</li>
+  <li><strong>page.tsx</strong>: 실제 라우트 화면의 본문</li>
+</ul>
+
+<h2>커스텀 훅 — 책임 분리 모범 사례</h2>
+
+<p>원문 (pr5.html): "<code>useLocalStorage</code>는 저장소 접근과 hydration 상태만 맡는다. <code>useProducts</code>는 URL 중복 검사, API 호출, 진행 상태, 사용자 피드백을 맡는다."</p>
+
+<div class="compare">
+  <div class="compare-cell">
+    <div class="label">useLocalStorage — 영속성 세부 격리</div>
+<pre><code><span class="kw">export function</span> <span class="fn">useLocalStorage</span>&lt;T&gt;(
+  key: <span class="kw">string</span>,
+  initialValue: T,
+): [T, (v: T) =&gt; <span class="kw">void</span>, <span class="kw">boolean</span>] {
+  <span class="cmt">// 반환: [값, setter, isHydrated]</span>
+  <span class="cmt">// 책임: JSON 파싱 실패 복구, SSR 호환</span>
+}</code></pre>
+  </div>
+  <div class="compare-cell">
+    <div class="label">useProducts — 유스케이스 상태 머신</div>
+<pre><code><span class="kw">export function</span> <span class="fn">useProducts</span>() {
+  <span class="cmt">// 책임:</span>
+  <span class="cmt">// - 상품 리스트 상태 관리</span>
+  <span class="cmt">// - submitUrl(url): API 호출 + 중복 체크</span>
+  <span class="cmt">// - 진행 단계: idle/validating/parsing/success/error</span>
+  <span class="cmt">// - 피드백 메시지 (warning / success)</span>
+}</code></pre>
+  </div>
+</div>
+
+<div class="callout tip">
+  <strong>"저장 실패 = 앱 실패"로 만들지 않기</strong> — 원문 (pr5.html): "이 PR에서는 저장이 막혀도 현재 세션의 메모리 상태는 계속 유지된다." localStorage 쿼터 초과, 시크릿 모드 등으로 저장 실패해도 앱이 죽지 않음. <em>견고성 = graceful degradation의 실전 적용.</em>
+</div>
+
+<h2>Expo + React Native — 웹을 모바일로</h2>
+
+<h3>View/Text/Image — DOM이 아니다</h3>
+
+<div class="compare">
+  <div class="compare-cell">
+    <div class="label">React DOM (웹)</div>
+<pre><code>&lt;div style={{ padding: <span class="num">20</span> }}&gt;
+  &lt;p&gt;상품명&lt;/p&gt;
+  &lt;img src=<span class="str">"..."</span> /&gt;
+  &lt;button onClick={handler}&gt;추가&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+  </div>
+  <div class="compare-cell">
+    <div class="label">React Native (앱)</div>
+<pre><code>&lt;View style={{ padding: <span class="num">20</span> }}&gt;
+  &lt;Text&gt;상품명&lt;/Text&gt;
+  &lt;Image source={{ uri: <span class="str">"..."</span> }} /&gt;
+  &lt;Pressable onPress={handler}&gt;
+    &lt;Text&gt;추가&lt;/Text&gt;
+  &lt;/Pressable&gt;
+&lt;/View&gt;</code></pre>
+  </div>
+</div>
+
+<p>React DOM은 브라우저 노드를 그리지만, React Native는 <strong>iOS/Android 네이티브 위젯 트리</strong>를 그린다. 개념은 비슷해도 컴포넌트 이름과 props가 다름.</p>
+
+<h2>AsyncStorage vs localStorage</h2>
+
+<div class="compare">
+  <div class="compare-cell">
+    <div class="label">Web — localStorage (동기)</div>
+<pre><code><span class="cmt">// 즉시 반환</span>
+<span class="kw">const</span> saved = localStorage.getItem(<span class="str">'products'</span>)
+<span class="kw">const</span> data = JSON.parse(saved ?? <span class="str">'[]'</span>)</code></pre>
+  </div>
+  <div class="compare-cell">
+    <div class="label">Mobile — AsyncStorage (Promise)</div>
+<pre><code><span class="cmt">// 비동기</span>
+<span class="kw">const</span> saved = <span class="kw">await</span> AsyncStorage.getItem(<span class="str">'products'</span>)
+<span class="kw">const</span> data = JSON.parse(saved ?? <span class="str">'[]'</span>)
+
+<span class="cmt">// → hydration 단계 자체가 비동기 상태 머신</span></code></pre>
+  </div>
+</div>
+
+<p>훅 인터페이스는 <code>useStorage</code>로 추상화해 같게 유지 (phase1-refactoring-backlog의 BL-S2 항목). 웹은 <code>createLocalStorageAdapter</code>, 앱은 <code>createAsyncStorageAdapter</code>를 주입.</p>
+
+<h2>FlatList — 모바일 성능의 핵심</h2>
+
+<p>원문 (pr6.html): "모바일에서 목록이 길어지면 모든 카드를 한 번에 그리는 방식은 메모리와 스크롤 성능에 불리하다. <code>FlatList</code>는 화면에 필요한 아이템만 가상화해서 렌더링한다."</p>
+
+<pre><code>&lt;FlatList
+  data={products}
+  keyExtractor={(item) =&gt; item.sourceUrl}
+  renderItem={({ item }) =&gt; &lt;ProductCard product={item} /&gt;}
+  ListHeaderComponent={&lt;UrlInput ... /&gt;}  <span class="cmt">{/* 스크롤 안에 헤더 포함 */}</span>
+/&gt;
+</code></pre>
+
+<div class="callout ok">
+  <strong>"boring and safe" 선택</strong> — 원문: "App 전체를 <code>ScrollView</code>로 감싸지 않고, 헤더를 <code>FlatList.ListHeaderComponent</code>로 붙여서 리스트가 스크롤의 중심이 되도록 구성했다. 이게 모바일 성능 관점에서 더 <em>boring하고 안전한</em> 구조다." boring = 예측 가능, 안전 = 돌발 성능 이슈 없음.
+</div>
+
+<h2>shared 재사용의 실제 효과</h2>
+
+<table>
+  <tr><th>공유되는 것</th><th>의미</th></tr>
+  <tr><td>API 타입 (api.gen.ts)</td><td>BE snake_case 계약이 웹·앱에 동일 반영</td></tr>
+  <tr><td>createApiClient</td><td>fetch/timeout/에러 매핑 로직 한 번 작성</td></tr>
+  <tr><td>validateUrl</td><td>URL 검증 로직 중복 제거 (정규식 + URL 파싱)</td></tr>
+  <tr><td>ApiResult/ApiError 타입</td><td>에러 처리 패턴 통일</td></tr>
+</table>
+
+<p>원문 (pr6.html): "핵심은 UI를 새로 짜는 것이 아니라, <code>@linkcart/shared</code>의 API 클라이언트와 URL 검증을 그대로 재사용하고, 저장소만 <code>AsyncStorage</code>로 바꿔 모바일 문법에 맞게 감싼다는 점이다."</p>
+
+<h2>테스트 — Vitest + RTL / Jest + RNTL</h2>
+
+<div class="compare">
+  <div class="compare-cell">
+    <div class="label">Web</div>
+<pre><code><span class="cmt">// Vitest + React Testing Library</span>
+<span class="kw">import</span> { render, fireEvent } <span class="kw">from</span> <span class="str">'@testing-library/react'</span>
+
+<span class="fn">test</span>(<span class="str">'duplicate URL shows warning'</span>, () =&gt; {
+  <span class="kw">const</span> { getByRole, findByText } = <span class="fn">render</span>(&lt;Page /&gt;)
+  fireEvent.change(...)
+  <span class="cmt">// expect warning</span>
+})</code></pre>
+  </div>
+  <div class="compare-cell">
+    <div class="label">Mobile</div>
+<pre><code><span class="cmt">// Jest + React Native Testing Library</span>
+<span class="kw">import</span> { render, fireEvent } <span class="kw">from</span> <span class="str">'@testing-library/react-native'</span>
+
+<span class="fn">test</span>(<span class="str">'invalid URL shows error'</span>, () =&gt; {
+  <span class="kw">const</span> { getByPlaceholderText } = <span class="fn">render</span>(&lt;App /&gt;)
+  fireEvent.changeText(...)
+  <span class="cmt">// 네이티브 컴포넌트 트리 검사</span>
+})</code></pre>
+  </div>
+</div>
+
+<p>원문 (pr6.html): "모바일 테스트는 브라우저 DOM이 아니라 네이티브 컴포넌트 트리를 검사한다는 점만 다르고, '입력 → 상태 변화 → 화면 결과'를 계약으로 고정한다는 원리는 웹과 같다."</p>
+
+<h2>정리</h2>
+
+<ul class="arrow-list">
+  <li>BE OpenAPI (<code>/openapi.json</code>) → TypeScript 타입 자동 생성</li>
+  <li>shared 패키지에 타입 + API 클라이언트 + 검증 로직 한 번만 작성</li>
+  <li>웹(Next.js) + 모바일(Expo)이 shared를 임포트해 재사용</li>
+  <li>저장소(localStorage/AsyncStorage)만 플랫폼별로 어댑터</li>
+  <li>컴포넌트/렌더링(div/Text, FlatList 등)만 플랫폼 전용</li>
+  <li>테스트는 도구만 다르고 "입력→상태→화면" 원칙 동일</li>
+</ul>
+
+<div class="callout tip">
+  <strong>티니어 면접 포인트</strong> — 이 구조가 "글로벌 멀티 플랫폼 API 설계"의 실전 답안. "shared에 API 계약과 검증을 두고 플랫폼별로 렌더만 분기" 1문장으로 정리 가능.
+</div>
+
+<div class="source-files">
+  <h3>프론트엔드 대표 경로</h3>
+  <ul>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/apps/web">apps/web/</a><span class="comment">Next.js App Router</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/apps/mobile">apps/mobile/</a><span class="comment">Expo (React Native)</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/packages">packages/</a><span class="comment">공용 TS 패키지</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/turbo.json">turbo.json</a><span class="comment">Turborepo 파이프라인</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/package.json">package.json</a><span class="comment">workspaces</span></li>
+  </ul>
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="09-http-api-design.html">15. HTTP API 설계</a>
+  <a class="next" href="15-testing.html">12. 테스트 전략</a>
+</div>
+
+</div>
+</body>
+</html>

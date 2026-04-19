@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>09. HTTP API 설계 + CORS + 이미지 프록시</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 09. HTTP API 설계</span>
+</div>
+<div class="layout">
+
+<h1>09. HTTP API 설계 + CORS + 이미지 프록시</h1>
+<p class="subtitle">Presentation 레이어의 실제 구현. DTO 분리, 검증, 예외 일관화, 그리고 "왜 이미지 프록시가 필요한가".</p>
+
+<div class="callout info">
+  <strong>이 챕터의 핵심 용어</strong> —
+  <a class="gref" href="19-glossary.html#g-sop">SOP (Same-Origin Policy)</a> ·
+  <a class="gref" href="19-glossary.html#g-cors">CORS</a> ·
+  <a class="gref" href="19-glossary.html#g-hotlink">핫링크</a> ·
+  <a class="gref" href="19-glossary.html#g-ssrf">SSRF</a> · DTO · Bean Validation
+</div>
+
+<h2>DTO를 도메인 모델과 왜 분리하는가</h2>
+
+<p>Django REST Framework에선 <code>ModelSerializer</code>로 model을 그대로 직렬화하는 경우가 많다. 이 프로젝트는 <strong>Presentation DTO와 Domain을 분리</strong>했다.</p>
+
+<div class="tradeoff">
+  <div class="tradeoff-head">
+    <span class="badge">결정</span>
+    <strong>도메인 모델을 API 응답에 직접 노출할까</strong>
+  </div>
+  <div class="tradeoff-table">
+    <div class="th">후보</div><div class="th">장점</div><div class="th">단점</div>
+
+    <div><strong>A. 도메인 직접 노출</strong> (DRF ModelSerializer 스타일)</div>
+    <div>boilerplate 적음, 빠른 프로토타이핑</div>
+    <div>도메인 필드명·구조가 API 계약이 되어버림. 내부 리팩토링이 클라이언트 깨뜨림.</div>
+
+    <div><strong>B. DTO 별도 정의 + Mapper</strong></div>
+    <div>API 계약과 도메인 독립. snake_case / nullable / partial 등 외부 요구 반영 자유.</div>
+    <div>DTO 클래스 + toDomain/fromDomain 변환 코드 필요.</div>
+  </div>
+  <div class="tradeoff-choice">
+    <strong>→ B 채택</strong>. pr4.html 원문: "도메인의 Product, ParseResult는 내부 계산 모델이다. 반면 API는 snake_case, 에러 코드, nullable 필드 같은 외부 계약이 필요하다. 그래서 presentation DTO를 따로 둔다."
+  </div>
+</div>
+
+<h2>이 프로젝트의 DTO 3종 구조</h2>
+
+<pre><code><span class="cmt">// presentation/dto/ParseRequest.kt</span>
+<span class="kw">data class</span> <span class="cls">ParseRequest</span>(
+    <span class="cmt">@</span><span class="fn">field:NotBlank</span>(message = <span class="str">"url은 비어 있을 수 없습니다"</span>)
+    <span class="cmt">@</span><span class="fn">field:Pattern</span>(regexp = <span class="str">"^https?://.+"</span>)
+    <span class="kw">val</span> url: <span class="cls">String</span>,
+)
+
+<span class="cmt">// presentation/dto/ParseResponse.kt</span>
+<span class="cmt">@</span><span class="fn">JsonNaming</span>(PropertyNamingStrategies.SnakeCaseStrategy::class)  <span class="cmt">// camelCase → snake_case</span>
+<span class="kw">data class</span> <span class="cls">ParseResponse</span>(
+    <span class="kw">val</span> name: <span class="cls">String</span>?,       <span class="cmt">// OG partial 대응 nullable</span>
+    <span class="kw">val</span> price: Money?,
+    <span class="kw">val</span> imageUrl: <span class="cls">String</span>?,   <span class="cmt">// → "image_url"</span>
+    <span class="kw">val</span> sourceUrl: <span class="cls">String</span>?,  <span class="cmt">// → "source_url"</span>
+    <span class="kw">val</span> mall: Mall?,
+    <span class="kw">val</span> partial: Map&lt;<span class="cls">String</span>, Any&gt;?,  <span class="cmt">// 부분 성공 표시</span>
+    <span class="kw">val</span> parserUsed: ParserName,
+    <span class="kw">val</span> fallbackUsed: <span class="cls">Boolean</span>,
+) {
+    <span class="kw">companion object</span> {
+        <span class="kw">fun</span> <span class="fn">from</span>(result: ParseResult): ParseResponse = <span class="kw">when</span> (result) {
+            <span class="kw">is</span> ParseResult.Success -> <span class="cmt">// 모든 필드 non-null</span>
+            <span class="kw">is</span> ParseResult.Partial -> <span class="cmt">// 일부 nullable + partial</span>
+            <span class="kw">is</span> ParseResult.Failure -> <span class="kw">throw</span> IllegalArgumentException(...)
+        }
+    }
+}
+
+<span class="cmt">// presentation/dto/ErrorResponse.kt</span>
+<span class="kw">data class</span> <span class="cls">ErrorResponse</span>(
+    <span class="kw">val</span> code: <span class="cls">String</span>,      <span class="cmt">// "validation_error", "upstream_error", ...</span>
+    <span class="kw">val</span> message: <span class="cls">String</span>,   <span class="cmt">// 사용자 친화</span>
+)
+</code></pre>
+
+<p>
+  <strong>Partial 처리가 이 설계의 묘미</strong>. OG 파서가 상품명만 얻은 경우, Success로 표현할 수 없고 Failure도 아니다. DTO는
+  <em>top-level을 nullable로 열고 어떤 필드가 채워졌는지를 <code>partial</code> 맵으로 함께 전달</em>. 프론트가 "일부 정보라도 표시" 처리 가능.
+</p>
+
+<h2>@Valid + Jakarta Validation — Django serializer.is_valid() 대응</h2>
+
+<div class="compare">
+  <div class="compare-cell py">
+    <div class="label">Django REST Framework</div>
+<pre><code><span class="kw">class</span> <span class="cls">ParseRequestSerializer</span>(<span class="cls">Serializer</span>):
+    url = serializers.URLField()
+
+<span class="kw">class</span> <span class="cls">ParseView</span>(<span class="cls">APIView</span>):
+    <span class="kw">def</span> <span class="fn">post</span>(<span class="kw">self</span>, request):
+        ser = ParseRequestSerializer(data=request.data)
+        ser.is_valid(raise_exception=<span class="kw">True</span>)  <span class="cmt"># 수동 호출</span>
+        url = ser.validated_data[<span class="str">'url'</span>]
+        ...</code></pre>
+  </div>
+  <div class="compare-cell kt">
+    <div class="label">Spring + Jakarta Validation</div>
+<pre><code><span class="cmt">@</span><span class="fn">PostMapping</span>(<span class="str">"/parse"</span>)
+<span class="kw">fun</span> <span class="fn">parse</span>(
+    <span class="cmt">@</span><span class="fn">Valid</span>                    <span class="cmt">// ← 자동 검증</span>
+    <span class="cmt">@</span><span class="fn">RequestBody</span>
+    request: ParseRequest,
+) {
+    <span class="cmt">// 여기 도달하면 이미 검증됨</span>
+    <span class="kw">val</span> url = request.url
+    ...
+}
+<span class="cmt">// 실패 시 MethodArgumentNotValidException 자동 발생</span></code></pre>
+  </div>
+</div>
+
+<div class="callout info">
+  <strong><code>@field:NotBlank</code>의 <code>field:</code> 의미</strong> — Kotlin data class는 생성자 파라미터가 property로 변환되면서 field/getter/constructor parameter 3개로 확장된다. <code>@NotBlank</code>만 붙이면 어디에 적용되는지 모호. <code>@field:NotBlank</code>는 "field에 적용"이라고 명시 → Jakarta Validation이 정확히 찾음.
+</div>
+
+<h2>GlobalExceptionHandler — 일관된 에러 응답</h2>
+
+<p>Django에선 <code>middleware</code>로 전역 예외 잡음. Spring은 <code>@RestControllerAdvice</code>:</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">RestControllerAdvice</span>
+<span class="kw">class</span> <span class="cls">GlobalExceptionHandler</span> {
+
+    <span class="cmt">@</span><span class="fn">ExceptionHandler</span>(MethodArgumentNotValidException::class)
+    <span class="kw">fun</span> <span class="fn">handleValidation</span>(e: MethodArgumentNotValidException): ResponseEntity&lt;ErrorResponse&gt; =
+        ResponseEntity.badRequest().body(
+            ErrorResponse(code = <span class="str">"validation_error"</span>, message = e.message ?: <span class="str">"잘못된 요청"</span>),
+        )
+
+    <span class="cmt">@</span><span class="fn">ExceptionHandler</span>(ResponseStatusException::class)
+    <span class="kw">fun</span> <span class="fn">handleStatus</span>(e: ResponseStatusException): ResponseEntity&lt;ErrorResponse&gt; =
+        ResponseEntity.status(e.statusCode).body(
+            ErrorResponse(code = resolveCode(e.statusCode), message = e.reason ?: <span class="str">""</span>),
+        )
+    ...
+}
+</code></pre>
+
+<p>
+  원문 (pr4.html): "요청이 잘못됐을 때 각 컨트롤러마다 <code>try/catch</code>를 반복하면, 에러 포맷이 조금씩 달라진다. 그래서 <code>GlobalExceptionHandler</code>에서 한 번에 모아 통일했다."
+</p>
+
+<h2>CORS — Same-Origin Policy가 만든 불편과 CORS가 이를 푸는 방식</h2>
+
+<p>
+  이 설명은 CLAUDE.md가 원하는 "문제 배경 → 막는 규칙 → 그 규칙이 만든 불편 → 다음 규칙" 패턴으로 간다.
+</p>
+
+<div class="diagram">
+  <svg width="720" height="380" viewBox="0 0 720 380" xmlns="http://www.w3.org/2000/svg">
+    <!-- 1 -->
+    <rect x="20" y="15" width="680" height="70" rx="10" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="40" y="40" font-size="13" font-weight="700" fill="#991b1b">① 배경 문제 — 2000년대 초</text>
+    <text x="40" y="60" font-size="12" fill="#374151">공격자가 은행에 로그인한 사용자를 악성 사이트로 유도.</text>
+    <text x="40" y="76" font-size="12" fill="#374151">악성 사이트 JS가 은행 API를 호출 → 쿠키 자동 첨부 → 공격자 의도대로 실행.</text>
+
+    <!-- 2 -->
+    <rect x="20" y="100" width="680" height="70" rx="10" fill="#fef3c7" stroke="#d97706"/>
+    <text x="40" y="125" font-size="13" font-weight="700" fill="#92400e">② 막는 규칙 — Same-Origin Policy (SOP)</text>
+    <text x="40" y="145" font-size="12" fill="#374151">브라우저는 "A origin 스크립트가 B origin 리소스를 읽는 것"을 기본 차단.</text>
+    <text x="40" y="161" font-size="12" fill="#374151">origin = scheme + host + port (예: https://linkcart.com:443)</text>
+
+    <!-- 3 -->
+    <rect x="20" y="185" width="680" height="80" rx="10" fill="#fef3c7" stroke="#d97706"/>
+    <text x="40" y="210" font-size="13" font-weight="700" fill="#92400e">③ 그 규칙이 만든 불편</text>
+    <text x="40" y="230" font-size="12" fill="#374151">현대 웹: FE (app.linkcart.com) + API (api.linkcart.com) = 다른 origin.</text>
+    <text x="40" y="246" font-size="12" fill="#374151">정상적인 마이크로서비스/프론트-백엔드 분리도 SOP가 막아버림.</text>
+    <text x="40" y="262" font-size="12" fill="#374151">→ 서비스 개발이 불가능.</text>
+
+    <!-- 4 -->
+    <rect x="20" y="280" width="680" height="90" rx="10" fill="#d1fae5" stroke="#059669"/>
+    <text x="40" y="305" font-size="13" font-weight="700" fill="#065f46">④ 다음 규칙 — Cross-Origin Resource Sharing (CORS)</text>
+    <text x="40" y="325" font-size="12" fill="#374151">서버가 "이 origin은 허용"이라고 명시하면 브라우저가 예외 인정.</text>
+    <text x="40" y="341" font-size="12" fill="#374151">preflight OPTIONS 요청으로 허용 여부 확인 → 실제 요청.</text>
+    <text x="40" y="357" font-size="12" fill="#374151">서버 명시(Access-Control-Allow-Origin 헤더)로 SOP 완화.</text>
+  </svg>
+  <div class="diagram-caption">배경 문제 → SOP → SOP 불편 → CORS</div>
+</div>
+
+<h2>이 프로젝트의 CORS 설정</h2>
+
+<pre><code><span class="cmt">// infrastructure/config/WebConfig.kt</span>
+<span class="cmt">@</span><span class="fn">Configuration</span>
+<span class="kw">class</span> <span class="cls">WebConfig</span> : WebMvcConfigurer {
+    <span class="kw">override fun</span> <span class="fn">addCorsMappings</span>(registry: CorsRegistry) {
+        registry.addMapping(<span class="str">"/api/**"</span>)
+            .allowedOrigins(<span class="str">"http://localhost:3000"</span>, <span class="str">"exp://..."</span>)
+            .allowedMethods(<span class="str">"GET"</span>, <span class="str">"POST"</span>, <span class="str">"DELETE"</span>, <span class="str">"OPTIONS"</span>)
+            .allowedHeaders(<span class="str">"*"</span>)
+            .allowCredentials(<span class="kw">true</span>)
+    }
+}
+</code></pre>
+
+<div class="callout warn">
+  <strong>Spring Security와 공존 시 함정</strong> — <code>WebMvcConfigurer.addCorsMappings</code>만 설정하면, Spring Security 필터 체인은 CORS를 모름. Security의 <code>http.cors { }</code>를 추가로 호출해야 필터 체인에 연동. 이 프로젝트 P2-2에서 이 이슈 발견 → <code>SecurityConfig</code>에 <code>.cors { }</code> 명시 추가.
+</div>
+
+<h2>이미지 프록시 — 왜 필요한가</h2>
+
+<p>OG 이미지를 프론트가 <code>&lt;img src="https://other-mall.com/image.jpg"&gt;</code>로 직접 열면 문제 3가지:</p>
+
+<ol>
+  <li><strong>CORS</strong>: 다른 origin 이미지 허용 안 될 수 있음</li>
+  <li><strong>Hotlink 차단</strong>: 쇼핑몰이 "내 이미지 다른 사이트에서 못 쓰게" Referer 헤더로 차단</li>
+  <li><strong>HTTPS 불일치</strong>: 상품 이미지가 http면 https 페이지에서 mixed content 경고</li>
+</ol>
+
+<p><strong>해결</strong>: 백엔드가 이미지를 받아서 프록시:</p>
+
+<pre><code><span class="cmt">// 프론트</span>
+&lt;img src=<span class="str">"/api/v1/images/proxy?url=https://mall.com/image.jpg"</span> /&gt;
+
+<span class="cmt">// 백엔드 (presentation/api/ImageProxyController.kt)</span>
+<span class="cmt">@</span><span class="fn">GetMapping</span>(<span class="str">"/proxy"</span>)
+<span class="kw">fun</span> <span class="fn">proxy</span>(<span class="cmt">@</span><span class="fn">RequestParam</span> url: <span class="cls">String</span>): ResponseEntity&lt;ByteArray&gt; {
+    <span class="kw">if</span> (!safeUrlChecker.isSafe(url)) <span class="kw">throw</span> BAD_REQUEST(<span class="str">"허용되지 않는 URL"</span>)
+
+    <span class="kw">val</span> response = restTemplate.exchange(url, GET, ...)
+    <span class="kw">val</span> contentType = response.headers.contentType
+    <span class="kw">if</span> (contentType.subtype !in ALLOWED_IMAGE_SUBTYPES) <span class="kw">throw</span> BAD_GATEWAY
+    <span class="kw">return</span> ResponseEntity.ok().contentType(contentType).body(response.body)
+}
+</code></pre>
+
+<div class="callout danger">
+  <strong>프록시가 만든 새 문제 — SSRF</strong> — "서버가 임의 URL을 fetch하는" 순간, 공격자가 <code>url=http://127.0.0.1/admin</code>을 보내면 서버가 내부망을 대신 접근. 이것이 <strong>Server-Side Request Forgery</strong>. 13 챕터에서 별도로 다룸.
+</div>
+
+<h2>snake_case JSON — Jackson 전역 설정</h2>
+
+<p>Django는 Python이라 원래 snake_case. Kotlin은 camelCase. 프론트(JSON)는 관례상 snake_case. 자동 변환:</p>
+
+<pre><code><span class="cmt"># application.yml</span>
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+</code></pre>
+
+<p>이 한 줄로 모든 DTO 필드가 JSON 직렬화 시 자동 변환. <code>imageUrl</code> → <code>"image_url"</code>.</p>
+
+<h2>OpenAPI / Swagger — 자동 문서화</h2>
+
+<p>Django DRF는 <code>drf-spectacular</code> 같은 별도 설치 필요. Spring Boot는 <code>springdoc-openapi-starter-webmvc-ui</code> 의존성만 넣으면 자동:</p>
+
+<ul class="arrow-list">
+  <li><code>/openapi.json</code> — 스펙 JSON (codegen에 사용)</li>
+  <li><code>/docs</code> — Swagger UI (브라우저에서 API 탐색)</li>
+</ul>
+
+<div class="callout tip">
+  <strong>왜 중요?</strong> 프론트가 OpenAPI JSON → TypeScript 타입 자동 생성. "BE가 바뀌면 FE 타입도 자동 동기화". 16번 챕터에서 상세.
+</div>
+
+<h2>MockMvc로 Contract 테스트</h2>
+
+<pre><code><span class="cmt">@</span><span class="fn">WebMvcTest</span>(ProductController::class)
+<span class="kw">class</span> <span class="cls">ProductControllerTest</span> {
+    <span class="cmt">@</span><span class="fn">Autowired</span>
+    <span class="kw">private lateinit var</span> mockMvc: MockMvc
+
+    <span class="cmt">@</span><span class="fn">MockBean</span>
+    <span class="kw">private lateinit var</span> useCase: ParseProductUseCase
+
+    <span class="cmt">@</span><span class="fn">Test</span>
+    <span class="kw">fun</span> <span class="fn">`successful parse returns 200 with snake_case JSON`</span>() {
+        given(useCase.execute(<span class="str">"https://..."</span>)).willReturn(Success(...))
+
+        mockMvc.perform(post(<span class="str">"/api/v1/products/parse"</span>)
+            .contentType(APPLICATION_JSON)
+            .content(<span class="str">"""{"url":"https://..."}"""</span>))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath(<span class="str">"$.image_url"</span>).value(<span class="str">"https://..."</span>))  <span class="cmt">// snake_case 확인</span>
+            .andExpect(jsonPath(<span class="str">"$.parser_used"</span>).value(<span class="str">"coupang-api"</span>))
+    }
+}
+</code></pre>
+
+<p>핵심: <strong>프론트엔드가 받을 JSON 모양</strong>을 검증하는 contract test. 내부 구현 바뀌어도 이게 통과하면 FE 안 깨짐.</p>
+
+<h2>심화 Q&amp;A</h2>
+
+<h3>Q. DTO가 맞아, Payload가 맞아? 선호 차이?</h3>
+
+<p><strong>둘 다 쓰인다. 하지만 뜻이 같지 않다.</strong> 문맥에 따라 골라 쓴다.</p>
+
+<table>
+  <tr><th>용어</th><th>풀네임</th><th>강조하는 것</th><th>적용 범위</th></tr>
+  <tr><td><strong>DTO</strong></td><td>Data Transfer Object</td><td>"레이어/프로세스 경계를 넘을 때 쓰는 <em>객체 형태</em>"</td><td>코드 관점. 클래스 단위. 네트워크/레이어 무관.</td></tr>
+  <tr><td><strong>Payload</strong></td><td>—</td><td>"HTTP 요청/응답의 <em>body 안의 내용물</em>"</td><td>네트워크 관점. 전송 중의 바이트/JSON.</td></tr>
+</table>
+
+<p><strong>관계</strong> — DTO 객체가 JSON으로 직렬화되어 HTTP body의 Payload가 된다. 같은 것을 다른 층위에서 본 명칭이다.</p>
+
+<pre><code><span class="cmt">// 개발자가 쓰는 코드 관점 = DTO</span>
+<span class="kw">data class</span> <span class="cls">ParseRequest</span>(
+    <span class="kw">val</span> url: <span class="cls">String</span>,
+)
+
+<span class="cmt">// 네트워크 위에서의 관점 = Payload (request body)</span>
+POST /api/v1/products/parse
+Content-Type: application/json
+
+{                            <span class="cmt">// ← 이 JSON이 "payload"</span>
+  "url": "https://shop.example.com/p/1"
+}</code></pre>
+
+<p><strong>네이밍 관례</strong></p>
+
+<ul class="arrow-list">
+  <li>Java/Kotlin/C# 세계에선 <strong>DTO가 압도적</strong>. 클래스 이름에도 <code>...Dto</code>, 폴더명 <code>dto/</code>로 쓴다 (이 프로젝트도).</li>
+  <li>Node.js/Python/REST 문서 세계에선 <strong>"payload", "request body", "response body"</strong>를 더 자주 쓴다. OpenAPI 스펙도 <code>requestBody</code>.</li>
+  <li><strong>Request DTO</strong>와 <strong>Response DTO</strong>로 나누는 게 흔함: <code>ParseRequest</code>, <code>ParseResponse</code>.</li>
+</ul>
+
+<p><strong>이 프로젝트 결정</strong> — Spring/Kotlin 팀 관례에 맞춰 <code>presentation/dto/</code> + <code>...Request</code>/<code>...Response</code>. API 문서나 PR 본문에서 "요청 payload는 …"처럼 말할 때는 payload도 자연스럽게 혼용.</p>
+
+<p><strong>혼동 피하는 간단 규칙</strong></p>
+
+<ul class="arrow-list">
+  <li>코드 안에서 클래스 가리킬 때 → <strong>DTO</strong> ("ParseRequest DTO")</li>
+  <li>네트워크 트래픽/스펙 문서 설명할 때 → <strong>payload</strong> ("요청 payload에 url 포함")</li>
+  <li>둘 다 맞고, 의미가 정확히 같지는 않으니 문맥만 신경 쓰면 됨</li>
+</ul>
+
+<h2>정리 — Presentation 레이어의 6가지 관심사</h2>
+
+<table>
+  <tr><th>관심사</th><th>어디서</th><th>이 프로젝트</th></tr>
+  <tr><td>입력 검증</td><td>DTO의 <code>@field:NotBlank</code> 등</td><td>ParseRequest</td></tr>
+  <tr><td>타입 변환</td><td>Jackson (<code>@RequestBody</code>/직렬화)</td><td>자동</td></tr>
+  <tr><td>에러 응답 통일</td><td>@RestControllerAdvice</td><td>GlobalExceptionHandler</td></tr>
+  <tr><td>도메인 ↔ DTO 매핑</td><td>companion <code>from(result)</code></td><td>ParseResponse.from</td></tr>
+  <tr><td>CORS</td><td>WebConfig (+ Security 연동)</td><td>WebConfig</td></tr>
+  <tr><td>API 문서</td><td>springdoc 자동</td><td>/openapi.json, /docs</td></tr>
+</table>
+
+<div class="page-footer">
+  <a class="prev" href="12-oauth-jwt.html">08. OAuth+JWT</a>
+  <a class="next" href="14-frontend-integration.html">16. 프론트엔드 통합</a>
+</div>
+
+</div>
+</body>
+</html>

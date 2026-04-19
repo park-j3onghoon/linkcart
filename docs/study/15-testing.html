@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>15. 테스트 전략</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 15. 테스트 전략</span>
+</div>
+<div class="layout">
+
+<h1>15. 테스트 전략</h1>
+<p class="subtitle">JUnit 5 + MockMvc + Testcontainers. 단위 / 통합 / 슬라이스의 차이.</p>
+
+<h2>테스트 피라미드 — 이 프로젝트의 구성</h2>
+
+<div class="diagram">
+  <svg width="680" height="320" viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg">
+    <!-- Pyramid -->
+    <polygon points="340,30 560,100 120,100" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+    <polygon points="120,100 560,100 580,170 100,170" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+    <polygon points="100,170 580,170 600,240 80,240" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+    <polygon points="80,240 600,240 620,300 60,300" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/>
+
+    <text x="340" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#991b1b">E2E (미구현)</text>
+    <text x="340" y="85" text-anchor="middle" font-size="10" fill="#991b1b">Playwright, 브라우저 시뮬레이션</text>
+
+    <text x="340" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#92400e">통합 (Integration) — @SpringBootTest</text>
+    <text x="340" y="145" text-anchor="middle" font-size="11" fill="#92400e">Testcontainers DB, 전체 컨텍스트. 느리지만 진짜에 가까움.</text>
+    <text x="340" y="158" text-anchor="middle" font-size="10" fill="#92400e">LinkcartBackendApplicationTests, UserRepositoryAdapterIntegrationTest</text>
+
+    <text x="340" y="195" text-anchor="middle" font-size="13" font-weight="700" fill="#065f46">슬라이스 (Slice) — @WebMvcTest / @DataJpaTest</text>
+    <text x="340" y="213" text-anchor="middle" font-size="11" fill="#065f46">레이어 1개만 띄움. @MockBean으로 나머지 mock.</text>
+    <text x="340" y="226" text-anchor="middle" font-size="10" fill="#065f46">ProductControllerTest, ImageProxyControllerTest</text>
+
+    <text x="340" y="265" text-anchor="middle" font-size="13" font-weight="700" fill="#4338ca">단위 (Unit) — JUnit 5 only</text>
+    <text x="340" y="283" text-anchor="middle" font-size="11" fill="#4338ca">Spring 없음. 순수 Kotlin 객체. 빠름. 대다수 여기 모음.</text>
+    <text x="340" y="296" text-anchor="middle" font-size="10" fill="#4338ca">LoginWithGoogleUsecaseTest, ParserPipelineTest, OgParserTest</text>
+  </svg>
+  <div class="diagram-caption">위로 갈수록 느리고 많아 부담, 아래로 갈수록 빠르고 많이 작성</div>
+</div>
+
+<h2>1. 단위 테스트 — 가장 많고 빠름</h2>
+
+<p>Spring 컨텍스트 없이 순수 객체만 조립. 실행 수십~수백 ms. 이 프로젝트 테스트의 <strong>약 70%</strong>.</p>
+
+<pre><code><span class="cmt">// LoginWithGoogleUsecaseTest.kt</span>
+<span class="kw">class</span> <span class="cls">LoginWithGoogleUsecaseTest</span> {
+
+    <span class="cmt">@</span><span class="fn">Test</span>
+    <span class="kw">fun</span> <span class="fn">`creates new user when google subject is unknown`</span>() {
+        <span class="kw">val</span> identity = GoogleIdentity(<span class="str">"sub-new"</span>, <span class="str">"new@example.com"</span>, <span class="str">"New"</span>, <span class="kw">null</span>)
+        <span class="kw">val</span> savedUser = User(id = <span class="num">99L</span>, ...)
+
+        <span class="kw">val</span> useCase = LoginWithGoogleUsecase(
+            googleOAuthClient = <span class="cls">StubGoogleClient</span>(identity),   <span class="cmt">// 수제 stub</span>
+            userRepository = <span class="cls">StubUserRepository</span>(savedId = savedUser),
+            issueTokensUsecase = stubIssueTokens(),
+        )
+
+        <span class="kw">val</span> result = useCase.execute(<span class="str">"code"</span>, <span class="str">"https://app/callback"</span>)
+
+        assertEquals(<span class="num">99L</span>, result.user.id)
+    }
+
+    <span class="cmt">// 의존성을 interface로 받기 때문에 stub 만들기 쉬움</span>
+    <span class="kw">private class</span> <span class="cls">StubGoogleClient</span>(<span class="kw">private val</span> identity: GoogleIdentity) : GoogleOAuthClient {
+        <span class="kw">override fun</span> <span class="fn">exchangeCodeForIdentity</span>(...) = identity
+    }
+}
+</code></pre>
+
+<div class="callout tip">
+  <strong>왜 Mockito 대신 수제 stub?</strong> Kotlin 문법으로 interface를 <code>object : GoogleOAuthClient { ... }</code>처럼 익명 구현하기 쉽다. Mockito 정적 메서드/final class 이슈 회피. 의도가 코드로 드러남.
+</div>
+
+<h2>2. 슬라이스 테스트 — 레이어 1개만 띄움</h2>
+
+<p>Spring의 일부만 띄우기 위한 어노테이션들:</p>
+
+<table>
+  <tr><th>어노테이션</th><th>띄우는 것</th><th>용도</th></tr>
+  <tr><td><code>@WebMvcTest</code></td><td>Controller + MVC 관련만</td><td>Controller 테스트 (HTTP 요청/응답)</td></tr>
+  <tr><td><code>@DataJpaTest</code></td><td>JPA + DB만</td><td>Repository 테스트</td></tr>
+  <tr><td><code>@RestClientTest</code></td><td>RestTemplate 관련만</td><td>외부 API 클라이언트</td></tr>
+  <tr><td><code>@JsonTest</code></td><td>Jackson만</td><td>직렬화 검증</td></tr>
+</table>
+
+<h3>@WebMvcTest 예시 — ProductControllerTest</h3>
+
+<pre><code><span class="cmt">@</span><span class="fn">WebMvcTest</span>(
+    controllers = [ProductController::<span class="kw">class</span>],
+    excludeFilters = [Filter(type = FilterType.ASSIGNABLE_TYPE, classes = [WebConfig::<span class="kw">class</span>])],
+)
+<span class="cmt">@</span><span class="fn">AutoConfigureMockMvc</span>(addFilters = <span class="kw">false</span>)  <span class="cmt">// Security filter 건너뛰기</span>
+<span class="cmt">@</span><span class="fn">Import</span>(GlobalExceptionHandler::<span class="kw">class</span>)
+<span class="kw">class</span> <span class="cls">ProductControllerTest</span> {
+
+    <span class="cmt">@</span><span class="fn">Autowired</span>
+    <span class="kw">private lateinit var</span> mockMvc: MockMvc
+
+    <span class="cmt">@</span><span class="fn">MockBean</span>   <span class="cmt">// 실제 빈 대신 mock 주입</span>
+    <span class="kw">private lateinit var</span> parseProductUseCase: ParseProductUseCase
+
+    <span class="cmt">@</span><span class="fn">Test</span>
+    <span class="kw">fun</span> <span class="fn">`successful parse returns 200 response`</span>() {
+        given(parseProductUseCase.execute(<span class="str">"..."</span>)).willReturn(
+            ParseResult.Success(...)
+        )
+
+        mockMvc.perform(post(<span class="str">"/api/v1/products/parse"</span>)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(<span class="str">"""{"url":"..."}"""</span>))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath(<span class="str">"$.name"</span>).value(<span class="str">"테스트 상품"</span>))
+            .andExpect(jsonPath(<span class="str">"$.parser_used"</span>).value(<span class="str">"coupang-api"</span>))
+    }
+}
+</code></pre>
+
+<div class="callout info">
+  <strong>MockMvc가 하는 일</strong> — 진짜 HTTP 서버를 띄우지 않고 Spring MVC의 요청 처리 파이프라인만 흉내. 빠르고, Controller + DTO 직렬화 + 예외 핸들러까지 한 번에 검증.
+</div>
+
+<h2>3. 통합 테스트 — @SpringBootTest + Testcontainers</h2>
+
+<p>Spring 전체 + 진짜 DB. 가장 신뢰 높고 가장 느림.</p>
+
+<pre><code><span class="cmt">@</span><span class="fn">Testcontainers</span>
+<span class="cmt">@</span><span class="fn">SpringBootTest</span>
+<span class="kw">class</span> <span class="cls">UserRepositoryAdapterIntegrationTest</span> {
+    <span class="kw">companion object</span> {
+        <span class="cmt">@</span><span class="fn">Container</span>
+        <span class="cmt">@</span><span class="fn">JvmStatic</span>
+        <span class="kw">val</span> postgres = PostgreSQLContainer(<span class="str">"postgres:16"</span>)
+            .withDatabaseName(<span class="str">"linkcart_test"</span>)
+
+        <span class="cmt">@</span><span class="fn">JvmStatic</span>
+        <span class="cmt">@</span><span class="fn">DynamicPropertySource</span>
+        <span class="kw">fun</span> <span class="fn">properties</span>(registry: DynamicPropertyRegistry) {
+            registry.add(<span class="str">"spring.datasource.url"</span>, postgres::getJdbcUrl)
+            registry.add(<span class="str">"spring.datasource.username"</span>, postgres::getUsername)
+            registry.add(<span class="str">"spring.datasource.password"</span>, postgres::getPassword)
+        }
+    }
+
+    <span class="cmt">@</span><span class="fn">Autowired</span>
+    <span class="kw">private lateinit var</span> userRepository: UserRepository
+
+    <span class="cmt">@</span><span class="fn">Test</span>
+    <span class="kw">fun</span> <span class="fn">`duplicate provider violates unique constraint`</span>() {
+        userRepository.save(<span class="fn">newUser</span>(providerUserId = <span class="str">"sub-x"</span>))
+        assertThrows&lt;DataIntegrityViolationException&gt; {
+            userRepository.save(<span class="fn">newUser</span>(providerUserId = <span class="str">"sub-x"</span>))
+        }
+    }
+}
+</code></pre>
+
+<p><strong>왜 필요한가</strong>: JPA mapping, Flyway SQL, DB 제약(unique, FK CASCADE), 트랜잭션 전파는 mock으로 잡기 어렵다. 진짜 Postgres로 검증.</p>
+
+<h2>테스트 종류별 언제 쓰나</h2>
+
+<div class="tradeoff">
+  <div class="tradeoff-head">
+    <span class="badge">선택 기준</span>
+    <strong>새 기능에 어떤 테스트를 쓸까</strong>
+  </div>
+  <div class="tradeoff-table">
+    <div class="th">대상</div><div class="th">추천</div><div class="th">이유</div>
+
+    <div>UseCase 비즈니스 로직</div>
+    <div>단위 테스트 (stub 주입)</div>
+    <div>Spring 불필요. 빠름. 분기 많이 커버 가능.</div>
+
+    <div>Controller의 HTTP 계약 (status, JSON 필드명)</div>
+    <div>@WebMvcTest</div>
+    <div>MockMvc로 요청/응답 검증. Use Case는 mock.</div>
+
+    <div>Repository 실제 SQL / 제약조건</div>
+    <div>Testcontainers 통합 테스트</div>
+    <div>진짜 DB로만 검증됨.</div>
+
+    <div>외부 API 클라이언트 (Coupang, Google)</div>
+    <div>MockRestServiceServer (슬라이스)</div>
+    <div>실제 HTTP 호출 없이 RestTemplate 경로 검증.</div>
+
+    <div>전체 흐름 (E2E)</div>
+    <div>통합 테스트 1~2개</div>
+    <div>너무 많이 쓰면 느려짐. 핵심 흐름에만.</div>
+  </div>
+</div>
+
+<h2>이 프로젝트의 실전 패턴 — Stub 공유 헬퍼</h2>
+
+<p>여러 테스트가 같은 stub을 반복 작성하는 걸 방지:</p>
+
+<pre><code><span class="cmt">// ParserTestStubs.kt (test 전용, internal)</span>
+<span class="kw">internal fun</span> <span class="fn">dedicatedStub</span>(
+    canParse: (<span class="cls">String</span>) -> <span class="cls">Boolean</span>,
+    parse: (<span class="cls">String</span>) -> ParseResult,
+): DedicatedProductParser = <span class="kw">object</span> : DedicatedProductParser {
+    <span class="kw">override fun</span> <span class="fn">canParse</span>(url: <span class="cls">String</span>) = canParse(url)
+    <span class="kw">override fun</span> <span class="fn">parse</span>(url: <span class="cls">String</span>) = parse(url)
+}
+
+<span class="kw">internal fun</span> <span class="fn">fallbackStub</span>(
+    parse: (<span class="cls">String</span>) -> ParseResult,
+): FallbackProductParser = <span class="kw">object</span> : FallbackProductParser {
+    <span class="kw">override fun</span> <span class="fn">parse</span>(url: <span class="cls">String</span>) = parse(url)
+}
+
+<span class="cmt">// 사용처</span>
+<span class="kw">val</span> dedicated = <span class="fn">dedicatedStub</span>(
+    canParse = { it.contains(<span class="str">"coupang.com"</span>) },
+    parse = { ParseResult.Failure(<span class="str">"fail"</span>, ParserName.COUPANG) },
+)
+</code></pre>
+
+<h2>테스트 네이밍 규칙 — 이 프로젝트의 관습</h2>
+
+<ul class="arrow-list">
+  <li>메서드명: 영어, 자연문 (<code>`duplicate provider violates unique constraint`</code>)</li>
+  <li>Backtick으로 공백 포함 가능 (Kotlin의 JVM interop 문법)</li>
+  <li>패턴: "&lt;조건&gt; &lt;결과&gt;" 또는 "&lt;주체&gt; &lt;동사&gt; &lt;결과&gt;"</li>
+</ul>
+
+<h2>테스트 금지 대상 — 의미 없는 테스트</h2>
+
+<div class="callout warn">
+  <strong>쓰지 말아야 할 테스트들</strong>
+  <ul>
+    <li><strong>프레임워크 빌트인 기능 테스트</strong> (Jackson 직렬화 자체, JPA <code>save</code> 자체): 우리 코드 아님</li>
+    <li><strong>단순 데이터 객체 단독 테스트</strong>: User data class의 equals 자체 테스트 — Kotlin이 보장</li>
+    <li><strong>snapshot 테스트</strong>: "이 응답 JSON이 이렇게 생겼다"를 통째로 저장. 작은 변경에도 깨지고 의미 흐림</li>
+    <li><strong>무효 케이스 전수 테스트</strong>: enum 3개 모두 valid 검증은 불필요. 하나로 충분.</li>
+  </ul>
+</div>
+
+<h2>회귀 IRON RULE — "기존 동작 변경 + 기존 테스트 미커버 = 신규 테스트 필수"</h2>
+
+<p>이 프로젝트의 review 규칙 중 하나. 예:</p>
+
+<ul class="arrow-list">
+  <li>BE5에서 <code>UseCase.execute</code>의 fallback 로직을 Pipeline으로 이동 → <strong>기존 5개 UseCaseTest를 그대로 ParserPipelineTest로 이관</strong>. 동작 불변 보장.</li>
+  <li>BE3에서 <code>===</code> → <code>is FallbackProductParser</code> 판별 변경 → <strong>"primary가 fallback 자체일 때 parse 1회만 호출"</strong> 회귀 테스트 신규 추가.</li>
+</ul>
+
+<h2>도구 정리</h2>
+
+<table>
+  <tr><th>도구</th><th>역할</th></tr>
+  <tr><td>JUnit 5 (jupiter)</td><td>테스트 프레임워크</td></tr>
+  <tr><td>Spring Boot Test</td><td>@SpringBootTest, @WebMvcTest, @DataJpaTest</td></tr>
+  <tr><td>MockMvc</td><td>HTTP 서버 흉내</td></tr>
+  <tr><td>Mockito (BDDMockito)</td><td>@MockBean, given/willReturn</td></tr>
+  <tr><td>Testcontainers</td><td>진짜 Postgres 컨테이너 테스트에서 띄움</td></tr>
+  <tr><td>MockRestServiceServer</td><td>RestTemplate 외부 호출 mock (Coupang/11st 테스트)</td></tr>
+  <tr><td>kotlin.test assertions</td><td>assertEquals, assertIs, assertThrows 등</td></tr>
+</table>
+
+<h2>정리</h2>
+
+<ul class="arrow-list">
+  <li>피라미드: 단위 &gt; 슬라이스 &gt; 통합 &gt; E2E</li>
+  <li>단위: interface stub 주입 (Kotlin object 익명 구현)</li>
+  <li>슬라이스: @WebMvcTest + @MockBean</li>
+  <li>통합: @SpringBootTest + Testcontainers</li>
+  <li>테스트 이름은 영어 자연문 (backtick)</li>
+  <li>프레임워크 빌트인 테스트 금지</li>
+  <li>회귀 IRON RULE: 동작 변경 시 신규 테스트</li>
+</ul>
+
+<div class="source-files">
+  <h3>테스트 대표 파일</h3>
+  <ul>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/backend/src/test/kotlin/com/linkcart">backend/src/test/kotlin/com/linkcart/</a><span class="comment">테스트 루트</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/test/kotlin/com/linkcart/application/user/usecase/SaveUserProductUsecaseTest.kt">application/user/usecase/SaveUserProductUsecaseTest.kt</a><span class="comment">유스케이스 단위 테스트 (Stub repo)</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/test/kotlin/com/linkcart/application/user/usecase/DeleteUserProductUsecaseTest.kt">.../DeleteUserProductUsecaseTest.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/test/kotlin/com/linkcart/infrastructure/adapter/parser/SafeUrlCheckerTest.kt">infrastructure/adapter/parser/SafeUrlCheckerTest.kt</a><span class="comment">SSRF 케이스 전수</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/backend/src/test/kotlin/com/linkcart/presentation">presentation/...</a><span class="comment">MockMvc + @WebMvcTest</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/test/kotlin/com/linkcart/LinkcartBackendApplicationTests.kt">LinkcartBackendApplicationTests.kt</a><span class="comment">@SpringBootTest 컨텍스트 로드</span></li>
+  </ul>
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="10-ssrf-defense.html">11. SSRF 방어</a>
+  <a class="next" href="17-summary-interview.html">13. 요약 + 면접 포인트</a>
+</div>
+
+</div>
+</body>
+</html>

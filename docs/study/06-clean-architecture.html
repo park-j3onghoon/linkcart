@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>06. 클린 아키텍처 4 레이어</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="doc-nav">
+  <a href="00-index.html">↑ 목차</a>
+  <span class="crumb">/ 06. 클린 아키텍처</span>
+</div>
+<div class="layout">
+
+<h1>06. 클린 아키텍처 4 레이어</h1>
+<p class="subtitle">domain / application / infrastructure / presentation. 왜 이 4단계로 나누는가.</p>
+
+<div class="callout info">
+  <strong>이 챕터의 핵심 용어</strong> —
+  <a class="gref" href="19-glossary.html#g-clean-arch">Clean Architecture</a> ·
+  <a class="gref" href="19-glossary.html#g-hexagonal">Hexagonal (Ports &amp; Adapters)</a> ·
+  <a class="gref" href="19-glossary.html#g-ddd">DDD</a> ·
+  <a class="gref" href="19-glossary.html#g-dip">DIP</a> ·
+  <a class="gref" href="19-glossary.html#g-di">DI</a> ·
+  <a class="gref" href="19-glossary.html#g-ioc">IoC</a>
+</div>
+
+<h2>문제의 원인 — "다 한 파일에 뭉치면 왜 안 되나"</h2>
+
+<p>초기에는 한 파일/한 클래스에 다 넣는 게 빠르다. 규모가 커지면:</p>
+
+<ul class="arrow-list">
+  <li><strong>DB가 바뀌면</strong> 비즈니스 로직 코드까지 전부 수정해야 한다 (MySQL → Postgres, ORM 교체 등)</li>
+  <li><strong>외부 API가 바뀌면</strong> (쿠팡 API 개편) 도메인 규칙까지 흔들린다</li>
+  <li><strong>테스트가 어렵다</strong>: 로직 하나 테스트하려고 DB·네트워크·프레임워크를 전부 띄워야</li>
+  <li><strong>프레임워크 업그레이드</strong> 시 앱 전체 재작성</li>
+</ul>
+
+<p>클린 아키텍처는 이걸 <strong>"변하는 속도가 다른 것은 따로 둔다"</strong>는 원리로 해결한다.</p>
+
+<h2>4 레이어 — "안쪽이 가장 중요하고 오래 간다"</h2>
+
+<div class="diagram">
+  <svg width="680" height="430" viewBox="0 0 680 430" xmlns="http://www.w3.org/2000/svg">
+    <!-- Outer: presentation -->
+    <circle cx="340" cy="215" r="200" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+    <text x="340" y="45" text-anchor="middle" font-size="14" font-weight="700" fill="#92400e">presentation (Web, DTO)</text>
+
+    <!-- infrastructure -->
+    <circle cx="340" cy="215" r="155" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+    <text x="340" y="85" text-anchor="middle" font-size="14" font-weight="700" fill="#92400e">infrastructure (DB, 외부 API, JPA)</text>
+
+    <!-- application -->
+    <circle cx="340" cy="215" r="110" fill="#ddd6fe" stroke="#7c3aed" stroke-width="2"/>
+    <text x="340" y="130" text-anchor="middle" font-size="14" font-weight="700" fill="#5b21b6">application (UseCase)</text>
+
+    <!-- domain -->
+    <circle cx="340" cy="215" r="65" fill="#c7d2fe" stroke="#4338ca" stroke-width="2"/>
+    <text x="340" y="205" text-anchor="middle" font-size="14" font-weight="700" fill="#312e81">domain</text>
+    <text x="340" y="225" text-anchor="middle" font-size="11" fill="#312e81">엔티티, 포트</text>
+
+    <!-- arrows -->
+    <defs>
+      <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#4338ca"/>
+      </marker>
+    </defs>
+    <line x1="560" y1="80" x2="420" y2="170" stroke="#4338ca" stroke-width="2" marker-end="url(#a5)"/>
+    <text x="580" y="60" text-anchor="middle" font-size="12" fill="#4338ca" font-weight="600">의존 방향</text>
+    <text x="580" y="76" text-anchor="middle" font-size="11" fill="#6b7280">항상 안쪽으로만</text>
+    <text x="580" y="90" text-anchor="middle" font-size="11" fill="#6b7280">(바깥은 안쪽을 안다)</text>
+    <text x="580" y="104" text-anchor="middle" font-size="11" fill="#6b7280">(안쪽은 바깥을 모른다)</text>
+
+    <!-- legend right side -->
+    <rect x="20" y="320" width="640" height="95" rx="10" fill="white" stroke="#e5e7eb"/>
+    <text x="40" y="345" font-size="12" font-weight="600" fill="#4338ca">domain</text>
+    <text x="100" y="345" font-size="12" fill="#374151">User, RefreshToken, ParseResult, 포트 interface (의존성 0)</text>
+    <text x="40" y="365" font-size="12" font-weight="600" fill="#5b21b6">application</text>
+    <text x="120" y="365" font-size="12" fill="#374151">LoginWithGoogleUsecase, ParserPipeline (domain만 import)</text>
+    <text x="40" y="385" font-size="12" font-weight="600" fill="#92400e">infrastructure</text>
+    <text x="140" y="385" font-size="12" fill="#374151">JPA entity, OgParser(Jsoup), JwtAccessTokenIssuer (domain, app을 구현)</text>
+    <text x="40" y="405" font-size="12" font-weight="600" fill="#d97706">presentation</text>
+    <text x="140" y="405" font-size="12" fill="#374151">Controller, DTO (app의 UseCase를 호출)</text>
+  </svg>
+  <div class="diagram-caption">동심원 다이어그램. 의존 화살표는 <strong>항상 안쪽을 향한다</strong>.</div>
+</div>
+
+<h2>각 레이어가 담당하는 것</h2>
+
+<table>
+  <tr><th>레이어</th><th>포함하는 것</th><th>의존하는 것</th><th>변화 속도</th></tr>
+  <tr>
+    <td><strong>domain</strong></td>
+    <td>비즈니스 엔티티 (User, Product), 값 객체 (Money), Enum (ParserName, AuthProvider, Mall), 포트 interface (UserRepository)</td>
+    <td>아무것도 (Jackson, JPA조차 이상적으로는 X)</td>
+    <td>매우 느림</td>
+  </tr>
+  <tr>
+    <td><strong>application</strong></td>
+    <td>유스케이스 (ParseProductUseCase, LoginWithGoogleUsecase), 오케스트레이션 (ParserPipeline), 앱 레벨 포트 (GoogleOAuthClient)</td>
+    <td>domain만</td>
+    <td>느림 (비즈니스 흐름)</td>
+  </tr>
+  <tr>
+    <td><strong>infrastructure</strong></td>
+    <td>JPA Entity, Spring Data 어댑터, Jsoup 파서, 외부 API 클라이언트, JWT 발행, Flyway 마이그레이션</td>
+    <td>domain, application (포트 구현)</td>
+    <td>빠름 (라이브러리 교체)</td>
+  </tr>
+  <tr>
+    <td><strong>presentation</strong></td>
+    <td>Controller, DTO, 예외 핸들러, Security 설정, CORS</td>
+    <td>application</td>
+    <td>빠름 (UI, API 변경)</td>
+  </tr>
+</table>
+
+<h2>이 프로젝트의 실제 디렉토리 구조</h2>
+
+<pre><code>backend/src/main/kotlin/com/linkcart/
+├── domain/
+│   ├── entity/           <span class="cmt">// User.kt, RefreshToken.kt, UserProduct.kt, Product.kt</span>
+│   ├── model/            <span class="cmt">// ParseResult.kt (sealed), ParserName.kt, AuthProvider.kt</span>
+│   ├── vo/               <span class="cmt">// Money.kt, Mall.kt</span>
+│   └── port/             <span class="cmt">// UserRepository.kt, RefreshTokenRepository.kt, ProductParser.kt</span>
+│
+├── application/
+│   ├── auth/
+│   │   ├── port/         <span class="cmt">// GoogleOAuthClient.kt, AccessTokenIssuer.kt (앱 레벨 포트)</span>
+│   │   └── usecase/      <span class="cmt">// LoginWithGoogleUsecase.kt, IssueTokensUsecase.kt, ...</span>
+│   ├── user/usecase/     <span class="cmt">// SaveUserProductUsecase.kt, ...</span>
+│   ├── parser/           <span class="cmt">// ParserResolver.kt, ParserPipeline.kt, ParserNames.kt</span>
+│   └── usecase/          <span class="cmt">// ParseProductUseCase.kt</span>
+│
+├── infrastructure/
+│   ├── adapter/
+│   │   ├── parser/       <span class="cmt">// OgParser.kt, CoupangParser.kt, ElevenStParser.kt, SafeUrlChecker.kt</span>
+│   │   ├── auth/         <span class="cmt">// GoogleOAuthAdapter.kt, JwtAccessTokenIssuer.kt, JwtAuthenticationFilter.kt</span>
+│   │   └── persistence/  <span class="cmt">// UserEntity.kt, UserJpaRepository.kt, UserRepositoryAdapter.kt</span>
+│   └── config/           <span class="cmt">// WebConfig.kt, security/SecurityConfig.kt</span>
+│
+└── presentation/
+    ├── api/              <span class="cmt">// ProductController.kt, AuthController.kt, UserProductController.kt</span>
+    └── dto/              <span class="cmt">// ParseRequest/Response.kt, OAuthLoginRequest.kt, UserResponse.kt</span>
+</code></pre>
+
+<h2>핵심 개념 — 포트 &amp; 어댑터 (의존성 역전)</h2>
+
+<p>클린 아키텍처의 가장 미묘하지만 중요한 부분. <strong>"application이 DB를 알면 안 되는데 어떻게 DB를 쓰나"</strong> 문제.</p>
+
+<div class="compare">
+  <div class="compare-cell" style="border-left: 4px solid #ef4444;">
+    <div class="label">❌ 잘못된 구조 (의존 방향 역전)</div>
+<pre><code><span class="cmt">// application</span>
+<span class="kw">class</span> <span class="cls">LoginWithGoogle</span>(
+    <span class="kw">private val</span> userJpaRepository: UserJpaRepository,  <span class="cmt">// ❌ JPA 직접</span>
+) {
+    <span class="kw">fun</span> <span class="fn">execute</span>(...) {
+        userJpaRepository.saveAndFlush(...)  <span class="cmt">// JPA 호출</span>
+    }
+}
+
+<span class="cmt">// DB를 JPA에서 MyBatis로 바꾸면? UseCase까지 수정</span></code></pre>
+  </div>
+  <div class="compare-cell" style="border-left: 4px solid #059669;">
+    <div class="label">✅ 포트 &amp; 어댑터</div>
+<pre><code><span class="cmt">// domain/port — "나는 save만 있으면 된다"</span>
+<span class="kw">interface</span> <span class="cls">UserRepository</span> {
+    <span class="kw">fun</span> <span class="fn">save</span>(user: User): User
+    <span class="kw">fun</span> <span class="fn">findById</span>(id: <span class="cls">Long</span>): User?
+}
+
+<span class="cmt">// application — 포트만 안다</span>
+<span class="kw">class</span> <span class="cls">LoginWithGoogle</span>(
+    <span class="kw">private val</span> userRepository: UserRepository,
+) { ... }
+
+<span class="cmt">// infrastructure — 포트를 구현</span>
+<span class="cmt">@</span><span class="fn">Component</span>
+<span class="kw">class</span> <span class="cls">UserRepositoryAdapter</span>(
+    <span class="kw">private val</span> jpa: UserJpaRepository,
+) : UserRepository { ... }</code></pre>
+  </div>
+</div>
+
+<div class="callout tip">
+  <strong>의존 방향이 뒤집힌다</strong> — 원래 "application이 infrastructure를 쓴다"는 자연스러운 방향 같다. 그러나 포트를 domain/application에 두고 infrastructure가 포트를 <em>구현</em>하게 하면 의존 방향이 <strong>infrastructure → application</strong>이 된다. 이걸 <em>DIP (Dependency Inversion Principle)</em>이라 부른다.
+</div>
+
+<h2>실전 사례 — 이 프로젝트의 LoginWithGoogleUsecase</h2>
+
+<p>파일 하나를 보면 이 아키텍처가 어떻게 구현되는지 선명해진다:</p>
+
+<pre><code><span class="kw">package</span> com.linkcart.application.auth.usecase  <span class="cmt">// application 레이어</span>
+
+<span class="kw">import</span> com.linkcart.application.auth.port.GoogleOAuthClient  <span class="cmt">// 같은 레이어의 포트</span>
+<span class="kw">import</span> com.linkcart.domain.entity.User                         <span class="cmt">// domain 엔티티</span>
+<span class="kw">import</span> com.linkcart.domain.model.AuthProvider                   <span class="cmt">// domain enum</span>
+<span class="kw">import</span> com.linkcart.domain.port.UserRepository                  <span class="cmt">// domain 포트</span>
+<span class="cmt">// ⬆ Jpa/Spring Security/Google SDK 같은 infrastructure는 하나도 import 안 함</span>
+
+<span class="cmt">@</span><span class="fn">Service</span>
+<span class="kw">class</span> <span class="cls">LoginWithGoogleUsecase</span>(
+    <span class="kw">private val</span> googleOAuthClient: GoogleOAuthClient,   <span class="cmt">// 포트 (인터페이스)</span>
+    <span class="kw">private val</span> userRepository: UserRepository,         <span class="cmt">// 포트</span>
+    <span class="kw">private val</span> issueTokensUsecase: IssueTokensUsecase,
+) {
+    <span class="kw">fun</span> <span class="fn">execute</span>(code: <span class="cls">String</span>, redirectUri: <span class="cls">String</span>): LoginResult {
+        <span class="kw">val</span> identity = googleOAuthClient.exchangeCodeForIdentity(code, redirectUri)
+        <span class="kw">val</span> user = userRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, identity.subject)
+            ?: userRepository.save(User(...))
+        <span class="kw">val</span> tokens = issueTokensUsecase.execute(userId = user.id!!)
+        <span class="kw">return</span> LoginResult(user, tokens)
+    }
+}
+</code></pre>
+
+<p>이 UseCase는 <strong>Google을 어떻게 호출하는지, DB가 뭔지, JWT가 어떻게 서명되는지 모른다</strong>.
+  포트(interface)만 알고, 그 뒤의 구체 구현은 Spring DI 컨테이너가 런타임에 연결해준다.</p>
+
+<h2>왜 이게 좋나 — 실전 이득 4가지</h2>
+
+<ol>
+  <li><strong>테스트 용이</strong>: LoginWithGoogleUsecaseTest에서 GoogleOAuthClient, UserRepository를 간단한 stub로 주입. DB·네트워크 없이 유스케이스 로직 검증.</li>
+  <li><strong>교체 가능</strong>: PostgreSQL → MySQL로 바꿔도 UserRepositoryAdapter 하나만 고친다.</li>
+  <li><strong>이해 쉬움</strong>: UseCase 파일을 열면 "이 기능이 무슨 단계를 거쳐 일어나는가"가 한 흐름으로 읽힘. 인프라 잡음 없음.</li>
+  <li><strong>의도 표현</strong>: "우리 UseCase는 Google에서 신원을 가져오고, DB에서 유저를 찾거나 만든다"는 계약이 타입으로 드러남.</li>
+</ol>
+
+<h2>Django MVT와 비교</h2>
+
+<table>
+  <tr><th>이 프로젝트</th><th>Django MVT 전형</th></tr>
+  <tr><td>presentation/dto/ParseRequest</td><td>forms.py / serializers.py</td></tr>
+  <tr><td>presentation/api/ProductController</td><td>views.py</td></tr>
+  <tr><td>application/usecase/ParseProductUseCase</td><td>services.py 또는 view 내부</td></tr>
+  <tr><td>domain/entity/Product</td><td>models.py의 Model (Django는 ORM과 섞임)</td></tr>
+  <tr><td>domain/port/UserRepository</td><td>따로 없음 (Model.objects로 직접 접근)</td></tr>
+  <tr><td>infrastructure/adapter/persistence/UserRepositoryAdapter</td><td>Model.objects가 내장</td></tr>
+</table>
+
+<div class="callout info">
+  <strong>Django와 가장 다른 점</strong> — Django는 <code>Model.objects.filter()</code>로 어디서든 DB에 접근할 수 있다. 편리하지만
+  <em>비즈니스 로직과 DB가 얽힌다</em>. 이 프로젝트는 Repository 포트를 거치도록 강제해 분리를 유지.
+  Django에서도 큰 프로젝트는 service layer + repository 패턴으로 이걸 모방한다.
+</div>
+
+<h2>Clean vs Hexagonal vs Layered vs DDD — 자주 혼동되는 네 단어</h2>
+
+<div class="callout info">
+  네 개가 경쟁하는 "다른 아키텍처"인 것처럼 쓰이지만 실제로는 <strong>층위가 다르다</strong>.
+  Layered는 구성(N층으로 쌓기), Hexagonal/Clean은 의존 방향 원칙(안쪽으로), DDD는 도메인 모델링 언어.
+  이 프로젝트는 네 가지를 동시에 쓴다.
+</div>
+
+<table>
+  <tr><th>이름</th><th>핵심 주장</th><th>제안자</th><th>층위</th><th>이 프로젝트</th></tr>
+  <tr><td><strong>Layered</strong></td><td>Presentation / Business / Persistence로 쌓는다</td><td>관례 (80년대~)</td><td>구성 방식</td><td>presentation/application/infrastructure 3층으로 쌓아 씀</td></tr>
+  <tr><td><strong>Hexagonal (Ports &amp; Adapters)</strong></td><td>도메인을 중심에 두고 주변 모든 외부는 Port(interface) + Adapter(impl)로 격리</td><td>Alistair Cockburn (2005)</td><td>의존 방향 원칙</td><td>UserRepository(port) + UserRepositoryAdapter(adapter) 등 전부 이 구조</td></tr>
+  <tr><td><strong>Clean Architecture</strong></td><td>Hexagonal + 레이어를 동심원(도메인→앱→인프라→프레젠테이션)으로 명시</td><td>Robert C. Martin (2012)</td><td>의존 방향 원칙 + 레이어</td><td>domain/application/infrastructure/presentation 4 레이어가 이거</td></tr>
+  <tr><td><strong>DDD</strong></td><td>도메인을 Ubiquitous Language로 모델링 (Entity / VO / Aggregate / Repository / Domain Event)</td><td>Eric Evans (2003)</td><td>모델링 언어</td><td>domain/에 Entity(User), VO(Money, Mall), Repository(port) 사용</td></tr>
+</table>
+
+<p><strong>관계</strong>: Hexagonal ⊂ Clean. Clean Architecture는 Hexagonal의 아이디어를 레이어 명칭으로 정리한 것. DDD는 "도메인을 어떻게 쪼개 쓸지"를 정하고, Hexagonal/Clean은 "그 도메인을 외부와 어떻게 격리할지"를 정한다.</p>
+
+<h2>Spring이 기본적으로 헥사고날인가?</h2>
+
+<div class="callout warn">
+  <strong>결론 — 아니다.</strong> Spring Boot는 <em>기본적으로는 Layered Architecture</em>에 가깝다. 헥사고날은 <strong>개발자가 "포트 interface를 어디에 둘지"를 스스로 결정</strong>해야 하는 구조이며, Spring이 강제하지 않는다.
+</div>
+
+<h3>Spring Boot 기본 관례 (표준 튜토리얼이 가르치는 것)</h3>
+
+<pre><code>com.example.app/
+├── controller/      <span class="cmt">// @RestController — Presentation</span>
+├── service/         <span class="cmt">// @Service — Business Logic</span>
+├── repository/      <span class="cmt">// interface extends JpaRepository — Persistence</span>
+└── entity/          <span class="cmt">// @Entity — JPA 엔티티 (= 도메인 모델 + DB 스키마 뒤섞임)</span></code></pre>
+
+<p>이게 Spring Boot의 "즉석 시작" 구조다. 이 구조의 특징:</p>
+
+<ul class="arrow-list">
+  <li><strong>entity 폴더의 <code>@Entity</code>는 "도메인 모델"이자 동시에 "JPA 스키마 매핑"</strong>. 두 역할이 한 클래스에 섞여 있음.</li>
+  <li><strong>Repository interface는 <code>JpaRepository</code>를 상속</strong>. 즉 이미 JPA에 묶여 있음. 도메인이 "JPA 밖 구현체"를 받을 여지가 없음.</li>
+  <li><strong>service가 repository를 직접 import</strong>. 의존 방향이 상→하로 그대로 내려감 (Layered).</li>
+  <li><strong>포트 interface는 없음</strong>. <code>UserRepository</code>는 domain의 포트가 아니라 JPA의 Repository.</li>
+</ul>
+
+<h3>이 프로젝트가 Layered를 왜 버렸나</h3>
+
+<table>
+  <tr><th>Layered 기본 구조의 문제</th><th>이 프로젝트의 해결</th></tr>
+  <tr><td><code>@Entity</code> 클래스가 도메인 로직도 담고 DB 컬럼도 담음 → 단위 테스트가 DB를 띄워야</td><td><strong>domain.entity.User</strong> (순수 Kotlin) + <strong>infrastructure.adapter.persistence.UserEntity</strong> (@Entity) 분리</td></tr>
+  <tr><td>Service가 JpaRepository를 직접 import → JPA → Hibernate에 묶임</td><td>application은 <strong>domain.port.UserRepository (interface)</strong>에만 의존. 구현은 infrastructure</td></tr>
+  <tr><td>도메인 로직 테스트에도 Spring 컨텍스트 필요</td><td>UseCase 테스트에 Spring 불필요. 포트를 Stub으로 넣고 <code>@Test</code> 하나면 끝</td></tr>
+  <tr><td>외부 API(쿠팡/Google) 클라이언트를 Service에 직접 심음</td><td>application에 <strong>GoogleOAuthClient</strong> 포트 → infrastructure에 <strong>GoogleOAuthAdapter</strong> 구현</td></tr>
+</table>
+
+<h3>그래서 Spring에서 헥사고날을 하려면 뭐가 필요한가</h3>
+
+<p>Spring이 안 해주는 것을 <em>개발자가 규율로</em> 지켜야 한다:</p>
+
+<ol>
+  <li><strong>도메인 폴더에 프레임워크 import 금지</strong>. <code>org.springframework.*</code>, <code>jakarta.persistence.*</code>가 도메인 코드에 들어가면 안 됨. ArchUnit 테스트로 강제 가능.</li>
+  <li><strong>Repository를 2개로 쪼갠다</strong>. <code>domain.port.UserRepository</code>(포트 interface)와 <code>infrastructure.UserJpaRepository extends JpaRepository</code>(JPA 인터페이스). 사이에 <code>UserRepositoryAdapter</code>가 bridge.</li>
+  <li><strong>@Entity와 도메인 엔티티를 분리</strong>. <code>User</code>(domain) ↔ <code>UserEntity</code>(infra) 사이에 <code>.toDomain()</code> / <code>.fromDomain()</code> 매핑 함수.</li>
+  <li><strong>application 레이어에 별도 포트 패키지</strong>. 외부 서비스(Google OAuth, 결제, SMS 등)마다 port interface.</li>
+  <li><strong>의존성 주입은 Spring에 맡기되, 주입받는 타입은 항상 포트</strong>. 어댑터는 Spring이 포트 타입으로 찾아 주입.</li>
+</ol>
+
+<div class="callout tip">
+  <strong>요약</strong> — Spring은 "헥사고날을 <em>가능하게</em>" 하지만 "<em>강제하지</em>" 않는다. DI 컨테이너가 있어 포트/어댑터 패턴이 쉽게 성립하긴 하지만, 기본 관례는 Layered. 헥사고날로 갈지 말지는 <strong>프로젝트 복잡도가 이 추가 구조를 정당화하는가</strong>로 판단. 작은 CRUD면 기본 Layered로 충분하다 (다음 섹션의 YAGNI 참고).
+</div>
+
+<h2>심화 Q&amp;A — 엔티티 이중성과 레이어 개수</h2>
+
+<h3>Q. "@Entity가 도메인 모델이자 JPA 스키마 매핑"이 무슨 뜻이야? JPA 스키마는 DB 모델이란 소리인가? DB 모델과 Entity는 별개여야 하지 않나?</h3>
+
+<p><strong>질문이 곧 정답.</strong> "DB 모델과 도메인 Entity는 별개여야 한다"가 이 프로젝트가 지키려는 원칙이고, "Spring 기본 튜토리얼은 그걸 안 지킨다"가 위 섹션의 요지다. 용어부터 정리.</p>
+
+<table>
+  <tr><th>용어</th><th>의미</th><th>성격</th></tr>
+  <tr><td><strong>JPA 스키마 매핑</strong></td><td>"이 Kotlin 클래스 = 이 DB 테이블, 이 필드 = 이 컬럼"이라는 <em>번역 규칙</em>. <code>@Entity</code>, <code>@Table</code>, <code>@Column</code>, <code>@Id</code> 어노테이션으로 표현</td><td>ORM(Hibernate)이 읽는 기술 메타데이터 — DB 모델과 거의 같은 말</td></tr>
+  <tr><td><strong>도메인 모델</strong></td><td>"User는 이메일과 공급자를 가진다" 같은 <em>업무 개념</em>. 업무 규칙을 담은 순수 객체</td><td>비즈니스 언어, 프레임워크 무관</td></tr>
+</table>
+
+<p><strong>Spring 기본 튜토리얼이 한 클래스에 섞는 모습</strong></p>
+
+<pre><code><span class="cmt">// Spring 튜토리얼 스타일 — entity/User.kt</span>
+<span class="cmt">@</span><span class="fn">Entity</span>                                  <span class="cmt">// JPA: "나 DB 테이블이야"</span>
+<span class="cmt">@</span><span class="fn">Table</span>(name = <span class="str">"users"</span>)                   <span class="cmt">// JPA: "테이블 이름은 users"</span>
+<span class="kw">class</span> <span class="cls">User</span>(
+    <span class="cmt">@</span><span class="fn">Id</span> <span class="cmt">@</span><span class="fn">GeneratedValue</span>                  <span class="cmt">// JPA: "PK 자동생성"</span>
+    <span class="kw">val</span> id: <span class="cls">Long</span>? = null,
+    <span class="cmt">@</span><span class="fn">Column</span>(nullable = <span class="kw">false</span>)              <span class="cmt">// JPA: "NOT NULL 컬럼"</span>
+    <span class="kw">val</span> email: <span class="cls">String</span>,
+) {
+    <span class="kw">fun</span> <span class="fn">canWithdraw</span>(): <span class="cls">Boolean</span> = ...   <span class="cmt">// 도메인 로직: 탈퇴 가능 여부</span>
+}</code></pre>
+
+<p>이 한 클래스가 <strong>두 관객을 동시에</strong> 섬긴다:</p>
+
+<ul class="arrow-list">
+  <li>Hibernate가 읽음 — "users 테이블, id PK, email NOT NULL 컬럼"으로 해석해 SQL 생성</li>
+  <li>UseCase가 씀 — <code>user.canWithdraw()</code>, <code>User.create(...)</code> 같은 업무 호출</li>
+</ul>
+
+<p><strong>이게 왜 문제인가</strong></p>
+
+<ol>
+  <li><strong>도메인 테스트가 DB를 필요로 한다</strong>. 단순히 <code>val user = User(email = "a@b.com")</code>만 해도 Hibernate 컨텍스트가 의미를 가지려면 준비가 필요. 순수 단위 테스트가 사실상 통합 테스트로 부풀어오름.</li>
+  <li><strong>DB 스키마 변경이 도메인 언어를 침범</strong>. DBA가 "<code>email</code> 컬럼을 <code>email_address</code>로 바꾸자"고 하면 도메인 코드의 필드명까지 바꿔야 함. 업무 용어는 안 바뀌었는데.</li>
+  <li><strong>도메인이 JPA 관습을 삼킴</strong>. <code>id: Long? = null</code>이 되는 건 "JPA가 저장 전엔 ID가 없어서"지, 업무 개념에 "User는 id가 nullable"이라는 속성이 있는 게 아니다.</li>
+  <li><strong>교체 불가</strong>. JPA를 MyBatis나 Exposed로 바꾸려면 도메인 클래스를 전부 뜯어야 함.</li>
+</ol>
+
+<p><strong>이 프로젝트의 해결 — 두 클래스로 쪼갬</strong></p>
+
+<div class="compare">
+  <div class="compare-cell" style="border-left: 4px solid #4338ca;">
+    <div class="label">domain/entity/User.kt — 순수 도메인</div>
+<pre><code><span class="kw">package</span> com.linkcart.domain.entity
+
+<span class="cmt">// JPA/Spring import 0개</span>
+<span class="kw">data class</span> <span class="cls">User</span>(
+    <span class="kw">val</span> id: <span class="cls">Long</span>? = null,
+    <span class="kw">val</span> email: <span class="cls">String</span>,
+    <span class="kw">val</span> provider: AuthProvider,
+    ...
+)</code></pre>
+  </div>
+  <div class="compare-cell" style="border-left: 4px solid #d97706;">
+    <div class="label">infrastructure/.../UserEntity.kt — JPA 스키마</div>
+<pre><code><span class="kw">package</span> com.linkcart.infrastructure.adapter.persistence.user
+
+<span class="cmt">@</span><span class="fn">Entity</span>
+<span class="cmt">@</span><span class="fn">Table</span>(name = <span class="str">"users"</span>)
+<span class="kw">class</span> <span class="cls">UserEntity</span>(
+    <span class="cmt">@</span><span class="fn">Id</span> <span class="cmt">@</span><span class="fn">GeneratedValue</span>
+    <span class="kw">val</span> id: <span class="cls">Long</span>? = null,
+    <span class="cmt">@</span><span class="fn">Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">val</span> email: <span class="cls">String</span>,
+    ...
+) {
+    <span class="kw">fun</span> <span class="fn">toDomain</span>() = User(id, email, ...)
+    <span class="kw">companion object</span> {
+        <span class="kw">fun</span> <span class="fn">fromDomain</span>(u: User) = UserEntity(u.id, u.email, ...)
+    }
+}</code></pre>
+  </div>
+</div>
+
+<div class="callout tip">
+  <strong>다시 정리</strong> — 질문자의 "DB 모델과 Entity는 별개여야 한다"는 직관이 정확히 이 프로젝트의 원칙. "JPA 스키마"는 DB 모델과 거의 같은 말 — ORM이 객체↔테이블을 매핑하기 위한 기술 정보. Spring 기본 튜토리얼이 이걸 도메인 클래스 하나에 묶어 쓰니까 "두 역할 섞임" 문제가 생기는 것이고, 이 프로젝트는 두 클래스로 쪼개 해결.
+</div>
+
+<h3>Q. "이 프로젝트가 Layered를 버렸다"는데, 지금도 레이어 4개 아니야? Layered 맞잖아?</h3>
+
+<p><strong>핵심 혼동 — "레이어가 있다"와 "Layered Architecture"는 다르다.</strong> Layered는 그냥 "층이 있다"가 아니라 <em>특정 스타일의 이름</em>. 이 프로젝트도 레이어는 있지만 Layered 스타일이 아니라 Clean/Hexagonal 스타일.</p>
+
+<table>
+  <tr><th></th><th>Layered (Spring 튜토리얼 기본)</th><th>이 프로젝트 (Clean + Hexagonal)</th></tr>
+  <tr><td>레이어 개수</td><td>보통 3층 (Controller / Service / Repository)</td><td>4층 (domain / application / infrastructure / presentation)</td></tr>
+  <tr><td>의존 방향</td><td>위→아래 단방향. Controller가 Service를, Service가 Repository를 직접 import</td><td><strong>항상 안쪽으로만.</strong> application이 infrastructure를 <em>모름</em>. infra가 도메인 port를 <em>구현</em>(역방향)</td></tr>
+  <tr><td>도메인의 프레임워크 의존</td><td>Entity에 <code>@Entity</code>, Repository에 <code>JpaRepository</code> 상속 — 프레임워크가 도메인에 스며듦</td><td>도메인은 JPA/Spring import 0개. 순수 Kotlin</td></tr>
+  <tr><td>Service가 아는 것</td><td><code>JpaRepository&lt;User&gt;</code> 직접 주입 → JPA에 묶임</td><td>도메인 port(interface)만 주입 → 구현체가 뭔지 모름</td></tr>
+  <tr><td>단위 테스트</td><td>Service 하나 테스트해도 <code>@SpringBootTest</code> 또는 H2 필요</td><td>UseCase 테스트에 Spring 불필요, 포트 stub 주입으로 끝</td></tr>
+</table>
+
+<p><strong>"Layered를 버렸다"의 진짜 의미</strong> — 레이어 자체를 버린 게 아니라 <em>Spring 튜토리얼이 기본으로 깔아주는 Layered 스타일</em>(위 표 좌측 특성 묶음)을 안 쓴다는 뜻. "층을 쌓는다"는 아이디어는 그대로 유지하고, 거기에 <strong>의존 방향 규칙(DIP)</strong>과 <strong>도메인 순수성</strong>을 얹은 것.</p>
+
+<div class="callout info">
+  <strong>비유</strong> — 층이 있다고 다 "아파트"는 아니다. 주상복합·단독주택·빌라 모두 층이 있지만 설계 원칙이 다르다. Layered, Clean, Hexagonal은 같은 "다층 건물"이지만 서로 다른 설계 스타일. 이 프로젝트는 Clean + Hexagonal 스타일.
+</div>
+
+<h3>Q. entity라는 말이 domain에도 infra에도 있잖아? 4계층인데 DB까지 하면 5계층 아니야?</h3>
+
+<p><strong>두 개의 엔티티, 같은 이름, 다른 역할.</strong> 용어 혼란이 맞다. 그러나 <em>레이어 수는 그대로 4개</em>.</p>
+
+<p><strong>"entity"가 쓰이는 두 맥락</strong></p>
+
+<table>
+  <tr><th></th><th>도메인 엔티티 (DDD 용어)</th><th>JPA Entity (Jakarta Persistence 용어)</th></tr>
+  <tr><td>의미</td><td>ID로 식별되고 상태가 변하는 <em>업무 개념</em></td><td><code>@Entity</code>가 붙어 DB 테이블로 매핑되는 <em>기술 클래스</em></td></tr>
+  <tr><td>출처</td><td>Eric Evans, DDD (2003)</td><td>JPA 스펙 (Java Persistence API, 2006)</td></tr>
+  <tr><td>이 프로젝트 위치</td><td><code>domain/entity/User.kt</code></td><td><code>infrastructure/adapter/persistence/user/UserEntity.kt</code></td></tr>
+  <tr><td>파일명 관례</td><td><code>User</code>, <code>RefreshToken</code> — 순수 이름</td><td><code>UserEntity</code>, <code>RefreshTokenEntity</code> — <strong>Entity 접미사로 구분</strong></td></tr>
+  <tr><td>어노테이션</td><td>없음 (data class)</td><td><code>@Entity</code>, <code>@Table</code>, <code>@Column</code>, <code>@Id</code>...</td></tr>
+  <tr><td>존재 이유</td><td>업무 규칙 표현</td><td>객체↔DB 변환 (ORM)</td></tr>
+</table>
+
+<p><strong>"DB까지 하면 5계층?" — 아니다.</strong> 코드 레이어와 외부 시스템은 다른 것.</p>
+
+<div class="diagram">
+  <svg width="680" height="340" viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a-ext" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="640" height="205" rx="12" fill="#f9fafb" stroke="#374151" stroke-width="2" stroke-dasharray="4,2"/>
+    <text x="340" y="43" text-anchor="middle" font-size="13" font-weight="700" fill="#374151">이 프로젝트의 코드 (4 레이어)</text>
+
+    <rect x="50" y="60" width="580" height="30" rx="6" fill="#fef3c7" stroke="#d97706"/>
+    <text x="340" y="79" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">presentation — Controller, DTO</text>
+
+    <rect x="80" y="100" width="520" height="40" rx="6" fill="#fde68a" stroke="#d97706"/>
+    <text x="340" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">infrastructure — UserEntity(@Entity), UserRepositoryAdapter,</text>
+    <text x="340" y="134" text-anchor="middle" font-size="11" fill="#92400e">UserJpaRepository, Flyway, OgParser, JwtAccessTokenIssuer</text>
+
+    <rect x="120" y="150" width="440" height="30" rx="6" fill="#ddd6fe" stroke="#7c3aed"/>
+    <text x="340" y="169" text-anchor="middle" font-size="12" font-weight="600" fill="#5b21b6">application — UseCase</text>
+
+    <rect x="180" y="190" width="320" height="30" rx="6" fill="#c7d2fe" stroke="#4338ca"/>
+    <text x="340" y="209" text-anchor="middle" font-size="12" font-weight="600" fill="#312e81">domain — User (도메인 엔티티), port</text>
+
+    <line x1="170" y1="270" x2="170" y2="142" stroke="#6b7280" stroke-width="1.5" marker-end="url(#a-ext)"/>
+    <text x="240" y="260" font-size="11" fill="#6b7280">JDBC/SQL로 대화</text>
+
+    <rect x="40" y="275" width="260" height="50" rx="8" fill="white" stroke="#6b7280" stroke-width="2"/>
+    <text x="170" y="298" text-anchor="middle" font-size="12" font-weight="700" fill="#374151">🗄️ Postgres (외부 시스템)</text>
+    <text x="170" y="314" text-anchor="middle" font-size="10" fill="#6b7280">레이어가 아니라 외부 세계</text>
+
+    <rect x="340" y="275" width="300" height="50" rx="8" fill="white" stroke="#6b7280" stroke-width="2"/>
+    <text x="490" y="298" text-anchor="middle" font-size="12" font-weight="700" fill="#374151">🌐 Google OAuth / 쿠팡 API</text>
+    <text x="490" y="314" text-anchor="middle" font-size="10" fill="#6b7280">이것들도 같은 "외부 세계"</text>
+  </svg>
+  <div class="diagram-caption">DB는 코드 레이어가 아니라 <strong>외부 시스템</strong>. infrastructure 레이어가 그 외부와 대화하는 코드.</div>
+</div>
+
+<p><strong>정리</strong>:</p>
+
+<ul class="arrow-list">
+  <li><strong>레이어 = 코드의 논리적 묶음</strong> (domain / application / infrastructure / presentation). 여전히 4개.</li>
+  <li><strong>외부 시스템 = Postgres 프로세스, Google 서버, 쿠팡 API 서버</strong>. 이들은 다른 프로세스/다른 회사의 시스템. 이 프로젝트의 "레이어 카운트"에 안 들어감.</li>
+  <li><code>UserEntity</code>(@Entity 붙은 JPA Entity)는 "infrastructure가 Postgres와 대화하기 위한 매핑 클래스". <strong>infra 레이어 안의 한 파일</strong>일 뿐 별도 레이어가 아니다.</li>
+  <li><code>User</code>(domain 엔티티)와 <code>UserEntity</code>(JPA 엔티티)는 같은 "entity" 단어를 쓰지만 <em>다른 개념</em>. 그래서 이 프로젝트는 파일명에 <code>Entity</code> 접미사를 붙여 명시적 구분.</li>
+</ul>
+
+<div class="callout info">
+  <strong>왜 하필 같은 이름을 썼나</strong> — DDD(2003)가 "Entity"를 도입한 뒤, JPA(2006)가 그 용어를 가져와 어노테이션 이름으로 재사용했다. 같은 단어를 두 커뮤니티가 다른 의미로 쓰게 된 역사적 혼선. 그래서 Clean Architecture 프로젝트는 대부분 <code>User</code> vs <code>UserEntity</code> 같은 접미사로 구분한다.
+</div>
+
+<h2>심화 Q&amp;A — 디렉토리 구조 헷갈리는 지점</h2>
+
+<h3>Q. domain/model/이 뭔데? entity/vo/port만 있어야 하는 거 아니야?</h3>
+
+<p><strong>결론부터</strong> — "entity / vo / port만"이 "DDD 교과서의 최소 집합"은 맞다. 하지만 실제 코드에는 그 셋 중 어디에도 정확히 맞지 않는 <em>도메인 개념</em>들이 있고, 이 프로젝트는 그걸 <code>model/</code>이라는 네 번째 폴더에 모았다.</p>
+
+<p><strong>이 프로젝트 <code>domain/model/</code>의 실제 내용</strong></p>
+
+<pre><code>domain/model/
+├── AccessToken.kt       <span class="cmt">// data class (token: String, expiresAt: Instant)</span>
+├── AuthProvider.kt      <span class="cmt">// enum { GOOGLE }</span>
+├── GoogleIdentity.kt    <span class="cmt">// data class (subject, email, displayName, avatarUrl)</span>
+├── ParseResult.kt       <span class="cmt">// sealed interface { Success, Partial, Failure }</span>
+└── ParserName.kt        <span class="cmt">// enum { OG, COUPANG, ELEVENST }</span></code></pre>
+
+<p>왜 <code>entity/</code>도 <code>vo/</code>도 아닌가?</p>
+
+<table>
+  <tr><th>파일</th><th>entity가 아닌 이유</th><th>vo가 아닌 이유 (이 프로젝트 관례)</th></tr>
+  <tr><td><code>AccessToken</code></td><td>DB에 저장 안 함. ID 없음 (Access JWT는 서버에 저장 X)</td><td>재사용되는 값 타입이 아님 (특정 유스케이스의 산출물)</td></tr>
+  <tr><td><code>GoogleIdentity</code></td><td>linkcart 도메인 식별자가 아님 (외부 소스 Google의 신원 정보)</td><td>Entity의 일부 필드로 쓰이지 않음 (유스케이스 경유 객체)</td></tr>
+  <tr><td><code>ParseResult</code></td><td>식별자 없음. Success/Partial/Failure의 합집합</td><td>sealed interface — 단순 값이 아닌 상태 분기 표현</td></tr>
+  <tr><td><code>AuthProvider</code>, <code>ParserName</code></td><td>enum, 인스턴스가 고정</td><td>enum은 "여러 Entity 필드로 들어가 재사용되는 값 타입"인 Mall/Money과 달리 "제공자/파서 선택" 의미 전달용</td></tr>
+</table>
+
+<p><strong>vs <code>domain/vo/</code>의 실제 내용</strong></p>
+
+<pre><code>domain/vo/
+├── Mall.kt     <span class="cmt">// enum { GENERIC, COUPANG, ELEVENST, ... } — Product.mall 필드로 쓰임</span>
+└── Money.kt    <span class="cmt">// data class (amount: Long) — Product.price 필드로 쓰임</span></code></pre>
+
+<p>이 프로젝트의 <strong>관례적 구분</strong>:</p>
+
+<ul class="arrow-list">
+  <li><strong>entity/</strong> — ID로 식별되고 상태가 변하며 DB에 저장되는 "업무의 주인공" (User, Product, RefreshToken, UserProduct)</li>
+  <li><strong>vo/</strong> — Entity의 <em>필드로 들어가는</em> 불변 값 타입 (Money, Mall). 여러 Entity가 공유.</li>
+  <li><strong>model/</strong> — 도메인 개념이지만 Entity도 VO도 아닌 것 — 유스케이스 결과, 외부 시스템의 신원, 상태 합집합(sealed), 선택지 enum</li>
+  <li><strong>port/</strong> — 외부 세계와의 계약 interface</li>
+</ul>
+
+<div class="callout info">
+  <strong>엄밀 DDD 관점</strong>에서는 이 <code>model/</code> 전부를 "VO"로 묶는 게 정답. 실무에선 "여러 Entity가 공유하는 값 타입(vo)" vs "유스케이스 흐름에서 태어나는 결과/신원/enum(model)"을 분리하면 <em>의도가 선명</em>해져서 이 구분을 쓰는 팀이 많다. 팀 관례 중 하나일 뿐, 표준은 아니다.
+</div>
+
+<p><strong>API 응답값이냐는 질문</strong> — 아니다. API 응답은 <code>presentation/dto/</code>에 있다. <code>domain/model/</code>은 내부 도메인 객체. 예를 들어 <code>ParseResult.Success</code>는 UseCase 내부에서 흐르는 결과이고, presentation은 이걸 <code>ParseResponse</code> DTO로 <em>변환</em>해서 내려준다.</p>
+
+<pre><code><span class="cmt">// application/usecase/ParseProductUseCase.kt</span>
+<span class="kw">fun</span> <span class="fn">execute</span>(url: <span class="cls">String</span>): ParseResult { ... }   <span class="cmt">// ← domain.model 반환</span>
+
+<span class="cmt">// presentation/api/ProductController.kt</span>
+<span class="kw">val</span> result: ParseResult = useCase.execute(req.url)
+<span class="kw">val</span> response: ParseResponse = ParseResponse.from(result)  <span class="cmt">// ← DTO로 변환</span>
+<span class="kw">return</span> ResponseEntity.ok(response)</code></pre>
+
+<h3>Q. application 안에 <code>port/</code>가 있는 건 이상하지 않아? port는 domain에만 있는 거 아닌가?</h3>
+
+<p><strong>아주 좋은 질문.</strong> 이건 Hexagonal 원론에선 <em>모호한</em> 지점인데, 실무에선 <strong>"도메인 포트" vs "애플리케이션 포트"로 구분</strong>하는 스타일이 널리 쓰인다. 이 프로젝트도 그 스타일.</p>
+
+<div class="diagram">
+  <svg width="680" height="320" viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a-port" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#4338ca"/>
+      </marker>
+    </defs>
+    <rect x="20" y="20" width="220" height="120" rx="10" fill="#c7d2fe" stroke="#4338ca" stroke-width="2"/>
+    <text x="130" y="45" text-anchor="middle" font-size="14" font-weight="700" fill="#312e81">domain/port/</text>
+    <text x="130" y="68" text-anchor="middle" font-size="12" fill="#312e81">도메인 개념이 요구하는 외부</text>
+    <line x1="35" y1="78" x2="225" y2="78" stroke="#6366f1" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="130" y="95" text-anchor="middle" font-size="11" fill="#312e81">UserRepository</text>
+    <text x="130" y="111" text-anchor="middle" font-size="11" fill="#312e81">RefreshTokenRepository</text>
+    <text x="130" y="127" text-anchor="middle" font-size="11" fill="#312e81">ProductParser</text>
+
+    <rect x="260" y="20" width="220" height="120" rx="10" fill="#ddd6fe" stroke="#7c3aed" stroke-width="2"/>
+    <text x="370" y="45" text-anchor="middle" font-size="14" font-weight="700" fill="#5b21b6">application/auth/port/</text>
+    <text x="370" y="68" text-anchor="middle" font-size="12" fill="#5b21b6">특정 유스케이스가 요구하는 외부</text>
+    <line x1="275" y1="78" x2="465" y2="78" stroke="#7c3aed" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="370" y="95" text-anchor="middle" font-size="11" fill="#5b21b6">GoogleOAuthClient</text>
+    <text x="370" y="111" text-anchor="middle" font-size="11" fill="#5b21b6">AccessTokenIssuer</text>
+    <text x="370" y="127" text-anchor="middle" font-size="11" fill="#5b21b6">RefreshTokenGenerator</text>
+
+    <rect x="500" y="20" width="160" height="120" rx="10" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+    <text x="580" y="45" text-anchor="middle" font-size="14" font-weight="700" fill="#92400e">infrastructure</text>
+    <text x="580" y="65" text-anchor="middle" font-size="12" fill="#92400e">adapter/</text>
+    <line x1="515" y1="75" x2="645" y2="75" stroke="#d97706" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="580" y="93" text-anchor="middle" font-size="11" fill="#92400e">UserRepoAdapter</text>
+    <text x="580" y="109" text-anchor="middle" font-size="11" fill="#92400e">GoogleOAuthAdapter</text>
+    <text x="580" y="125" text-anchor="middle" font-size="11" fill="#92400e">JwtAccessTokenIssuer</text>
+
+    <line x1="500" y1="80" x2="240" y2="80" stroke="#4338ca" stroke-width="1.5" marker-end="url(#a-port)"/>
+    <line x1="500" y1="100" x2="480" y2="100" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#a-port)"/>
+    <text x="340" y="155" text-anchor="middle" font-size="11" fill="#6b7280">infra가 두 종류의 port를 모두 구현</text>
+
+    <rect x="100" y="190" width="480" height="110" rx="10" fill="white" stroke="#e5e7eb"/>
+    <text x="340" y="215" text-anchor="middle" font-size="13" font-weight="700" fill="#374151">판단 기준</text>
+    <text x="120" y="240" font-size="12" fill="#374151"><tspan font-weight="600">도메인 포트:</tspan> "이 도메인이 살기 위해 필요한 것". User 저장/조회 같은 본질적 요구.</text>
+    <text x="120" y="260" font-size="12" fill="#374151"><tspan font-weight="600">앱 포트:</tspan> "이 유스케이스 흐름에서 필요한 것". Google OAuth 같은 특정 사용처 기반.</text>
+    <text x="120" y="283" font-size="11" fill="#6b7280">→ 다른 유스케이스가 절대 안 쓸 포트라면 application/, 여러 유스케이스가 공유하면 domain/</text>
+  </svg>
+  <div class="diagram-caption">도메인 포트와 앱 포트 — 위치와 의도의 차이</div>
+</div>
+
+<table>
+  <tr><th>구분</th><th>domain/port/</th><th>application/&lt;도메인&gt;/port/</th></tr>
+  <tr><td>대표 예</td><td><code>UserRepository</code>, <code>ProductRepository</code>, <code>ProductParser</code></td><td><code>GoogleOAuthClient</code>, <code>AccessTokenIssuer</code>, <code>RefreshTokenGenerator</code></td></tr>
+  <tr><td>소유자</td><td>도메인 자체 — "사용자 개념은 어딘가 저장되어야 한다"</td><td>특정 유스케이스 — "로그인 흐름은 Google 토큰을 교환해야 한다"</td></tr>
+  <tr><td>재사용</td><td>여러 유스케이스가 공유 (SaveUser, LoginWithGoogle, DeleteUser 등 전부 UserRepository 씀)</td><td>보통 1~2개 유스케이스만 씀 (GoogleOAuthClient는 LoginWithGoogleUsecase만)</td></tr>
+  <tr><td>DDD 용어</td><td>"Repository" 전술적 패턴과 대응</td><td>"Application Service Port" — DDD 원론엔 없음, Hexagonal에서 인정</td></tr>
+</table>
+
+<p><strong>원론에 가까운 스타일</strong>에선 포트를 domain에만 두고, application은 UseCase만 두기도 한다. 이 프로젝트가 둘을 분리한 건:</p>
+
+<ol>
+  <li><code>GoogleOAuthClient</code>를 <code>domain/port/</code>에 두면 "도메인이 Google이란 특정 제공자를 아는 것"이 되어 오염.</li>
+  <li><code>application/auth/port/</code>에 두면 "auth 유스케이스 묶음이 이 외부 서비스를 필요로 한다"고 의도가 선명.</li>
+  <li>도메인은 "User/AuthProvider/RefreshToken" 같은 <em>본질 개념</em>만 알면 되고, "Google OAuth"는 구체 선택이므로 한 칸 바깥.</li>
+</ol>
+
+<div class="callout tip">
+  <strong>실무 판단 기준</strong> — "이 포트를 만약 우리 앱이 Google 말고 Apple 로그인으로 바꾸면 폐기하나?" YES면 application 포트. "User는 어느 제공자든 필요하므로 폐기 안 함" → UserRepository는 domain 포트.
+</div>
+
+<h3>Q. infrastructure도 도메인별로 쪼개야 하지 않아? config가 여기 있는 것도 일관성 없어 보여</h3>
+
+<p><strong>infra는 도메인 단위가 아니라 "외부 시스템/기술 단위"로 쪼개는 게 헥사고날 관례.</strong> 그 이유는 infra가 담당하는 게 "도메인 관심사"가 아니라 "어떤 기술로 외부와 말할지"이기 때문.</p>
+
+<pre><code>infrastructure/
+├── adapter/
+│   ├── parser/          <span class="cmt">// "HTML/외부 API 파싱" 기술 묶음</span>
+│   ├── auth/            <span class="cmt">// "JWT/OAuth" 기술 묶음</span>
+│   └── persistence/     <span class="cmt">// "JPA/Postgres" 기술 묶음</span>
+│       ├── user/
+│       ├── refreshtoken/
+│       └── userproduct/ <span class="cmt">// ← persistence 내부에서는 도메인별로 다시 쪼갬</span>
+└── config/              <span class="cmt">// Spring 설정 (프레임워크 어댑터의 조립)</span></code></pre>
+
+<p>즉 <strong>1차 구분은 기술, 2차 구분은 도메인</strong>. 이 프로젝트도 <code>persistence/</code> 안은 <code>user/</code>, <code>refreshtoken/</code>, <code>userproduct/</code>로 도메인별로 나뉜다.</p>
+
+<p><strong>왜 application과 infra의 구조가 대칭이 아닌가</strong></p>
+
+<table>
+  <tr><th>레이어</th><th>1차 분류 기준</th><th>근거</th></tr>
+  <tr><td>application</td><td>도메인 (auth, user, parser)</td><td>"이 유스케이스들은 같은 업무를 다룬다"가 단위</td></tr>
+  <tr><td>infrastructure</td><td>기술/외부 시스템 (parser=HTML/HTTP, auth=JWT/OAuth, persistence=JPA)</td><td>"같은 기술 스택을 쓴다"가 단위 — 한 팀이 소유하면 좋고 라이브러리 버전도 묶임</td></tr>
+</table>
+
+<p><strong>config가 왜 infrastructure 안?</strong> — <code>SecurityConfig</code>, <code>WebConfig</code>는 Spring 프레임워크 어댑터의 조립이다. 도메인 로직이 아니고, <em>외부 프레임워크에 "이렇게 동작하라"고 설정하는 코드</em>라서 infra 성격. 헥사고날 관점에서 "Spring = 외부 프레임워크 = infrastructure"라고 본다.</p>
+
+<p><strong>다른 배치 스타일과의 비교</strong></p>
+
+<div class="compare">
+  <div class="compare-cell">
+    <div class="label">A. 이 프로젝트 — config를 infra 안</div>
+<pre><code>infrastructure/
+├── adapter/
+└── config/
+    ├── WebConfig.kt
+    └── security/SecurityConfig.kt</code></pre>
+  </div>
+  <div class="compare-cell">
+    <div class="label">B. config를 최상위 5번째 레이어로</div>
+<pre><code>domain/
+application/
+infrastructure/
+presentation/
+config/                 <span class="cmt">// 5번째</span>
+├── WebConfig.kt
+└── SecurityConfig.kt</code></pre>
+  </div>
+</div>
+
+<p>B 스타일도 유효하지만, Spring 설정은 사실상 "필터/서블릿/Bean 조립"이라 infra와 성격이 거의 같다 → 이 프로젝트는 A 선택. 구분 기준:</p>
+
+<ul class="arrow-list">
+  <li>config가 <strong>대부분 Spring Bean 조립</strong>이면 → infrastructure/config (이 프로젝트)</li>
+  <li>config에 <strong>도메인 정책도 섞이면</strong> (예: 비즈니스 규칙 기반 feature flag) → 최상위 분리가 낫다</li>
+</ul>
+
+<h3>Q. DDD니까 port보단 repository가 낫지 않나? domain에선 interface, infra에선 구현체로 보면 되지 않아?</h3>
+
+<p><strong>맞는 말이다. 그리고 실제로 그렇게 쓴다.</strong> 용어만 명확히 나눠보자.</p>
+
+<table>
+  <tr><th>용어</th><th>출처</th><th>범위</th></tr>
+  <tr><td><strong>Port</strong></td><td>Hexagonal (Alistair Cockburn)</td><td>도메인이 외부에 요구하는 <em>모든</em> interface — DB, HTTP 클라이언트, 메시지 큐 등 전부 포함</td></tr>
+  <tr><td><strong>Repository</strong></td><td>DDD (Eric Evans)</td><td>Aggregate(Entity 묶음)의 <em>영속성</em>만 담당하는 특수한 Port. DB 저장/조회에 한정</td></tr>
+</table>
+
+<p>즉 <strong>Repository ⊂ Port</strong>. Repository는 "DB용 Port"라고 봐도 된다. 그래서 이 프로젝트도 <code>UserRepository</code>, <code>RefreshTokenRepository</code>로 <em>Repository 네이밍을 쓴다</em>. interface는 domain, 구현체는 infra — 질문의 멘탈 모델이 정확히 맞다.</p>
+
+<pre><code><span class="cmt">// domain/port/UserRepository.kt — "Port이지만 Repository로 이름 지음"</span>
+<span class="kw">interface</span> <span class="cls">UserRepository</span> {
+    <span class="kw">fun</span> <span class="fn">save</span>(user: User): User
+    <span class="kw">fun</span> <span class="fn">findById</span>(id: <span class="cls">Long</span>): User?
+}
+
+<span class="cmt">// infrastructure/adapter/persistence/user/UserRepositoryAdapter.kt — 구현</span>
+<span class="cmt">@</span><span class="fn">Component</span>
+<span class="kw">class</span> <span class="cls">UserRepositoryAdapter</span>(
+    <span class="kw">private val</span> jpa: UserJpaRepository,
+) : <span class="cls">UserRepository</span> { ... }</code></pre>
+
+<p><strong>그럼 왜 폴더 이름이 <code>port/</code>일까?</strong></p>
+
+<ul class="arrow-list">
+  <li><code>domain/port/</code>에는 Repository만 있는 게 아니다. <code>ProductParser</code> 같은 "HTML 파싱 서비스 interface"도 있다. Parser는 Repository라고 부르면 어색 — 영속성이 아니기 때문.</li>
+  <li>여러 성격의 interface(Repository, Parser, Client, Gateway)를 한 폴더에 두려면 상위 개념인 <code>port/</code>가 자연스럽다.</li>
+  <li>이름이 <code>port</code>여도 내부 <strong>파일 이름</strong>은 <code>UserRepository.kt</code>처럼 DDD 용어를 쓴다. 이 프로젝트도 그대로.</li>
+</ul>
+
+<p><strong>구현체 이름의 관례</strong></p>
+
+<table>
+  <tr><th>구현체 위치</th><th>이름 관례</th><th>예</th></tr>
+  <tr><td>port의 1차 어댑터</td><td><code>Xxx</code><strong><code>Adapter</code></strong></td><td><code>UserRepositoryAdapter</code>, <code>GoogleOAuthAdapter</code></td></tr>
+  <tr><td>Spring Data JPA interface</td><td><code>Xxx</code><strong><code>JpaRepository</code></strong></td><td><code>UserJpaRepository</code> (Adapter가 내부적으로 사용)</td></tr>
+  <tr><td>특정 제공자별</td><td>이름 + 제공자</td><td><code>JwtAccessTokenIssuer</code>, <code>SecureRandomRefreshTokenGenerator</code></td></tr>
+</table>
+
+<h3>Q. Spring은 interface 받으면 구현체를 자동 선택하잖아. 그럼 헥사고날 아니야?</h3>
+
+<p>이 질문이 핵심이다. 답은 <strong>"Spring DI는 <em>어댑터 주입</em>을 쉽게 해주지만, 그게 헥사고날 구조를 만드는 건 아니다"</strong>. 분해해서 보자.</p>
+
+<h4>Spring이 실제로 해주는 것</h4>
+
+<pre><code><span class="cmt">// Spring은 이 정도까지만 해준다:</span>
+<span class="kw">interface</span> <span class="cls">Foo</span>
+<span class="cmt">@</span><span class="fn">Component</span> <span class="kw">class</span> <span class="cls">FooImpl</span> : <span class="cls">Foo</span>
+
+<span class="cmt">@</span><span class="fn">Service</span>
+<span class="kw">class</span> <span class="cls">MyService</span>(<span class="kw">private val</span> foo: Foo)    <span class="cmt">// ← FooImpl을 자동으로 찾아 주입</span></code></pre>
+
+<p>맞다. 이것만 봐도 interface/구현체 분리가 자동으로 되는 것처럼 보인다. 그런데 <strong>헥사고날이 요구하는 건 interface/impl 분리 <em>그 자체</em>가 아니라 "분리가 <em>어디에</em> 이뤄졌는가"</strong>이다.</p>
+
+<div class="diagram">
+  <svg width="680" height="340" viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a-hx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+      </marker>
+      <marker id="a-hx2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#059669"/>
+      </marker>
+    </defs>
+
+    <text x="170" y="25" text-anchor="middle" font-size="13" font-weight="700" fill="#991b1b">❌ Spring 기본 튜토리얼 (Layered)</text>
+
+    <rect x="40" y="40" width="260" height="45" rx="6" fill="#fef3c7" stroke="#d97706"/>
+    <text x="170" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">UserService</text>
+    <text x="170" y="76" text-anchor="middle" font-size="10" fill="#78350f">@Service — 비즈니스 로직</text>
+
+    <line x1="170" y1="85" x2="170" y2="110" stroke="#dc2626" stroke-width="1.5" marker-end="url(#a-hx)"/>
+    <text x="250" y="101" font-size="10" fill="#991b1b">JPA에 직접 의존</text>
+
+    <rect x="40" y="115" width="260" height="45" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="170" y="135" text-anchor="middle" font-size="12" font-weight="600" fill="#991b1b">UserRepository (Spring Data JPA)</text>
+    <text x="170" y="151" text-anchor="middle" font-size="10" fill="#991b1b">extends JpaRepository&lt;User, Long&gt;</text>
+
+    <line x1="170" y1="160" x2="170" y2="185" stroke="#dc2626" stroke-width="1.5" marker-end="url(#a-hx)"/>
+
+    <rect x="40" y="190" width="260" height="45" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="170" y="210" text-anchor="middle" font-size="12" font-weight="600" fill="#991b1b">User (@Entity)</text>
+    <text x="170" y="226" text-anchor="middle" font-size="10" fill="#991b1b">도메인 + JPA 스키마 뒤섞임</text>
+
+    <text x="170" y="260" text-anchor="middle" font-size="11" fill="#991b1b">interface는 있지만 JpaRepository가</text>
+    <text x="170" y="275" text-anchor="middle" font-size="11" fill="#991b1b">이미 JPA에 "묶여" 있음 → 바꿀 수 없음</text>
+    <text x="170" y="296" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="600">"interface는 있지만 헥사고날 아님"</text>
+
+    <text x="510" y="25" text-anchor="middle" font-size="13" font-weight="700" fill="#065f46">✅ 헥사고날 스타일</text>
+
+    <rect x="380" y="40" width="260" height="45" rx="6" fill="#c7d2fe" stroke="#4338ca"/>
+    <text x="510" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="#312e81">domain/port/UserRepository</text>
+    <text x="510" y="76" text-anchor="middle" font-size="10" fill="#312e81">interface (순수 Kotlin)</text>
+
+    <line x1="510" y1="85" x2="510" y2="110" stroke="#059669" stroke-width="1.5" marker-end="url(#a-hx2)"/>
+    <text x="580" y="101" font-size="10" fill="#059669">구현 (DIP)</text>
+
+    <rect x="380" y="115" width="260" height="45" rx="6" fill="#d1fae5" stroke="#059669"/>
+    <text x="510" y="135" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">UserRepositoryAdapter</text>
+    <text x="510" y="151" text-anchor="middle" font-size="10" fill="#065f46">@Component in infrastructure/</text>
+
+    <line x1="510" y1="160" x2="510" y2="185" stroke="#059669" stroke-width="1.5" marker-end="url(#a-hx2)"/>
+
+    <rect x="380" y="190" width="260" height="45" rx="6" fill="#d1fae5" stroke="#059669"/>
+    <text x="510" y="210" text-anchor="middle" font-size="12" font-weight="600" fill="#065f46">UserJpaRepository + UserEntity</text>
+    <text x="510" y="226" text-anchor="middle" font-size="10" fill="#065f46">JPA는 여기 안에서만</text>
+
+    <text x="510" y="260" text-anchor="middle" font-size="11" fill="#065f46">domain의 interface가 어떤 기술에도</text>
+    <text x="510" y="275" text-anchor="middle" font-size="11" fill="#065f46">묶이지 않음 → MyBatis로 교체 가능</text>
+    <text x="510" y="296" text-anchor="middle" font-size="11" fill="#059669" font-weight="600">"interface의 <tspan font-style="italic">위치</tspan>가 헥사고날의 핵심"</text>
+  </svg>
+  <div class="diagram-caption">Spring은 interface/impl 분리를 "연결"만 해준다. 어디에 둘지는 개발자 판단.</div>
+</div>
+
+<h4>Spring이 안 해주는 것 (= 헥사고날을 위해 개발자가 결정해야 할 것)</h4>
+
+<ol>
+  <li><strong>interface를 어디에 둘지</strong> — <code>repository/UserRepository.java</code>(Spring Data JPA 상속)에 둘지, <code>domain/port/UserRepository.kt</code>(순수 Kotlin)에 둘지 <em>Spring은 무관심</em>.</li>
+  <li><strong>interface가 프레임워크에 묶이지 않게 할지</strong> — <code>extends JpaRepository</code>를 쓰면 Spring Data가 구현체를 자동 생성해 주기 편하다. 하지만 이러면 interface가 이미 JPA 스펙에 묶여 JPA 없이 테스트할 수 없다. 헥사고날 원칙에 어긋남.</li>
+  <li><strong>도메인 엔티티와 JPA Entity를 분리할지</strong> — <code>@Entity class User</code> 한 클래스로 쓸지, <code>domain/entity/User.kt</code>(순수) + <code>infrastructure/.../UserEntity.kt</code>(@Entity) 두 클래스로 쓸지 Spring은 강제 안 함.</li>
+  <li><strong>구현체 방향</strong> — 헥사고날은 "infra → domain 방향 의존"이 필수. Spring은 반대 방향("service가 repository impl에 의존")도 허용.</li>
+</ol>
+
+<div class="callout warn">
+  <strong>흔한 오해</strong> — "Spring에서 interface/impl 쓰면 헥사고날이다"는 아니다. Spring Data JPA의 <code>UserRepository extends JpaRepository</code>도 interface + 구현체 분리지만 <em>헥사고날 아니다</em>. 이유: 그 interface는 이미 JPA에 결합돼 있고, 도메인이 아닌 <code>repository/</code> 폴더에 있고, 바꿀 수 있는 어댑터가 아니다.
+</div>
+
+<p><strong>비유</strong> — Spring DI는 <em>콘센트 연결선</em>이다. 가전제품(어댑터)을 콘센트(생성자 파라미터)에 꽂아주는 일만 한다. 콘센트 규격이 유럽식인지 한국식인지(포트 설계), 어느 방에 몇 개 둘지(레이어 배치)는 건축가(개발자)의 결정. Spring은 규격을 정해주지 않는다.</p>
+
+<h2>주의 — 과하면 독</h2>
+
+<div class="callout warn">
+  <strong>YAGNI</strong> — 작은 CRUD 앱에 포트·어댑터를 다 만들면 파일 수가 4배로 늘고 오히려 어려워진다.
+  이 프로젝트가 굳이 이렇게 한 이유는: (1) 티니어 면접 어필 (2) 외부 의존성이 많아 분리 이득이 실재 (3) Kotlin/Spring 패턴 학습.
+  <br>실무에서는 도메인 복잡도가 이 구조를 정당화할 수준일 때만 도입한다.
+</div>
+
+<h2>심화 Q&amp;A — AI 시대에도 이 구조가 항상 정답일까</h2>
+
+<h3>Q. 파일 수가 늘어도 관심사가 분리되면 읽고 수정하기 편하지 않아? AI가 코드 작성 비용을 낮춘 지금은 항상 클린 아키텍처가 정답 아닌가?</h3>
+
+<p><strong>방향성은 맞다. 그러나 "항상 정답"은 아니다.</strong> 질문 속 전제를 분해해서 이득과 비용을 하나씩 보자.</p>
+
+<p><strong>AI가 정말 낮춘 것 vs 그대로인 것</strong></p>
+
+<table>
+  <tr><th>비용 항목</th><th>AI 이전</th><th>AI 도입 후</th><th>감소 폭</th></tr>
+  <tr><td>작성 (타이핑)</td><td>높음 — 포트·어댑터·매핑 함수 매번 손으로</td><td>낮음 — 보일러플레이트는 생성됨</td><td>크게 ↓ ✓</td></tr>
+  <tr><td>이해 (읽기/흐름 추적)</td><td>높음 — 파일 3~4개 거쳐 로직 따라감</td><td>높음 — 사람이 여전히 읽어야 함</td><td>거의 동일</td></tr>
+  <tr><td>탐색 (어디 뭐 있는지)</td><td>높음 — 네이밍 관례 학습 필요</td><td>중간 — grep/LSP로 찾긴 함</td><td>조금 ↓</td></tr>
+  <tr><td>변경 추적 (한 개념 수정 시 몇 파일)</td><td>높음 — User 필드 하나가 3~5 파일</td><td>중간 — AI가 전파 보조, 리뷰/검증은 사람</td><td>조금 ↓</td></tr>
+  <tr><td>교체 이득 (DB/API 바꿀 때)</td><td>높음 — 어댑터 하나만 교체</td><td>높음 — 그대로</td><td>동일</td></tr>
+</table>
+
+<p><strong>결론</strong> — AI가 낮춘 건 <em>작성 비용</em>뿐. 이해/탐색/리뷰/판단 비용은 거의 그대로. "항상 클린이 정답"이 되려면 <em>이해 비용까지</em> 자동화돼야 하는데 아직 그 단계가 아니다.</p>
+
+<p><strong>반례 — 과잉 추상화가 오히려 독인 경우</strong></p>
+
+<ol>
+  <li><strong>단순 CRUD 프로젝트</strong>. 업무 규칙이 사실상 없는데 <code>User → UserEntity → UserJpaRepository → UserRepositoryAdapter → UserRepository(port) → UseCase → Controller → DTO</code> 7 파일을 거치는데 실제 로직은 <code>save(user)</code> 한 줄. 파일이 많은 만큼 리뷰 비용과 실수 여지도 늘고, 팀원은 "왜 이렇게 돌아가죠"를 반복 질문.</li>
+  <li><strong>외부 의존성이 적은 앱</strong>. DB는 Postgres 하나만 평생 쓸 예정, 외부 API 없음, 결제 없음 → <em>포트의 교체 이득이 0</em>. 테스트 용이성만 남는데 그건 <code>@DataJpaTest</code>와 H2로도 충분. 클린 구조의 이득 기둥 중 하나가 통째로 빠짐.</li>
+  <li><strong>팀 학습 비용</strong>. 모두가 클린 아키텍처를 이해하지 못하면 <em>껍데기만 클린인 코드</em>가 태어난다. 포트는 있는데 UseCase가 JPA Exception을 그대로 흘려보내거나, 어댑터가 도메인 규칙을 담거나. 이러면 이득은 없고 파일 수 비용만 남음.</li>
+  <li><strong>변경 추적의 역설</strong>. "User에 phoneNumber 추가" 한 변경이 <code>User</code> + <code>UserEntity</code> + <code>toDomain/fromDomain</code> + Flyway 마이그레이션 + <code>UserResponse</code> DTO를 동시에 건드림. AI 도움 있어도 5개 파일 diff를 사람이 리뷰. Layered였다면 Entity 겸 도메인 1파일 + Flyway 1파일로 끝.</li>
+</ol>
+
+<p><strong>"AI가 쓰는 코드는 일관된 패턴일 때 더 잘 쓴다"는 맞다.</strong> 다만 그 패턴이 <em>적절한 복잡도일 때</em>만. 필요 없는 추상화까지 규칙으로 깔면 AI는 그 규칙을 무조건 따라가며 단순한 문제를 복잡하게 해결하려 든다. "파일 개수 = 품질"이 아니다.</p>
+
+<p><strong>그래서 판단 기준은 근본적으로 바뀌지 않음</strong> — 세 질문에 YES가 많을수록 클린이 이득:</p>
+
+<ol>
+  <li><strong>외부 의존성이 많은가?</strong> (결제 / 다중 DB / 외부 파싱 API / 인증 제공자 여러 개) — 이 프로젝트는 OG + 쿠팡 + 11번가 + Google + JWT만큼 YES.</li>
+  <li><strong>제품 수명이 긴가?</strong> (5년+ 예상 / 라이브러리/DB가 바뀔 가능성) — 길수록 교체 이득이 누적.</li>
+  <li><strong>테스트가 품질 기준인가?</strong> (단위 테스트 비율이 높은 팀 / 빠른 피드백 루프가 핵심) — 포트 stub 주입의 이득이 바로 나옴.</li>
+</ol>
+
+<div class="callout tip">
+  <strong>AI 시대의 조정된 권고</strong> — "작성 비용이 낮아졌으니 <em>경계선이 약간 이동</em>했다"가 정확한 표현. 예전엔 "외부 의존성 3개+일 때 클린"이었다면 이제 "2개+일 때도 고려할 만함" 정도. 하지만 단순 CRUD에도 항상 클린을 넣으라는 결론은 과잉. YAGNI는 여전히 유효. 특히 <em>팀이 구조를 이해하는가</em>는 AI가 해결해주지 않는다.
+</div>
+
+<p><strong>이 프로젝트가 그래도 클린을 쓴 이유</strong> — 바로 위 "주의 — 과하면 독"에 이미 답: (1) 면접 어필 (2) 외부 의존성 다수(OG·쿠팡·11번가·Google·JWT) (3) Kotlin/Spring 헥사고날 학습. 실무 관점에선 (2)가 실재하므로 분리 이득이 있음. 단, <em>회사 실무에서 CRUD 수준의 앱이라면 Layered가 더 나은 선택일 수 있다</em>는 균형 감각은 계속 유지할 것.</p>
+
+<h2>정리</h2>
+
+<ul class="arrow-list">
+  <li>레이어 4개: domain / application / infrastructure / presentation</li>
+  <li>의존 방향: <strong>항상 안쪽으로만</strong></li>
+  <li>domain은 프레임워크·DB·외부 API 어디에도 의존 안 함</li>
+  <li>포트(interface)를 안쪽 레이어에 두고 바깥이 구현 (DIP)</li>
+  <li>장점: 교체 가능, 테스트 쉬움, 의도 드러남</li>
+  <li>주의: 도메인이 단순하면 이 구조 자체가 부담</li>
+</ul>
+
+<div class="source-files">
+  <h3>레이어별 대표 파일 (GitHub)</h3>
+  <ul>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/backend/src/main/kotlin/com/linkcart/domain">domain/</a><span class="comment">entity, model, vo, port</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/domain/entity/User.kt">domain/entity/User.kt</a><span class="comment">순수 Kotlin 도메인 엔티티</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/domain/port/UserRepository.kt">domain/port/UserRepository.kt</a><span class="comment">포트 interface</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/backend/src/main/kotlin/com/linkcart/application">application/</a><span class="comment">usecase, port</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/application/auth/usecase/LoginWithGoogleUsecase.kt">application/auth/usecase/LoginWithGoogleUsecase.kt</a></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/backend/src/main/kotlin/com/linkcart/infrastructure">infrastructure/</a><span class="comment">adapter, config</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/user/UserRepositoryAdapter.kt">infrastructure/adapter/persistence/user/UserRepositoryAdapter.kt</a><span class="comment">port 구현</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/user/UserEntity.kt">infrastructure/adapter/persistence/user/UserEntity.kt</a><span class="comment">@Entity (도메인 ↔ 분리)</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/tree/main/backend/src/main/kotlin/com/linkcart/presentation">presentation/</a><span class="comment">api, dto</span></li>
+    <li><a href="https://github.com/park-j3onghoon/linkcart/blob/main/backend/src/main/kotlin/com/linkcart/presentation/api/AuthController.kt">presentation/api/AuthController.kt</a></li>
+  </ul>
+</div>
+
+<div class="page-footer">
+  <a class="prev" href="05-gradle-build.html">04. Gradle</a>
+  <a class="next" href="07-parser-evolution.html">06. 파서 설계의 진화</a>
+</div>
+
+</div>
+</body>
+</html>
