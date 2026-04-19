@@ -262,6 +262,55 @@
   <tr><td>kotlin.test assertions</td><td>assertEquals, assertIs, assertThrows 등</td></tr>
 </table>
 
+<h2>심화 Q&amp;A — 자주 헷갈리는 지점</h2>
+
+<h3>Q. 테스트는 레이어마다 있어야 해? 애플리케이션에서 비즈니스 로직만 검증하면 되는 거 아닌가?</h3>
+
+<p><strong>레이어마다 검증 대상이 달라서 모두 필요할 수 있다</strong>. 기계적으로 다 쓰는 게 아니라 <strong>"커스텀 로직이 있는 곳마다"</strong> 쓴다.</p>
+
+<table>
+  <tr><th>레이어</th><th>무엇을 검증하는가</th><th>왜 이 레이어에서만 가능한가</th></tr>
+  <tr><td><strong>Domain</strong></td><td>불변식, VO 검증 로직 (URL 정규화, 가격 범위)</td><td>케이스가 많아 유스케이스 통합으로 돌리면 무거움 → 빠른 단위 테스트로 분리</td></tr>
+  <tr><td><strong>Application</strong></td><td>유스케이스 조합 (포트 모킹, fallback chain 분기)</td><td>여기서만 하면 아래 레이어를 모킹으로 덮어 <strong>실제 버그를 놓침</strong></td></tr>
+  <tr><td><strong>Infrastructure</strong></td><td><code>OgParser</code>의 Jsoup HTML 엣지 케이스, 외부 API 실제 응답 매핑</td><td><strong>모킹으로는 못 잡는 것들</strong> (깨진 HTML, 인코딩, 타임아웃)</td></tr>
+  <tr><td><strong>Presentation</strong></td><td>HTTP 계약 (상태 코드, 직렬화, <code>@Valid</code>)</td><td>MockMvc로만 검증 가능</td></tr>
+</table>
+
+<h3>Q. "애플리케이션에서만 하면 안 되나?"가 위험한 이유</h3>
+
+<p><code>OgParser</code>를 Mock 처리하면 <strong>"title이 한글일 때 깨진다"</strong> 같은 실제 버그를 절대 못 잡는다. Jsoup이 실제 HTML을 어떻게 다루는지는 인프라 테스트에서만 드러남.</p>
+
+<pre><code><span class="cmt">// 나쁜 예 — 유스케이스에서 OgParser를 mock</span>
+given(ogParser.parse(url)).willReturn(ParseResult.Success(...))
+<span class="cmt">// ↑ 실제 OgParser가 한글 HTML을 제대로 파싱하는지 전혀 검증 안 됨</span>
+
+<span class="cmt">// 좋은 분리</span>
+<span class="cmt">// 1. OgParserTest — 실제 Jsoup 동작 검증 (한글, 깨진 HTML, 빈 meta 등)</span>
+<span class="cmt">// 2. ParseProductUseCaseTest — OgParser mock으로 조합 로직 검증</span></code></pre>
+
+<h3>Q. 그러면 언제 생략 가능해?</h3>
+
+<p>이 프로젝트의 <code>CLAUDE.md</code> 규칙:</p>
+<ul class="arrow-list">
+  <li>단순 data class / DTO 단독 테스트 → <strong>불필요</strong></li>
+  <li>프레임워크 빌트인 동작 (Spring DI, <code>@Valid</code> 자체) → <strong>불필요</strong></li>
+  <li>커스텀 로직 없는 단순 전달자 → <strong>불필요</strong></li>
+  <li>무효 케이스 전수 검증 → <strong>불필요</strong> (유효 케이스 하나로 충분)</li>
+  <li>스냅샷 테스트 → <strong>금지</strong> (작은 변경에 깨지고 의미 흐림)</li>
+</ul>
+
+<h3>Q. 그럼 피라미드랑 이 원칙은 어떻게 연결돼?</h3>
+
+<p>피라미드는 <strong>"어떤 테스트를 얼마나 쓸 것인가"</strong>(비율)이고, 레이어별 전략은 <strong>"어디에 무엇을 검증할 것인가"</strong>(위치). 두 축은 직교한다.</p>
+
+<table>
+  <tr><th></th><th>피라미드 아래쪽 (단위)</th><th>피라미드 위쪽 (통합/E2E)</th></tr>
+  <tr><td>도메인</td><td>VO 불변식 검증 테스트</td><td>-</td></tr>
+  <tr><td>애플리케이션</td><td>UseCase + 포트 stub</td><td>-</td></tr>
+  <tr><td>인프라</td><td>Jsoup 엣지 케이스 단위 테스트</td><td>Testcontainers로 실제 Postgres</td></tr>
+  <tr><td>프레젠테이션</td><td>@WebMvcTest 슬라이스</td><td>@SpringBootTest 전체 부트</td></tr>
+</table>
+
 <h2>정리</h2>
 
 <ul class="arrow-list">

@@ -561,6 +561,123 @@ ParseResponse.isValidName(<span class="str">"foo"</span>)
 
 <p>입사 후 WebFlux/Ktor/Reactive 프로젝트를 맡으면 코루틴·Flow가 필수. 그때 학습하면 된다. MVC 스택에서는 필요 없음.</p>
 
+<h2>심화 Q&A — 자주 헷갈리는 지점</h2>
+
+<h3>Q. <code>class</code>와 <code>object</code>의 근본 차이는?</h3>
+
+<table>
+  <tr><th></th><th><code>class</code></th><th><code>object</code></th></tr>
+  <tr><td>인스턴스</td><td>여러 개 생성 가능</td><td><strong>단 하나</strong> (싱글톤)</td></tr>
+  <tr><td>생성</td><td><code>ParserFactory(...)</code></td><td>선언 즉시 존재</td></tr>
+  <tr><td>생성자</td><td>있음</td><td>없음 (파라미터 못 받음)</td></tr>
+  <tr><td>상속</td><td>가능</td><td>클래스 자체는 상속 불가 (인터페이스 구현은 OK)</td></tr>
+  <tr><td>용도</td><td>일반 도메인 객체</td><td>싱글톤, 유틸, 상수 모음</td></tr>
+</table>
+
+<h3>Q. <code>object</code>의 3가지 형태는?</h3>
+
+<p><strong>1. 싱글톤 선언 (object declaration)</strong> — 자바의 <code>public static final</code> 상수 모음과 같은 역할.</p>
+
+<pre><code><span class="kw">object</span> ParserNames {
+    <span class="kw">const val</span> OG = <span class="str">"og"</span>
+    <span class="kw">const val</span> COUPANG = <span class="str">"coupang-api"</span>
+}
+
+ParserNames.OG                  <span class="cmt">// "og"</span>
+ParserNames === ParserNames     <span class="cmt">// 항상 true</span></code></pre>
+
+<p><strong>2. companion object</strong> — 자바 <code>static</code>의 대체 (이미 위에서 다룸).</p>
+
+<p><strong>3. object expression</strong> — 자바 anonymous inner class와 같은 익명 객체. 인터페이스를 그 자리에서 구현한 일회용.</p>
+
+<pre><code><span class="cmt">// ParserFactoryTest.kt:28</span>
+<span class="kw">val</span> dedicated = <span class="kw">object</span> : ProductParser {
+    <span class="kw">override fun</span> <span class="fn">canParse</span>(url: <span class="cls">String</span>) = url.contains(<span class="str">"coupang.com"</span>)
+    <span class="kw">override fun</span> <span class="fn">parse</span>(url: <span class="cls">String</span>) = ParseResult.Failure(<span class="str">"stub"</span>, <span class="str">"test"</span>)
+}</code></pre>
+
+<h3>Q. enum은 상수인가 VO인가?</h3>
+
+<p><strong>둘 다 맞는 관점</strong>.</p>
+
+<ul class="arrow-list">
+  <li><strong>개별 enum 값</strong> (<code>Mall.COUPANG</code>) — 컴파일 타임 고정 싱글톤이므로 "이름 붙은 상수"로 해석 가능</li>
+  <li><strong>enum 타입</strong> (<code>Mall</code>) — 값으로 정체성 판단하는 <strong>"유한 집합의 VO"</strong></li>
+</ul>
+
+<p>Kotlin/Java enum은 C 스타일 정수 상수가 아니라 <strong>필드/메서드를 가진 객체</strong>:</p>
+
+<pre><code><span class="kw">enum class</span> Mall(<span class="kw">val</span> displayName: <span class="cls">String</span>) {
+    COUPANG(<span class="str">"쿠팡"</span>),          <span class="cmt">// 인스턴스 (displayName="쿠팡")</span>
+    ELEVENST(<span class="str">"11번가"</span>),
+    GENERIC(<span class="str">"기타"</span>);
+
+    @JsonValue
+    <span class="kw">fun</span> <span class="fn">toJson</span>(): <span class="cls">String</span> = name.lowercase()  <span class="cmt">// 메서드도 가짐</span>
+}</code></pre>
+
+<p>→ <strong>"싱글톤 VO 인스턴스들의 집합"</strong>이라고 부르는 게 가장 정확. 상수·enum·VO는 <strong>"불변 값"</strong> 공통분모 위에서 "값의 개수와 결정 시점"에 따라 나뉘는 3단계 스펙트럼.</p>
+
+<h3>Q. enum의 3가지 문법 형태는?</h3>
+
+<pre><code><span class="cmt">// ① 생성자 없음, 단순 이름만</span>
+<span class="kw">enum class</span> AuthProvider {
+    GOOGLE;                      <span class="cmt">// 세미콜론 필수 (아래 메서드 있어서)</span>
+
+    @JsonValue
+    <span class="kw">fun</span> <span class="fn">toJson</span>(): <span class="cls">String</span> = name.lowercase()
+}
+
+<span class="cmt">// ② 생성자 파라미터 있음</span>
+<span class="kw">enum class</span> Mall(<span class="kw">val</span> displayName: <span class="cls">String</span>) {
+    COUPANG(<span class="str">"쿠팡"</span>),          <span class="cmt">// 생성자에 "쿠팡" 전달</span>
+    ELEVENST(<span class="str">"11번가"</span>),
+    GENERIC(<span class="str">"기타"</span>);
+}
+
+<span class="cmt">// ③ 메서드 없으면 세미콜론 생략 가능</span>
+<span class="kw">enum class</span> Simple { A, B, C }</code></pre>
+
+<p>Kotlin enum은 항상 <code>name: String</code>과 <code>ordinal: Int</code>를 자동 제공. <code>AuthProvider.GOOGLE.name</code> → <code>"GOOGLE"</code>.</p>
+
+<h3>Q. <code>class A : B</code>의 콜론(<code>:</code>)은 뭐야?</h3>
+
+<p>Kotlin에서 콜론은 <strong>인터페이스 구현 + 클래스 상속을 모두 담당</strong>. 자바의 <code>implements</code>와 <code>extends</code>를 하나로.</p>
+
+<table>
+  <tr><th>Java</th><th>Kotlin</th></tr>
+  <tr><td><code>class Foo implements Bar { }</code></td><td><code>class Foo : Bar { }</code></td></tr>
+  <tr><td><code>class Child extends Parent { }</code></td><td><code>class Child : Parent() { }</code> <span class="dim">(괄호로 상위 생성자 호출)</span></td></tr>
+  <tr><td><code>class X extends Y implements Z { }</code></td><td><code>class X : Y(), Z { }</code></td></tr>
+</table>
+
+<p><strong>LinkCart 실제 예</strong>:</p>
+
+<pre><code><span class="cmt">// application/auth/port/GoogleOAuthClient.kt (포트, 인터페이스)</span>
+<span class="kw">interface</span> GoogleOAuthClient {
+    <span class="kw">fun</span> <span class="fn">exchangeCodeForIdentity</span>(code: <span class="cls">String</span>, redirectUri: <span class="cls">String</span>): GoogleIdentity
+}
+
+<span class="cmt">// infrastructure/adapter/auth/GoogleOAuthAdapter.kt (어댑터, 구현)</span>
+@Component
+<span class="kw">class</span> GoogleOAuthAdapter(...) : GoogleOAuthClient {  <span class="cmt">// ← 인터페이스 구현</span>
+    <span class="kw">override fun</span> <span class="fn">exchangeCodeForIdentity</span>(...) = ...
+}</code></pre>
+
+<p>→ Hexagonal Architecture의 port-adapter 패턴이 정확히 이 문법으로 표현됨.</p>
+
+<h3>Q. <code>@Value("\${linkcart.google.client-id}")</code>의 <code>\$</code>는 뭐야?</h3>
+
+<p>Kotlin 문자열에서 <code>$</code>는 <strong>문자열 템플릿 예약 문자</strong>. Spring의 Property Placeholder 문법(<code>"${...}"</code>)을 그대로 쓰려면 이스케이프 필요:</p>
+
+<pre><code>@Value(<span class="str">"\${linkcart.google.client-id}"</span>)   <span class="cmt">// Kotlin에서는 \$ 이스케이프</span>
+@Value(<span class="str">"${"$"}{linkcart.google.client-id}"</span>) <span class="cmt">// 대안 (덜 선호)</span>
+
+<span class="cmt">// Java에서는 그냥 $로 OK</span>
+@Value(<span class="str">"${'"'}${'$'}{linkcart.google.client-id}${'"'}"</span>)</code></pre>
+
+<p><code>"${...}"</code> 안의 내용은 Spring이 런타임에 <code>application.yml</code> / 환경변수에서 값을 읽어 주입. 상세는 <a href="04-spring-boot-basics.html">04. Spring Boot 기초</a>.</p>
+
 <h2>정리 — 이 프로젝트에서 반드시 이해할 7가지</h2>
 
 <table>
