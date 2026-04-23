@@ -1,10 +1,14 @@
 package com.linkcart.presentation.api
 
+import com.linkcart.application.share.usecase.CopyShareListResult
+import com.linkcart.application.share.usecase.CopyShareListUsecase
 import com.linkcart.application.share.usecase.CreateShareListUsecase
 import com.linkcart.application.share.usecase.EmptyShareListException
 import com.linkcart.application.share.usecase.GetShareListByTokenUsecase
 import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.UserProductNotFoundException
+import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.model.ShareList
 import com.linkcart.domain.model.ShareListItem
 import com.linkcart.domain.vo.Mall
@@ -47,6 +51,9 @@ class ShareListControllerTest {
 
     @MockBean
     private lateinit var getShareListByTokenUsecase: GetShareListByTokenUsecase
+
+    @MockBean
+    private lateinit var copyShareListUsecase: CopyShareListUsecase
 
     @BeforeEach
     fun setUpAuthentication() {
@@ -203,6 +210,44 @@ class ShareListControllerTest {
             .willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
 
         mockMvc.perform(get("/api/v1/share-lists/missing"))
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `copy returns 201 with counts and copied products`() {
+        given(copyShareListUsecase.execute(viewerId = OWNER_ID, token = "TOKEN_ABC")).willReturn(
+            CopyShareListResult(
+                copiedCount = 1,
+                skippedCount = 1,
+                products = listOf(
+                    UserProduct(
+                        id = 100L,
+                        userId = OWNER_ID,
+                        name = "복사된 상품",
+                        price = Money(amount = 5000L),
+                        imageUrl = null,
+                        sourceUrl = "https://s/new",
+                        mall = Mall.GENERIC,
+                        parserUsed = ParserName.OG,
+                        createdAt = Instant.parse("2026-04-24T10:00:00Z"),
+                    ),
+                ),
+            ),
+        )
+
+        mockMvc.perform(post("/api/v1/share-lists/TOKEN_ABC/copy"))
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.copied_count").value(1))
+            .andExpect(jsonPath("$.skipped_count").value(1))
+            .andExpect(jsonPath("$.products[0].name").value("복사된 상품"))
+    }
+
+    @Test
+    fun `copy returns 404 when token missing`() {
+        given(copyShareListUsecase.execute(viewerId = OWNER_ID, token = "missing"))
+            .willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
+
+        mockMvc.perform(post("/api/v1/share-lists/missing/copy"))
             .andExpect(status().isNotFound)
     }
 

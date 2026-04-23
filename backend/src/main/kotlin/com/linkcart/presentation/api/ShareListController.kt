@@ -1,12 +1,15 @@
 package com.linkcart.presentation.api
 
+import com.linkcart.application.share.usecase.CopyShareListUsecase
 import com.linkcart.application.share.usecase.CreateShareListUsecase
 import com.linkcart.application.share.usecase.EmptyShareListException
 import com.linkcart.application.share.usecase.GetShareListByTokenUsecase
 import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.UserProductNotFoundException
+import com.linkcart.presentation.dto.CopyShareListResponse
 import com.linkcart.presentation.dto.CreateShareListRequest
 import com.linkcart.presentation.dto.ShareListResponse
+import com.linkcart.presentation.dto.UserProductResponse
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -24,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException
 class ShareListController(
     private val createShareListUsecase: CreateShareListUsecase,
     private val getShareListByTokenUsecase: GetShareListByTokenUsecase,
+    private val copyShareListUsecase: CopyShareListUsecase,
 ) {
 
     @PostMapping
@@ -54,5 +58,24 @@ class ShareListController(
             throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
         }
         return ResponseEntity.ok(ShareListResponse.from(shareList))
+    }
+
+    @PostMapping("/{token}/copy")
+    fun copy(
+        @AuthenticationPrincipal viewerId: Long,
+        @PathVariable token: String,
+    ): ResponseEntity<CopyShareListResponse> {
+        val result = try {
+            copyShareListUsecase.execute(viewerId = viewerId, token = token)
+        } catch (e: ShareListNotFoundException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            CopyShareListResponse(
+                copiedCount = result.copiedCount,
+                skippedCount = result.skippedCount,
+                products = result.products.map(UserProductResponse::from),
+            ),
+        )
     }
 }
