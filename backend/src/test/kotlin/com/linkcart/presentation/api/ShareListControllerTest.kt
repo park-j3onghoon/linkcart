@@ -2,6 +2,8 @@ package com.linkcart.presentation.api
 
 import com.linkcart.application.share.usecase.CreateShareListUsecase
 import com.linkcart.application.share.usecase.EmptyShareListException
+import com.linkcart.application.share.usecase.GetShareListByTokenUsecase
+import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.UserProductNotFoundException
 import com.linkcart.domain.model.ShareList
 import com.linkcart.domain.model.ShareListItem
@@ -23,6 +25,7 @@ import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -41,6 +44,9 @@ class ShareListControllerTest {
 
     @MockBean
     private lateinit var createShareListUsecase: CreateShareListUsecase
+
+    @MockBean
+    private lateinit var getShareListByTokenUsecase: GetShareListByTokenUsecase
 
     @BeforeEach
     fun setUpAuthentication() {
@@ -161,6 +167,43 @@ class ShareListControllerTest {
         )
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("validation_error"))
+    }
+
+    @Test
+    fun `findByToken returns 200 with share list`() {
+        given(getShareListByTokenUsecase.execute("TOKEN_ABC")).willReturn(
+            ShareList(
+                id = 42L,
+                ownerId = OWNER_ID,
+                token = "TOKEN_ABC",
+                title = "공유",
+                createdAt = Instant.parse("2026-04-24T10:00:00Z"),
+                items = listOf(
+                    ShareListItem(
+                        id = 1L,
+                        name = "상품",
+                        price = Money(amount = 1000L),
+                        imageUrl = null,
+                        sourceUrl = "https://s/1",
+                        mall = Mall.GENERIC,
+                    ),
+                ),
+            ),
+        )
+
+        mockMvc.perform(get("/api/v1/share-lists/TOKEN_ABC"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.token").value("TOKEN_ABC"))
+            .andExpect(jsonPath("$.items[0].name").value("상품"))
+    }
+
+    @Test
+    fun `findByToken returns 404 when token missing or expired`() {
+        given(getShareListByTokenUsecase.execute("missing"))
+            .willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
+
+        mockMvc.perform(get("/api/v1/share-lists/missing"))
+            .andExpect(status().isNotFound)
     }
 
     companion object {

@@ -2,6 +2,8 @@ package com.linkcart.presentation.api
 
 import com.linkcart.application.share.usecase.CreateShareListUsecase
 import com.linkcart.application.share.usecase.EmptyShareListException
+import com.linkcart.application.share.usecase.GetShareListByTokenUsecase
+import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.UserProductNotFoundException
 import com.linkcart.presentation.dto.CreateShareListRequest
 import com.linkcart.presentation.dto.ShareListResponse
@@ -9,6 +11,8 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -19,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException
 @RequestMapping("/api/v1/share-lists")
 class ShareListController(
     private val createShareListUsecase: CreateShareListUsecase,
+    private val getShareListByTokenUsecase: GetShareListByTokenUsecase,
 ) {
 
     @PostMapping
@@ -39,5 +44,15 @@ class ShareListController(
             throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(ShareListResponse.from(shareList))
+    }
+
+    @GetMapping("/{token}")
+    fun findByToken(@PathVariable token: String): ResponseEntity<ShareListResponse> {
+        val shareList = try {
+            getShareListByTokenUsecase.execute(token)
+        } catch (e: ShareListNotFoundException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
+        }
+        return ResponseEntity.ok(ShareListResponse.from(shareList))
     }
 }
