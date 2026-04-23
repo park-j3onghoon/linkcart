@@ -2,6 +2,7 @@ package com.linkcart.presentation.api
 
 import com.linkcart.application.share.usecase.CopyShareListUsecase
 import com.linkcart.application.share.usecase.CreateShareListUsecase
+import com.linkcart.application.share.usecase.DeleteShareListUsecase
 import com.linkcart.application.share.usecase.EmptyShareListException
 import com.linkcart.application.share.usecase.GetShareListByTokenUsecase
 import com.linkcart.application.share.usecase.ShareListNotFoundException
@@ -14,6 +15,7 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -28,6 +30,7 @@ class ShareListController(
     private val createShareListUsecase: CreateShareListUsecase,
     private val getShareListByTokenUsecase: GetShareListByTokenUsecase,
     private val copyShareListUsecase: CopyShareListUsecase,
+    private val deleteShareListUsecase: DeleteShareListUsecase,
 ) {
 
     @PostMapping
@@ -77,5 +80,18 @@ class ShareListController(
                 products = result.products.map(UserProductResponse::from),
             ),
         )
+    }
+
+    @DeleteMapping("/{token}")
+    fun delete(
+        @AuthenticationPrincipal ownerId: Long,
+        @PathVariable token: String,
+    ): ResponseEntity<Void> {
+        try {
+            deleteShareListUsecase.execute(ownerId = ownerId, token = token)
+        } catch (e: ShareListNotFoundException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
+        }
+        return ResponseEntity.noContent().build()
     }
 }

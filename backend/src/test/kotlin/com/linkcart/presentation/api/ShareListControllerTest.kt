@@ -3,6 +3,7 @@ package com.linkcart.presentation.api
 import com.linkcart.application.share.usecase.CopyShareListResult
 import com.linkcart.application.share.usecase.CopyShareListUsecase
 import com.linkcart.application.share.usecase.CreateShareListUsecase
+import com.linkcart.application.share.usecase.DeleteShareListUsecase
 import com.linkcart.application.share.usecase.EmptyShareListException
 import com.linkcart.application.share.usecase.GetShareListByTokenUsecase
 import com.linkcart.application.share.usecase.ShareListNotFoundException
@@ -28,7 +29,9 @@ import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
+import org.mockito.BDDMockito.willThrow
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -54,6 +57,9 @@ class ShareListControllerTest {
 
     @MockBean
     private lateinit var copyShareListUsecase: CopyShareListUsecase
+
+    @MockBean
+    private lateinit var deleteShareListUsecase: DeleteShareListUsecase
 
     @BeforeEach
     fun setUpAuthentication() {
@@ -248,6 +254,22 @@ class ShareListControllerTest {
             .willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
 
         mockMvc.perform(post("/api/v1/share-lists/missing/copy"))
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `delete returns 204 when owner matches`() {
+        mockMvc.perform(delete("/api/v1/share-lists/TOKEN"))
+            .andExpect(status().isNoContent)
+    }
+
+    @Test
+    fun `delete returns 404 when token missing or other-owner`() {
+        willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
+            .given(deleteShareListUsecase)
+            .execute(ownerId = OWNER_ID, token = "missing")
+
+        mockMvc.perform(delete("/api/v1/share-lists/missing"))
             .andExpect(status().isNotFound)
     }
 
