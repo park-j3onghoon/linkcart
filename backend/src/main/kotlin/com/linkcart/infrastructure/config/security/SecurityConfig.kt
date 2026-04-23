@@ -3,6 +3,7 @@ package com.linkcart.infrastructure.config.security
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.linkcart.application.auth.port.AccessTokenIssuer
 import com.linkcart.infrastructure.adapter.auth.JwtAuthenticationFilter
+import com.linkcart.infrastructure.ratelimit.RateLimitFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -29,6 +30,7 @@ class SecurityConfig {
         http: HttpSecurity,
         jwtAuthenticationFilter: JwtAuthenticationFilter,
         jsonAuthenticationEntryPoint: JsonAuthenticationEntryPoint,
+        rateLimitFilter: RateLimitFilter,
     ): SecurityFilterChain = http
         .cors { /* WebConfig.addCorsMappings와 연동 */ }
         .csrf { it.disable() }
@@ -50,6 +52,7 @@ class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/share-lists/*").permitAll()
                 .anyRequest().authenticated()
         }
+        .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter::class.java)
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
         .exceptionHandling { it.authenticationEntryPoint(jsonAuthenticationEntryPoint) }
         .build()
