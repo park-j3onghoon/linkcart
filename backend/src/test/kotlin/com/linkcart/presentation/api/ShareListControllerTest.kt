@@ -1,0 +1,169 @@
+package com.linkcart.presentation.api
+
+import com.linkcart.application.share.usecase.CreateShareListUsecase
+import com.linkcart.application.share.usecase.EmptyShareListException
+import com.linkcart.application.user.usecase.UserProductNotFoundException
+import com.linkcart.domain.model.ShareList
+import com.linkcart.domain.model.ShareListItem
+import com.linkcart.domain.vo.Mall
+import com.linkcart.domain.vo.Money
+import com.linkcart.infrastructure.config.WebConfig
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.mockito.BDDMockito.given
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.context.annotation.ComponentScan.Filter
+import org.springframework.context.annotation.FilterType
+import org.springframework.context.annotation.Import
+import org.springframework.http.MediaType
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Instant
+
+@WebMvcTest(
+    controllers = [ShareListController::class],
+    excludeFilters = [Filter(type = FilterType.ASSIGNABLE_TYPE, classes = [WebConfig::class])],
+)
+@AutoConfigureMockMvc(addFilters = false)
+@Import(GlobalExceptionHandler::class)
+class ShareListControllerTest {
+
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
+    @MockBean
+    private lateinit var createShareListUsecase: CreateShareListUsecase
+
+    @BeforeEach
+    fun setUpAuthentication() {
+        SecurityContextHolder.getContext().authentication =
+            UsernamePasswordAuthenticationToken(OWNER_ID, null, emptyList())
+    }
+
+    @AfterEach
+    fun clearAuthentication() {
+        SecurityContextHolder.clearContext()
+    }
+
+    @Test
+    fun `creates share list returns 201 with token and items`() {
+        given(
+            createShareListUsecase.execute(
+                ownerId = OWNER_ID,
+                productIds = listOf(1L),
+                title = "내 리스트",
+                expiresAt = null,
+            ),
+        ).willReturn(
+            ShareList(
+                id = 42L,
+                ownerId = OWNER_ID,
+                token = "TOKEN_ABC",
+                title = "내 리스트",
+                createdAt = Instant.parse("2026-04-24T10:00:00Z"),
+                items = listOf(
+                    ShareListItem(
+                        id = 1L,
+                        name = "아이패드",
+                        price = Money(amount = 899000L),
+                        imageUrl = "https://cdn/1.jpg",
+                        sourceUrl = "https://s/1",
+                        mall = Mall.COUPANG,
+                    ),
+                ),
+            ),
+        )
+
+        mockMvc.perform(
+            post("/api/v1/share-lists")
+                
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"product_ids":[1],"title":"내 리스트"}"""),
+        )
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.id").value(42))
+            .andExpect(jsonPath("$.token").value("TOKEN_ABC"))
+            .andExpect(jsonPath("$.title").value("내 리스트"))
+            .andExpect(jsonPath("$.items.length()").value(1))
+            .andExpect(jsonPath("$.items[0].name").value("아이패드"))
+            .andExpect(jsonPath("$.items[0].source_url").value("https://s/1"))
+            .andExpect(jsonPath("$.items[0].mall").value("coupang"))
+    }
+
+    @Test
+    fun `empty product_ids returns 400 via validation`() {
+        mockMvc.perform(
+            post("/api/v1/share-lists")
+                
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"product_ids":[]}"""),
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.code").value("validation_error"))
+    }
+
+    @Test
+    fun `usecase throws EmptyShareListException returns 400`() {
+        given(
+            createShareListUsecase.execute(
+                ownerId = OWNER_ID,
+                productIds = listOf(1L),
+                title = null,
+                expiresAt = null,
+            ),
+        ).willThrow(EmptyShareListException("공유할 상품을 1개 이상 선택해주세요"))
+
+        mockMvc.perform(
+            post("/api/v1/share-lists")
+                
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"product_ids":[1]}"""),
+        )
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `missing product returns 404`() {
+        given(
+            createShareListUsecase.execute(
+                ownerId = OWNER_ID,
+                productIds = listOf(999L),
+                title = null,
+                expiresAt = null,
+            ),
+        ).willThrow(UserProductNotFoundException("상품을 찾을 수 없습니다"))
+
+        mockMvc.perform(
+            post("/api/v1/share-lists")
+                
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"product_ids":[999]}"""),
+        )
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `title over 200 chars returns 400`() {
+        val longTitle = "a".repeat(201)
+        mockMvc.perform(
+            post("/api/v1/share-lists")
+                
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"product_ids":[1],"title":"$longTitle"}"""),
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.code").value("validation_error"))
+    }
+
+    companion object {
+        private const val OWNER_ID = 7L
+    }
+}
