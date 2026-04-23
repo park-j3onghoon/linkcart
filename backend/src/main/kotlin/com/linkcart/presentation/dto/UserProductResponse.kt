@@ -2,7 +2,7 @@ package com.linkcart.presentation.dto
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
-import com.linkcart.domain.entity.UserProduct
+import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money

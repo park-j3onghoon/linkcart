@@ -1,4 +1,4 @@
-package com.linkcart.domain.entity
+package com.linkcart.domain.model
 
 import com.linkcart.domain.model.AuthProvider
 import java.time.Instant

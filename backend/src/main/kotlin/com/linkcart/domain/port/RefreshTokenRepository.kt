@@ -1,6 +1,6 @@
 package com.linkcart.domain.port
 
-import com.linkcart.domain.entity.RefreshToken
+import com.linkcart.domain.model.RefreshToken
 import java.time.Instant
 
 interface RefreshTokenRepository {

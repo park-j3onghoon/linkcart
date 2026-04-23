@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.persistence.user
 
-import com.linkcart.domain.entity.User
+import com.linkcart.domain.model.User
 import com.linkcart.domain.model.AuthProvider
 import com.linkcart.domain.port.UserRepository
 import org.junit.jupiter.api.BeforeEach

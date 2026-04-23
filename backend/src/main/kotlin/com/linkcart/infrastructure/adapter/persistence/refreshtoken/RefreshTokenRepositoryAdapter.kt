@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.persistence.refreshtoken
 
-import com.linkcart.domain.entity.RefreshToken
+import com.linkcart.domain.model.RefreshToken
 import com.linkcart.domain.port.RefreshTokenRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional

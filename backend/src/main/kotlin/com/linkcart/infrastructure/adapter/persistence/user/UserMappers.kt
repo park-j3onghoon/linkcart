@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.persistence.user
 
-import com.linkcart.domain.entity.User
+import com.linkcart.domain.model.User
 
 internal fun UserEntity.toDomain(): User = User(
     id = id,

@@ -1,6 +1,6 @@
 package com.linkcart.application.user.usecase
 
-import com.linkcart.domain.entity.UserProduct
+import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.port.UserProductRepository
 import org.springframework.stereotype.Service
 

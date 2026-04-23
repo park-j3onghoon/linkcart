@@ -1,6 +1,6 @@
 package com.linkcart.domain.port
 
-import com.linkcart.domain.entity.UserProduct
+import com.linkcart.domain.model.UserProduct
 
 interface UserProductRepository {
     fun save(product: UserProduct): UserProduct

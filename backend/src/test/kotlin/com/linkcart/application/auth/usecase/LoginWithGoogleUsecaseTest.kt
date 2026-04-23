@@ -4,8 +4,8 @@ import com.linkcart.application.auth.port.AccessTokenIssuer
 import com.linkcart.application.auth.port.GoogleOAuthClient
 import com.linkcart.application.auth.port.GoogleOAuthException
 import com.linkcart.application.auth.port.RefreshTokenGenerator
-import com.linkcart.domain.entity.RefreshToken
-import com.linkcart.domain.entity.User
+import com.linkcart.domain.model.RefreshToken
+import com.linkcart.domain.model.User
 import com.linkcart.domain.model.AccessToken
 import com.linkcart.domain.model.AuthProvider
 import com.linkcart.domain.model.GoogleIdentity

@@ -1,7 +1,7 @@
 package com.linkcart.infrastructure.adapter.parser
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.linkcart.domain.entity.Product
+import com.linkcart.domain.model.Product
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.port.DedicatedProductParser

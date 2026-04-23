@@ -2,7 +2,7 @@ package com.linkcart.presentation.dto
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
-import com.linkcart.domain.entity.User
+import com.linkcart.domain.model.User
 import com.linkcart.domain.model.AuthProvider
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)

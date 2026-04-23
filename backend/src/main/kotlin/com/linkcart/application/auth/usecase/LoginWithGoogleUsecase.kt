@@ -1,7 +1,7 @@
 package com.linkcart.application.auth.usecase
 
 import com.linkcart.application.auth.port.GoogleOAuthClient
-import com.linkcart.domain.entity.User
+import com.linkcart.domain.model.User
 import com.linkcart.domain.model.AuthProvider
 import com.linkcart.domain.port.UserRepository
 import org.springframework.stereotype.Service

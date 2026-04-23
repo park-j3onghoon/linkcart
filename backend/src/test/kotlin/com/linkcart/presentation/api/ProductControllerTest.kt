@@ -1,7 +1,7 @@
 package com.linkcart.presentation.api
 
 import com.linkcart.application.usecase.ParseProductUseCase
-import com.linkcart.domain.entity.Product
+import com.linkcart.domain.model.Product
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall

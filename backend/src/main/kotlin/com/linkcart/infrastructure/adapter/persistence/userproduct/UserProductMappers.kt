@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.persistence.userproduct
 
-import com.linkcart.domain.entity.UserProduct
+import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.vo.Money
 
 internal fun UserProductEntity.toDomain(): UserProduct = UserProduct(

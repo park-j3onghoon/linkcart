@@ -1,6 +1,6 @@
 package com.linkcart.domain.model
 
-import com.linkcart.domain.entity.Product
+import com.linkcart.domain.model.Product
 
 /**
  * 파싱 결과를 표현하는 sealed interface.

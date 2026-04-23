@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.persistence.refreshtoken
 
-import com.linkcart.domain.entity.RefreshToken
+import com.linkcart.domain.model.RefreshToken
 import java.util.UUID
 
 internal fun RefreshTokenEntity.toDomain(): RefreshToken = RefreshToken(

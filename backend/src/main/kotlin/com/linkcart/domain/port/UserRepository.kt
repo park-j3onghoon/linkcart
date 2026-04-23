@@ -1,6 +1,6 @@
 package com.linkcart.domain.port
 
-import com.linkcart.domain.entity.User
+import com.linkcart.domain.model.User
 import com.linkcart.domain.model.AuthProvider
 
 interface UserRepository {
