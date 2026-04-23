@@ -68,7 +68,7 @@ CREATE INDEX idx_refresh_tokens_user_active
 
 **신규 (+11)**:
 - `db/migration/V2__create_refresh_tokens.sql`
-- `domain/entity/RefreshToken.kt`
+- `domain/model/RefreshToken.kt`
 - `domain/port/RefreshTokenRepository.kt`
 - `application/auth/port/RefreshTokenGenerator.kt` (port)
 - `application/auth/usecase/RefreshTokensUsecase.kt`

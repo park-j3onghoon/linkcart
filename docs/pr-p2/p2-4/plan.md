@@ -75,7 +75,7 @@ CREATE INDEX idx_user_products_user_created
 
 **신규**:
 - `db/migration/V3__create_user_products.sql`
-- `domain/entity/UserProduct.kt`
+- `domain/model/UserProduct.kt`
 - `domain/port/UserProductRepository.kt`
 - `application/user/usecase/SaveUserProductUsecase.kt`
 - `application/user/usecase/ListUserProductsUsecase.kt`

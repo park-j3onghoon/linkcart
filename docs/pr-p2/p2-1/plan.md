@@ -135,10 +135,10 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 - `idx_users_email` 제거 (Phase 2 내 email 단독 쿼리 없음 — YAGNI + enumeration 방지)
 - `updated_at` DB trigger 추가 (raw SQL 경로도 커버)
 
-### 5. 도메인: `User` 엔티티
+### 5. 도메인: `User` 모델
 
 ```kotlin
-// backend/src/main/kotlin/com/linkcart/domain/entity/User.kt
+// backend/src/main/kotlin/com/linkcart/domain/model/User.kt
 data class User(
     val id: Long? = null,  // null = 미저장
     val provider: AuthProvider,
@@ -350,7 +350,7 @@ JPA auto-config 도입이 기존 `@WebMvcTest` 기반 컨트롤러 테스트(`Pr
 - `.env.example`
 - `backend/src/main/resources/db/migration/V1__create_users.sql`
 - `backend/src/main/kotlin/com/linkcart/domain/model/AuthProvider.kt`
-- `backend/src/main/kotlin/com/linkcart/domain/entity/User.kt`
+- `backend/src/main/kotlin/com/linkcart/domain/model/User.kt`
 - `backend/src/main/kotlin/com/linkcart/domain/port/UserRepository.kt`
 - `backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/user/UserEntity.kt`
 - `backend/src/main/kotlin/com/linkcart/infrastructure/adapter/persistence/user/UserJpaRepository.kt`
