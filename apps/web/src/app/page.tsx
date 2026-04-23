@@ -1,8 +1,10 @@
 "use client";
 
+import { AuthBar } from "../components/AuthBar";
 import { ParseProgress } from "../components/ParseProgress";
 import { ProductList } from "../components/ProductList";
 import { UrlInput } from "../components/UrlInput";
+import { useAuth } from "../hooks/useAuth";
 import { useProducts } from "../hooks/useProducts";
 
 export default function Home() {
@@ -15,6 +17,7 @@ export default function Home() {
     products,
     submitUrl,
   } = useProducts();
+  const auth = useAuth();
   const lastParserUsed = products[0]?.parser_used ?? "대기 중";
 
   return (
@@ -24,6 +27,14 @@ export default function Home() {
       <div className="absolute left-[-6rem] top-[28rem] h-72 w-72 rounded-full bg-[radial-gradient(circle,_rgba(244,114,182,0.12),_transparent_70%)] blur-3xl" />
 
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
+        <div className="flex items-center justify-end">
+          <AuthBar
+            isHydrated={auth.isHydrated}
+            user={auth.user}
+            onLogin={auth.login}
+            onLogout={auth.logout}
+          />
+        </div>
         <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-[32px] border border-white/65 bg-white/80 p-8 shadow-[0_28px_90px_rgba(15,23,42,0.1)] backdrop-blur">
             <p className="text-sm font-medium uppercase tracking-[0.35em] text-sky-700">
