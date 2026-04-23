@@ -9,6 +9,7 @@ export type ApiError =
   | { code: "PARSE_FAILED"; message: string }
   | { code: "TIMEOUT"; message: string }
   | { code: "NOT_FOUND"; message: string }
+  | { code: "UNAUTHORIZED"; message: string }
   | { code: "UNKNOWN"; message: string };
 
 const DEFAULT_BASE_URL = "";
