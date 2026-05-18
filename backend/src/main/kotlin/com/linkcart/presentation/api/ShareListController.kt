@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
 @RestController
-@RequestMapping("/api/v1/share-lists")
+@RequestMapping("/api/v1/shareLists")
 class ShareListController(
     private val createShareListUsecase: CreateShareListUsecase,
     private val getShareListByTokenUsecase: GetShareListByTokenUsecase,

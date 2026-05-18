@@ -67,7 +67,7 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
 
     try {
       const response = await fetch(
-        `${baseUrl}/api/v1/share-lists/${encodeURIComponent(token)}`,
+        `${baseUrl}/api/v1/shareLists/${encodeURIComponent(token)}`,
         { signal: controller.signal },
       );
 

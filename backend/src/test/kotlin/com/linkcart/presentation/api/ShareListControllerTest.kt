@@ -102,7 +102,7 @@ class ShareListControllerTest {
         )
 
         mockMvc.perform(
-            post("/api/v1/share-lists")
+            post("/api/v1/shareLists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"productIds":[1],"title":"내 리스트"}"""),
@@ -120,7 +120,7 @@ class ShareListControllerTest {
     @Test
     fun `empty product_ids returns 400 via validation`() {
         mockMvc.perform(
-            post("/api/v1/share-lists")
+            post("/api/v1/shareLists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"productIds":[]}"""),
@@ -141,7 +141,7 @@ class ShareListControllerTest {
         ).willThrow(EmptyShareListException("공유할 상품을 1개 이상 선택해주세요"))
 
         mockMvc.perform(
-            post("/api/v1/share-lists")
+            post("/api/v1/shareLists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"productIds":[1]}"""),
@@ -161,7 +161,7 @@ class ShareListControllerTest {
         ).willThrow(UserProductNotFoundException("상품을 찾을 수 없습니다"))
 
         mockMvc.perform(
-            post("/api/v1/share-lists")
+            post("/api/v1/shareLists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"productIds":[999]}"""),
@@ -173,7 +173,7 @@ class ShareListControllerTest {
     fun `title over 200 chars returns 400`() {
         val longTitle = "a".repeat(201)
         mockMvc.perform(
-            post("/api/v1/share-lists")
+            post("/api/v1/shareLists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"productIds":[1],"title":"$longTitle"}"""),
@@ -204,7 +204,7 @@ class ShareListControllerTest {
             ),
         )
 
-        mockMvc.perform(get("/api/v1/share-lists/TOKEN_ABC"))
+        mockMvc.perform(get("/api/v1/shareLists/TOKEN_ABC"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.token").value("TOKEN_ABC"))
             .andExpect(jsonPath("$.items[0].name").value("상품"))
@@ -215,7 +215,7 @@ class ShareListControllerTest {
         given(getShareListByTokenUsecase.execute("missing"))
             .willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
 
-        mockMvc.perform(get("/api/v1/share-lists/missing"))
+        mockMvc.perform(get("/api/v1/shareLists/missing"))
             .andExpect(status().isNotFound)
     }
 
@@ -241,7 +241,7 @@ class ShareListControllerTest {
             ),
         )
 
-        mockMvc.perform(post("/api/v1/share-lists/TOKEN_ABC/copy"))
+        mockMvc.perform(post("/api/v1/shareLists/TOKEN_ABC/copy"))
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.copiedCount").value(1))
             .andExpect(jsonPath("$.skippedCount").value(1))
@@ -253,13 +253,13 @@ class ShareListControllerTest {
         given(copyShareListUsecase.execute(viewerId = OWNER_ID, token = "missing"))
             .willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
 
-        mockMvc.perform(post("/api/v1/share-lists/missing/copy"))
+        mockMvc.perform(post("/api/v1/shareLists/missing/copy"))
             .andExpect(status().isNotFound)
     }
 
     @Test
     fun `delete returns 204 when owner matches`() {
-        mockMvc.perform(delete("/api/v1/share-lists/TOKEN"))
+        mockMvc.perform(delete("/api/v1/shareLists/TOKEN"))
             .andExpect(status().isNoContent)
     }
 
@@ -269,7 +269,7 @@ class ShareListControllerTest {
             .given(deleteShareListUsecase)
             .execute(ownerId = OWNER_ID, token = "missing")
 
-        mockMvc.perform(delete("/api/v1/share-lists/missing"))
+        mockMvc.perform(delete("/api/v1/shareLists/missing"))
             .andExpect(status().isNotFound)
     }
 

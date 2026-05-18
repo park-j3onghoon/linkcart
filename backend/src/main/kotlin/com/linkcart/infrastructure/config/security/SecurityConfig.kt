@@ -49,7 +49,7 @@ class SecurityConfig {
                 "/v3/api-docs/**",
                 "/error",
             ).permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/share-lists/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/shareLists/*").permitAll()
                 .anyRequest().authenticated()
         }
         .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter::class.java)
