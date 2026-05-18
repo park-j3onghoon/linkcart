@@ -1,8 +1,6 @@
 spring:
   application:
     name: linkcart-backend
-  jackson:
-    property-naming-strategy: SNAKE_CASE
   cache:
     type: caffeine
     caffeine:

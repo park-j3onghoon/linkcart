@@ -65,12 +65,12 @@ class ProductControllerTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("테스트 상품"))
             .andExpect(jsonPath("$.price.amount").value(1000))
-            .andExpect(jsonPath("$.image_url").value("https://example.com/image.jpg"))
-            .andExpect(jsonPath("$.source_url").value("https://www.coupang.com/vp/products/123"))
+            .andExpect(jsonPath("$.imageUrl").value("https://example.com/image.jpg"))
+            .andExpect(jsonPath("$.sourceUrl").value("https://www.coupang.com/vp/products/123"))
             .andExpect(jsonPath("$.mall").value("coupang"))
             .andExpect(jsonPath("$.partial").value(nullValue()))
-            .andExpect(jsonPath("$.parser_used").value("coupang-api"))
-            .andExpect(jsonPath("$.fallback_used").value(false))
+            .andExpect(jsonPath("$.parserUsed").value("coupang-api"))
+            .andExpect(jsonPath("$.fallbackUsed").value(false))
     }
 
     @Test
@@ -95,7 +95,7 @@ class ProductControllerTest {
                 .content("""{"url":"https://www.11st.co.kr/products/456"}"""),
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.parser_used").value("11st-api"))
+            .andExpect(jsonPath("$.parserUsed").value("11st-api"))
     }
 
     @Test
@@ -161,11 +161,11 @@ class ProductControllerTest {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("부분 상품"))
-            .andExpect(jsonPath("$.image_url").value("https://example.com/partial.jpg"))
-            .andExpect(jsonPath("$.source_url").value("https://example.com/product/partial"))
-            .andExpect(jsonPath("$.partial.image_url").value("https://example.com/partial.jpg"))
-            .andExpect(jsonPath("$.parser_used").value("og"))
-            .andExpect(jsonPath("$.fallback_used").value(true))
+            .andExpect(jsonPath("$.imageUrl").value("https://example.com/partial.jpg"))
+            .andExpect(jsonPath("$.sourceUrl").value("https://example.com/product/partial"))
+            .andExpect(jsonPath("$.partial.imageUrl").value("https://example.com/partial.jpg"))
+            .andExpect(jsonPath("$.parserUsed").value("og"))
+            .andExpect(jsonPath("$.fallbackUsed").value(true))
     }
 
     @Test

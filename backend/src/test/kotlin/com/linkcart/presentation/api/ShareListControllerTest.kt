@@ -105,7 +105,7 @@ class ShareListControllerTest {
             post("/api/v1/share-lists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"product_ids":[1],"title":"내 리스트"}"""),
+                .content("""{"productIds":[1],"title":"내 리스트"}"""),
         )
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.id").value(42))
@@ -113,7 +113,7 @@ class ShareListControllerTest {
             .andExpect(jsonPath("$.title").value("내 리스트"))
             .andExpect(jsonPath("$.items.length()").value(1))
             .andExpect(jsonPath("$.items[0].name").value("아이패드"))
-            .andExpect(jsonPath("$.items[0].source_url").value("https://s/1"))
+            .andExpect(jsonPath("$.items[0].sourceUrl").value("https://s/1"))
             .andExpect(jsonPath("$.items[0].mall").value("coupang"))
     }
 
@@ -123,7 +123,7 @@ class ShareListControllerTest {
             post("/api/v1/share-lists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"product_ids":[]}"""),
+                .content("""{"productIds":[]}"""),
         )
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
@@ -144,7 +144,7 @@ class ShareListControllerTest {
             post("/api/v1/share-lists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"product_ids":[1]}"""),
+                .content("""{"productIds":[1]}"""),
         )
             .andExpect(status().isBadRequest)
     }
@@ -164,7 +164,7 @@ class ShareListControllerTest {
             post("/api/v1/share-lists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"product_ids":[999]}"""),
+                .content("""{"productIds":[999]}"""),
         )
             .andExpect(status().isNotFound)
     }
@@ -176,7 +176,7 @@ class ShareListControllerTest {
             post("/api/v1/share-lists")
                 
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"product_ids":[1],"title":"$longTitle"}"""),
+                .content("""{"productIds":[1],"title":"$longTitle"}"""),
         )
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
@@ -243,8 +243,8 @@ class ShareListControllerTest {
 
         mockMvc.perform(post("/api/v1/share-lists/TOKEN_ABC/copy"))
             .andExpect(status().isCreated)
-            .andExpect(jsonPath("$.copied_count").value(1))
-            .andExpect(jsonPath("$.skipped_count").value(1))
+            .andExpect(jsonPath("$.copiedCount").value(1))
+            .andExpect(jsonPath("$.skippedCount").value(1))
             .andExpect(jsonPath("$.products[0].name").value("복사된 상품"))
     }
 

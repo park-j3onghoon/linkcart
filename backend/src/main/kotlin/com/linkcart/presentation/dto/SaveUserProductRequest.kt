@@ -1,7 +1,5 @@
 package com.linkcart.presentation.dto
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.databind.annotation.JsonNaming
 import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
@@ -12,7 +10,6 @@ import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.PositiveOrZero
 
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class SaveUserProductRequest(
     @field:NotBlank
     val name: String,
@@ -37,7 +34,6 @@ data class SaveUserProductRequest(
         parserUsed = parserUsed,
     )
 
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
     data class PriceDto(
         @field:PositiveOrZero
         val amount: Long,

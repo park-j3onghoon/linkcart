@@ -1,14 +1,11 @@
 package com.linkcart.presentation.dto
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.databind.annotation.JsonNaming
 import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import java.time.Instant
 
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class UserProductResponse(
     val id: Long,
     val name: String,
@@ -33,7 +30,6 @@ data class UserProductResponse(
     }
 }
 
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class UserProductsResponse(
     val products: List<UserProductResponse>,
 )
