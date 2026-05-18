@@ -11,39 +11,39 @@ class DeleteShareListUsecaseTest {
 
     @Test
     fun `deletes share list when owner matches`() {
-        val shareList = sample(id = 5L, ownerId = OWNER_ID, token = "t")
-        val repo = StubRepo(mapOf("t" to shareList))
+        val shareList = sample(id = 5L, ownerId = OWNER_ID)
+        val repo = StubRepo(mapOf(5L to shareList))
 
-        DeleteShareListUsecase(repo).execute(ownerId = OWNER_ID, token = "t")
+        DeleteShareListUsecase(repo).execute(ownerId = OWNER_ID, shareListId = 5L)
 
         assertEquals(listOf(5L), repo.deletedIds)
     }
 
     @Test
-    fun `throws ShareListNotFoundException when token missing`() {
+    fun `throws ShareListNotFoundException when id missing`() {
         val repo = StubRepo(emptyMap())
 
         assertThrows<ShareListNotFoundException> {
-            DeleteShareListUsecase(repo).execute(ownerId = OWNER_ID, token = "missing")
+            DeleteShareListUsecase(repo).execute(ownerId = OWNER_ID, shareListId = 999L)
         }
         assertEquals(emptyList(), repo.deletedIds)
     }
 
     @Test
     fun `throws ShareListNotFoundException when owner differs`() {
-        val shareList = sample(id = 5L, ownerId = 999L, token = "t")
-        val repo = StubRepo(mapOf("t" to shareList))
+        val shareList = sample(id = 5L, ownerId = 999L)
+        val repo = StubRepo(mapOf(5L to shareList))
 
         assertThrows<ShareListNotFoundException> {
-            DeleteShareListUsecase(repo).execute(ownerId = OWNER_ID, token = "t")
+            DeleteShareListUsecase(repo).execute(ownerId = OWNER_ID, shareListId = 5L)
         }
         assertEquals(emptyList(), repo.deletedIds)
     }
 
-    private fun sample(id: Long, ownerId: Long, token: String): ShareList = ShareList(
+    private fun sample(id: Long, ownerId: Long): ShareList = ShareList(
         id = id,
         ownerId = ownerId,
-        token = token,
+        token = "t",
         title = null,
         expiresAt = null,
         createdAt = Instant.parse("2026-04-20T00:00:00Z"),
@@ -54,10 +54,11 @@ class DeleteShareListUsecaseTest {
         private const val OWNER_ID = 1L
     }
 
-    private class StubRepo(private val byToken: Map<String, ShareList>) : ShareListRepository {
+    private class StubRepo(private val byId: Map<Long, ShareList>) : ShareListRepository {
         val deletedIds = mutableListOf<Long>()
         override fun save(shareList: ShareList): ShareList = shareList
-        override fun findByToken(token: String): ShareList? = byToken[token]
+        override fun findById(id: Long): ShareList? = byId[id]
+        override fun findByToken(token: String): ShareList? = null
         override fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareList> = emptyList()
         override fun deleteById(id: Long) {
             deletedIds.add(id)

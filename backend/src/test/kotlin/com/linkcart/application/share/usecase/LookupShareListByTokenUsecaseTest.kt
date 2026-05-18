@@ -12,14 +12,14 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
 
-class GetShareListByTokenUsecaseTest {
+class LookupShareListByTokenUsecaseTest {
 
     @Test
     fun `returns share list when token exists and not expired`() {
         val shareList = sampleShareList(token = "abc", expiresAt = null)
         val repo = StubRepo(mapOf("abc" to shareList))
 
-        val sut = GetShareListByTokenUsecase(repo, fixedClock(NOW))
+        val sut = LookupShareListByTokenUsecase(repo, fixedClock(NOW))
         val result = sut.execute("abc")
 
         assertEquals("abc", result.token)
@@ -28,7 +28,7 @@ class GetShareListByTokenUsecaseTest {
 
     @Test
     fun `throws ShareListNotFoundException when token does not exist`() {
-        val sut = GetShareListByTokenUsecase(StubRepo(emptyMap()), fixedClock(NOW))
+        val sut = LookupShareListByTokenUsecase(StubRepo(emptyMap()), fixedClock(NOW))
 
         assertThrows<ShareListNotFoundException> { sut.execute("missing") }
     }
@@ -42,7 +42,7 @@ class GetShareListByTokenUsecaseTest {
         val repo = StubRepo(mapOf("abc" to expired))
         val afterExpiry = Instant.parse("2026-04-24T10:00:01Z")
 
-        val sut = GetShareListByTokenUsecase(repo, fixedClock(afterExpiry))
+        val sut = LookupShareListByTokenUsecase(repo, fixedClock(afterExpiry))
 
         assertThrows<ShareListNotFoundException> { sut.execute("abc") }
     }
@@ -53,7 +53,7 @@ class GetShareListByTokenUsecaseTest {
         val list = sampleShareList(token = "abc", expiresAt = futureExpiry)
         val repo = StubRepo(mapOf("abc" to list))
 
-        val sut = GetShareListByTokenUsecase(repo, fixedClock(NOW))
+        val sut = LookupShareListByTokenUsecase(repo, fixedClock(NOW))
         val result = sut.execute("abc")
 
         assertEquals("abc", result.token)
@@ -86,6 +86,7 @@ class GetShareListByTokenUsecaseTest {
 
     private class StubRepo(private val byToken: Map<String, ShareList>) : ShareListRepository {
         override fun save(shareList: ShareList): ShareList = shareList
+        override fun findById(id: Long): ShareList? = null
         override fun findByToken(token: String): ShareList? = byToken[token]
         override fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareList> = emptyList()
         override fun deleteById(id: Long) {}

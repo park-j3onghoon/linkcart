@@ -1,20 +1,22 @@
 package com.linkcart.application.share.usecase
 
+import com.linkcart.domain.model.ShareList
 import com.linkcart.domain.port.ShareListRepository
 import org.springframework.stereotype.Service
+import java.time.Clock
 
 @Service
-class DeleteShareListUsecase(
+class GetShareListByIdUsecase(
     private val shareListRepository: ShareListRepository,
+    private val clock: Clock = Clock.systemUTC(),
 ) {
 
-    fun execute(ownerId: Long, shareListId: Long) {
-        val shareList = shareListRepository.findById(shareListId)
+    fun execute(id: Long): ShareList {
+        val shareList = shareListRepository.findById(id)
             ?: throw ShareListNotFoundException("공유 리스트를 찾을 수 없습니다")
-        // 타인 소유 시 존재 정보 노출 방지로 동일 예외 반환
-        if (shareList.ownerId != ownerId) {
+        if (shareList.isExpired(clock.instant())) {
             throw ShareListNotFoundException("공유 리스트를 찾을 수 없습니다")
         }
-        shareListRepository.deleteById(shareListId)
+        return shareList
     }
 }

@@ -24,7 +24,7 @@ function formatDate(iso: string | null | undefined): string | null {
 export default async function SharePage({ params }: SharePageProps) {
   const { token } = await params;
   const api = createApiClient(BACKEND_URL);
-  const result = await api.getShareList(token);
+  const result = await api.lookupShareListByToken(token);
 
   if (!result.ok) {
     if (result.error.code === "NOT_FOUND") {

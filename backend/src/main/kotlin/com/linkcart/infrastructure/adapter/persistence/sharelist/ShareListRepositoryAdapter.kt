@@ -12,6 +12,9 @@ class ShareListRepositoryAdapter(
     override fun save(shareList: ShareList): ShareList =
         jpaRepository.saveAndFlush(shareList.toEntity()).toDomain()
 
+    override fun findById(id: Long): ShareList? =
+        jpaRepository.findById(id).orElse(null)?.toDomain()
+
     override fun findByToken(token: String): ShareList? =
         jpaRepository.findByToken(token)?.toDomain()
 

@@ -152,6 +152,7 @@ class CreateShareListUsecaseTest {
             )
         }
 
+        override fun findById(id: Long): ShareList? = null
         override fun findByToken(token: String): ShareList? = null
         override fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareList> = emptyList()
         override fun deleteById(id: Long) {}

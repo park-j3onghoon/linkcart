@@ -15,12 +15,12 @@ data class CopyShareListResult(
 
 @Service
 class CopyShareListUsecase(
-    private val getShareListByTokenUsecase: GetShareListByTokenUsecase,
+    private val getShareListByIdUsecase: GetShareListByIdUsecase,
     private val userProductRepository: UserProductRepository,
 ) {
 
-    fun execute(viewerId: Long, token: String): CopyShareListResult {
-        val shareList = getShareListByTokenUsecase.execute(token)
+    fun execute(viewerId: Long, shareListId: Long): CopyShareListResult {
+        val shareList = getShareListByIdUsecase.execute(shareListId)
         val copied = mutableListOf<UserProduct>()
         var skipped = 0
         for (item in shareList.items) {

@@ -61,15 +61,20 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
     return `${baseUrl}/api/v1/images:proxy?url=${encodeURIComponent(originalUrl)}`;
   }
 
-  async function getShareList(token: string): Promise<ApiResult<ShareList>> {
+  /**
+   * 토큰은 secret이므로 URL이 아닌 request body로 전달한다 (AIP-136 custom :lookup).
+   */
+  async function lookupShareListByToken(token: string): Promise<ApiResult<ShareList>> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      const response = await fetch(
-        `${baseUrl}/api/v1/shareLists/${encodeURIComponent(token)}`,
-        { signal: controller.signal },
-      );
+      const response = await fetch(`${baseUrl}/api/v1/shareLists:lookup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+        signal: controller.signal,
+      });
 
       if (response.status === 404) {
         return {
@@ -105,5 +110,5 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
     }
   }
 
-  return { parseProduct, imageProxyUrl, getShareList };
+  return { parseProduct, imageProxyUrl, lookupShareListByToken };
 }

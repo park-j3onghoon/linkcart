@@ -4,11 +4,13 @@ import com.linkcart.application.share.usecase.CopyShareListUsecase
 import com.linkcart.application.share.usecase.CreateShareListUsecase
 import com.linkcart.application.share.usecase.DeleteShareListUsecase
 import com.linkcart.application.share.usecase.EmptyShareListException
-import com.linkcart.application.share.usecase.GetShareListByTokenUsecase
+import com.linkcart.application.share.usecase.GetShareListByIdUsecase
+import com.linkcart.application.share.usecase.LookupShareListByTokenUsecase
 import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.UserProductNotFoundException
 import com.linkcart.presentation.dto.CopyShareListResponse
 import com.linkcart.presentation.dto.CreateShareListRequest
+import com.linkcart.presentation.dto.LookupShareListRequest
 import com.linkcart.presentation.dto.ShareListResponse
 import com.linkcart.presentation.dto.UserProductResponse
 import jakarta.validation.Valid
@@ -26,7 +28,8 @@ import org.springframework.web.server.ResponseStatusException
 @RestController
 class ShareListController(
     private val createShareListUsecase: CreateShareListUsecase,
-    private val getShareListByTokenUsecase: GetShareListByTokenUsecase,
+    private val getShareListByIdUsecase: GetShareListByIdUsecase,
+    private val lookupShareListByTokenUsecase: LookupShareListByTokenUsecase,
     private val copyShareListUsecase: CopyShareListUsecase,
     private val deleteShareListUsecase: DeleteShareListUsecase,
 ) {
@@ -51,23 +54,39 @@ class ShareListController(
         return ResponseEntity.status(HttpStatus.CREATED).body(ShareListResponse.from(shareList))
     }
 
-    @GetMapping("/api/v1/shareLists/{token}")
-    fun findByToken(@PathVariable token: String): ResponseEntity<ShareListResponse> {
+    @GetMapping("/api/v1/shareLists/{id}")
+    fun get(@PathVariable id: Long): ResponseEntity<ShareListResponse> {
         val shareList = try {
-            getShareListByTokenUsecase.execute(token)
+            getShareListByIdUsecase.execute(id)
         } catch (e: ShareListNotFoundException) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
         }
         return ResponseEntity.ok(ShareListResponse.from(shareList))
     }
 
-    @PostMapping("/api/v1/shareLists/{token}:copy")
+    /**
+     * 비로그인 공유 페이지가 사용하는 토큰 → 리소스 조회.
+     * 토큰은 secret이므로 URL이 아닌 request body로 받는다.
+     */
+    @PostMapping("/api/v1/shareLists:lookup")
+    fun lookupByToken(
+        @Valid @RequestBody request: LookupShareListRequest,
+    ): ResponseEntity<ShareListResponse> {
+        val shareList = try {
+            lookupShareListByTokenUsecase.execute(request.token)
+        } catch (e: ShareListNotFoundException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
+        }
+        return ResponseEntity.ok(ShareListResponse.from(shareList))
+    }
+
+    @PostMapping("/api/v1/shareLists/{id}:copy")
     fun copy(
         @AuthenticationPrincipal viewerId: Long,
-        @PathVariable token: String,
+        @PathVariable id: Long,
     ): ResponseEntity<CopyShareListResponse> {
         val result = try {
-            copyShareListUsecase.execute(viewerId = viewerId, token = token)
+            copyShareListUsecase.execute(viewerId = viewerId, shareListId = id)
         } catch (e: ShareListNotFoundException) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
         }
@@ -80,13 +99,13 @@ class ShareListController(
         )
     }
 
-    @DeleteMapping("/api/v1/shareLists/{token}")
+    @DeleteMapping("/api/v1/shareLists/{id}")
     fun delete(
         @AuthenticationPrincipal ownerId: Long,
-        @PathVariable token: String,
+        @PathVariable id: Long,
     ): ResponseEntity<Void> {
         try {
-            deleteShareListUsecase.execute(ownerId = ownerId, token = token)
+            deleteShareListUsecase.execute(ownerId = ownerId, shareListId = id)
         } catch (e: ShareListNotFoundException) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
         }
