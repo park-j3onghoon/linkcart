@@ -66,7 +66,7 @@ export default async function SharePage({ params }: SharePageProps) {
               item={item}
               imageSrc={
                 item.imageUrl
-                  ? `${BACKEND_URL}/api/v1/images/proxy?url=${encodeURIComponent(item.imageUrl)}`
+                  ? `${BACKEND_URL}/api/v1/images:proxy?url=${encodeURIComponent(item.imageUrl)}`
                   : null
               }
             />

@@ -54,7 +54,7 @@ export function createAuthClient(baseUrl: string) {
   }
 
   function refreshTokens(refreshToken: string): Promise<ApiResult<AuthTokens>> {
-    return request<AuthTokens>(`${baseUrl}/api/v1/auth/refresh`, {
+    return request<AuthTokens>(`${baseUrl}/api/v1/auth/tokens:refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken: refreshToken }),
@@ -62,7 +62,7 @@ export function createAuthClient(baseUrl: string) {
   }
 
   function logout(refreshToken: string): Promise<ApiResult<void>> {
-    return request<void>(`${baseUrl}/api/v1/auth/logout`, {
+    return request<void>(`${baseUrl}/api/v1/auth/tokens:revoke`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken: refreshToken }),

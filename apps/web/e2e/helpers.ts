@@ -44,7 +44,7 @@ export function buildMockProduct(input: BuildMockProductInput): MockProduct {
 }
 
 export async function mockParseApi(page: Page, productsByUrl: Record<string, MockProduct>) {
-  await page.route("**/api/v1/products/parse", async (route) => {
+  await page.route("**/api/v1/products:parse", async (route) => {
     const body = route.request().postDataJSON() as { url?: string };
     const url = body.url ?? "";
     const response = productsByUrl[url];
@@ -67,7 +67,7 @@ export async function mockParseApi(page: Page, productsByUrl: Record<string, Moc
 }
 
 export async function mockImageProxy(page: Page) {
-  await page.route("**/api/v1/images/proxy**", async (route) => {
+  await page.route("**/api/v1/images:proxy**", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "image/png",

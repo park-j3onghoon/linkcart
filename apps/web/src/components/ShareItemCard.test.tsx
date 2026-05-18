@@ -13,7 +13,7 @@ const item: ShareListItem = {
 
 describe("ShareItemCard", () => {
   it("renders item details and mall label", () => {
-    render(<ShareItemCard imageSrc="/api/v1/images/proxy?url=test" item={item} />);
+    render(<ShareItemCard imageSrc="/api/v1/images:proxy?url=test" item={item} />);
 
     expect(screen.getByText("테스트 상품")).toBeInTheDocument();
     expect(screen.getByText("15,900원")).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe("ShareItemCard", () => {
   });
 
   it("shows a placeholder when the image fails to load", () => {
-    render(<ShareItemCard imageSrc="/api/v1/images/proxy?url=test" item={item} />);
+    render(<ShareItemCard imageSrc="/api/v1/images:proxy?url=test" item={item} />);
 
     fireEvent.error(screen.getByAltText("테스트 상품 이미지"));
 

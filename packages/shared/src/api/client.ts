@@ -21,7 +21,7 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      const response = await fetch(`${baseUrl}/api/v1/products/parse`, {
+      const response = await fetch(`${baseUrl}/api/v1/products:parse`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
@@ -58,7 +58,7 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
   }
 
   function imageProxyUrl(originalUrl: string): string {
-    return `${baseUrl}/api/v1/images/proxy?url=${encodeURIComponent(originalUrl)}`;
+    return `${baseUrl}/api/v1/images:proxy?url=${encodeURIComponent(originalUrl)}`;
   }
 
   async function getShareList(token: string): Promise<ApiResult<ShareList>> {

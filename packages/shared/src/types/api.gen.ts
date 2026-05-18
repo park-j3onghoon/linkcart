@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/v1/products/parse": {
+    "/api/v1/products:parse": {
         parameters: {
             query?: never;
             header?: never;
@@ -36,7 +36,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/images/proxy": {
+    "/api/v1/images:proxy": {
         parameters: {
             query?: never;
             header?: never;

@@ -17,7 +17,7 @@ const product: ParseResponse = {
 
 describe("ProductCard", () => {
   it("renders product details", () => {
-    render(<ProductCard imageSrc="/api/v1/images/proxy?url=test" product={product} />);
+    render(<ProductCard imageSrc="/api/v1/images:proxy?url=test" product={product} />);
 
     expect(screen.getByText("테스트 상품")).toBeInTheDocument();
     expect(screen.getByText("15,900원")).toBeInTheDocument();
@@ -30,7 +30,7 @@ describe("ProductCard", () => {
   });
 
   it("shows a placeholder when the image fails to load", () => {
-    render(<ProductCard imageSrc="/api/v1/images/proxy?url=test" product={product} />);
+    render(<ProductCard imageSrc="/api/v1/images:proxy?url=test" product={product} />);
 
     fireEvent.error(screen.getByAltText("테스트 상품 이미지"));
 

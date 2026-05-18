@@ -14,7 +14,7 @@ export function createAuthenticatedFetch(
     if (!refreshToken) return false;
     refreshInFlight = (async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
+        const response = await fetch(`${baseUrl}/api/v1/auth/tokens:refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refreshToken: refreshToken }),
