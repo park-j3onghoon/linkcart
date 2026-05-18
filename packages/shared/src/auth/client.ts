@@ -70,7 +70,7 @@ export function createAuthClient(baseUrl: string) {
   }
 
   function getMe(accessToken: string): Promise<ApiResult<{ user: AuthUser }>> {
-    return request<{ user: AuthUser }>(`${baseUrl}/api/v1/auth/me`, {
+    return request<{ user: AuthUser }>(`${baseUrl}/api/v1/users/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
   }
