@@ -78,6 +78,29 @@ class ListUserProductsUsecaseTest {
     }
 
     @Test
+    fun `cursor preserves sub-millisecond precision so rows in same ms are not skipped`() {
+        // PostgreSQL TIMESTAMPTZ가 microsecond 정밀도를 가지므로 cursor가 millis로 truncate되면
+        // 같은 ms 안의 다른 micro row가 페이지에서 누락될 수 있다 (Codex adversarial 회귀 방지).
+        val baseMillis = Instant.parse("2026-04-01T00:00:00Z")
+        val older = baseMillis.plusNanos(500_000) // 500 microseconds
+        val newer = baseMillis.plusNanos(800_000) // 800 microseconds
+        val repo = StubRepo(
+            listOf(
+                productAt(id = 1L, createdAt = older),
+                productAt(id = 2L, createdAt = newer),
+            ),
+        )
+        val sut = ListUserProductsUsecase(repo)
+
+        val first = sut.execute(USER_ID, pageSize = 1, pageToken = null)
+        val second = sut.execute(USER_ID, pageSize = 1, pageToken = first.nextPageToken)
+
+        assertEquals(listOf(2L), first.products.map { it.id })
+        assertEquals(listOf(1L), second.products.map { it.id })
+        assertNull(second.nextPageToken)
+    }
+
+    @Test
     fun `coerces pageSize within bounds`() {
         val repo = StubRepo((1..200L).map { product(id = it, createdAt = "2026-04-${"%02d".format(it.toInt() % 28 + 1)}T00:00:00Z") })
         val sut = ListUserProductsUsecase(repo)
@@ -99,6 +122,18 @@ class ListUserProductsUsecaseTest {
         mall = Mall.GENERIC,
         parserUsed = ParserName.OG,
         createdAt = Instant.parse(createdAt),
+    )
+
+    private fun productAt(id: Long, createdAt: Instant): UserProduct = UserProduct(
+        id = id,
+        userId = USER_ID,
+        name = "p$id",
+        price = Money(amount = 1000L),
+        imageUrl = null,
+        sourceUrl = "https://s/$id",
+        mall = Mall.GENERIC,
+        parserUsed = ParserName.OG,
+        createdAt = createdAt,
     )
 
     companion object {
