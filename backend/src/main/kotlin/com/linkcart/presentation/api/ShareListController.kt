@@ -4,10 +4,10 @@ import com.linkcart.application.share.usecase.CopyShareListUsecase
 import com.linkcart.application.share.usecase.CreateShareListUsecase
 import com.linkcart.application.share.usecase.DeleteShareListUsecase
 import com.linkcart.application.share.usecase.EmptyShareListException
-import com.linkcart.application.share.usecase.GetShareListByIdUsecase
 import com.linkcart.application.share.usecase.LookupShareListByTokenUsecase
 import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.UserProductNotFoundException
+import com.linkcart.presentation.dto.CopyShareListRequest
 import com.linkcart.presentation.dto.CopyShareListResponse
 import com.linkcart.presentation.dto.CreateShareListRequest
 import com.linkcart.presentation.dto.LookupShareListRequest
@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -28,7 +27,6 @@ import org.springframework.web.server.ResponseStatusException
 @RestController
 class ShareListController(
     private val createShareListUsecase: CreateShareListUsecase,
-    private val getShareListByIdUsecase: GetShareListByIdUsecase,
     private val lookupShareListByTokenUsecase: LookupShareListByTokenUsecase,
     private val copyShareListUsecase: CopyShareListUsecase,
     private val deleteShareListUsecase: DeleteShareListUsecase,
@@ -44,7 +42,7 @@ class ShareListController(
                 ownerId = ownerId,
                 productIds = request.productIds,
                 title = request.title,
-                expiresAt = request.expiresAt,
+                expiresAt = request.expireTime,
             )
         } catch (e: EmptyShareListException) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message, e)
@@ -54,19 +52,10 @@ class ShareListController(
         return ResponseEntity.status(HttpStatus.CREATED).body(ShareListResponse.from(shareList))
     }
 
-    @GetMapping("/api/v1/shareLists/{id}")
-    fun get(@PathVariable id: Long): ResponseEntity<ShareListResponse> {
-        val shareList = try {
-            getShareListByIdUsecase.execute(id)
-        } catch (e: ShareListNotFoundException) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
-        }
-        return ResponseEntity.ok(ShareListResponse.from(shareList))
-    }
-
     /**
      * 비로그인 공유 페이지가 사용하는 토큰 → 리소스 조회.
      * 토큰은 secret이므로 URL이 아닌 request body로 받는다.
+     * ID 기반 GET endpoint는 일부러 노출하지 않는다 (enumeration 방지).
      */
     @PostMapping("/api/v1/shareLists:lookup")
     fun lookupByToken(
@@ -84,9 +73,10 @@ class ShareListController(
     fun copy(
         @AuthenticationPrincipal viewerId: Long,
         @PathVariable id: Long,
+        @Valid @RequestBody request: CopyShareListRequest,
     ): ResponseEntity<CopyShareListResponse> {
         val result = try {
-            copyShareListUsecase.execute(viewerId = viewerId, shareListId = id)
+            copyShareListUsecase.execute(viewerId = viewerId, shareListId = id, token = request.token)
         } catch (e: ShareListNotFoundException) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
         }
