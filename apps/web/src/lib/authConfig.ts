@@ -12,9 +12,11 @@ export function buildGoogleAuthUrl(
   redirectUri: string,
   state: string,
 ): string {
+  // Google OAuth 2.0 (RFC 6749) authorize endpoint은 snake_case 파라미터를 요구한다.
+  // AIP-140 lowerCamelCase는 우리 백엔드 API JSON에만 적용한다.
   const params = new URLSearchParams({
     client_id: clientId,
-    redirectUri: redirectUri,
+    redirect_uri: redirectUri,
     response_type: "code",
     scope: "openid email profile",
     access_type: "offline",
