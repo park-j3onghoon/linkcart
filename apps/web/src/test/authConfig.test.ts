@@ -6,7 +6,7 @@ import {
 } from "../lib/authConfig";
 
 describe("buildGoogleAuthUrl", () => {
-  it("includes client_id, redirect_uri, state, and OIDC scopes", () => {
+  it("includes client_id, redirectUri, state, and OIDC scopes", () => {
     const url = buildGoogleAuthUrl(
       "client-xyz.apps.googleusercontent.com",
       "https://example.com/auth/callback",
@@ -17,7 +17,7 @@ describe("buildGoogleAuthUrl", () => {
     expect(parsed.origin).toBe("https://accounts.google.com");
     expect(parsed.pathname).toBe("/o/oauth2/v2/auth");
     expect(parsed.searchParams.get("client_id")).toBe("client-xyz.apps.googleusercontent.com");
-    expect(parsed.searchParams.get("redirect_uri")).toBe("https://example.com/auth/callback");
+    expect(parsed.searchParams.get("redirectUri")).toBe("https://example.com/auth/callback");
     expect(parsed.searchParams.get("state")).toBe("nonce-123");
     expect(parsed.searchParams.get("response_type")).toBe("code");
     expect(parsed.searchParams.get("scope")).toBe("openid email profile");

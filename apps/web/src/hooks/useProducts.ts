@@ -45,7 +45,7 @@ export function useProducts() {
     setFeedback(null);
     setPhase("validating");
 
-    if (products.some((product) => product.source_url === normalizedUrl)) {
+    if (products.some((product) => product.sourceUrl === normalizedUrl)) {
       setPhase("idle");
       setFeedback({
         kind: "warning",
@@ -65,7 +65,7 @@ export function useProducts() {
 
     startTransition(() => {
       setProducts((currentProducts) => {
-        if (currentProducts.some((product) => product.source_url === result.data.source_url)) {
+        if (currentProducts.some((product) => product.sourceUrl === result.data.sourceUrl)) {
           return currentProducts;
         }
         return [result.data, ...currentProducts];

@@ -15,7 +15,7 @@ export default function App() {
     products,
     submitUrl,
   } = useProducts();
-  const lastParserUsed = products[0]?.parser_used ?? "대기 중";
+  const lastParserUsed = products[0]?.parserUsed ?? "대기 중";
 
   return (
     <SafeAreaView style={styles.safeArea}>

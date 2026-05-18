@@ -32,14 +32,14 @@ export function buildMockProduct(input: BuildMockProductInput): MockProduct {
   } = input;
 
   return {
-    fallback_used: fallbackUsed,
-    image_url: imageUrl,
+    fallbackUsed: fallbackUsed,
+    imageUrl: imageUrl,
     mall,
     name,
-    parser_used: parserUsed,
+    parserUsed: parserUsed,
     partial,
     price: priceAmount === null ? null : { amount: priceAmount, currency: "KRW" },
-    source_url: url,
+    sourceUrl: url,
   };
 }
 

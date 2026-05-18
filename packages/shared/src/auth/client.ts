@@ -49,7 +49,7 @@ export function createAuthClient(baseUrl: string) {
     return request<OAuthLoginResult>(`${baseUrl}/api/v1/auth/oauth/google`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, redirect_uri: redirectUri }),
+      body: JSON.stringify({ code, redirectUri: redirectUri }),
     });
   }
 
@@ -57,7 +57,7 @@ export function createAuthClient(baseUrl: string) {
     return request<AuthTokens>(`${baseUrl}/api/v1/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      body: JSON.stringify({ refreshToken: refreshToken }),
     });
   }
 
@@ -65,7 +65,7 @@ export function createAuthClient(baseUrl: string) {
     return request<void>(`${baseUrl}/api/v1/auth/logout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      body: JSON.stringify({ refreshToken: refreshToken }),
     });
   }
 

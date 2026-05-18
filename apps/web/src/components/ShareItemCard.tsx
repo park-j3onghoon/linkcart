@@ -65,7 +65,7 @@ export function ShareItemCard({ imageSrc, item }: ShareItemCardProps) {
 
         <a
           className="inline-flex items-center text-sm font-medium text-sky-700 hover:text-sky-900"
-          href={item.source_url}
+          href={item.sourceUrl}
           target="_blank"
           rel="noreferrer"
         >

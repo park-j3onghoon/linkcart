@@ -21,9 +21,9 @@ describe("createUserProductsClient", () => {
               id: 1,
               name: "상품",
               price: { amount: 1000, currency: "KRW" },
-              source_url: "https://s/1",
+              sourceUrl: "https://s/1",
               mall: "coupang",
-              parser_used: "coupang-api",
+              parserUsed: "coupang-api",
             },
           ],
         }),
@@ -61,9 +61,9 @@ describe("createUserProductsClient", () => {
           id: 99,
           name: "새 상품",
           price: { amount: 2000, currency: "KRW" },
-          source_url: "https://s/new",
+          sourceUrl: "https://s/new",
           mall: "generic",
-          parser_used: "og",
+          parserUsed: "og",
         }),
         { status: 201, headers: { "Content-Type": "application/json" } },
       ),
@@ -73,9 +73,9 @@ describe("createUserProductsClient", () => {
     const result = await client.saveProduct({
       name: "새 상품",
       price: { amount: 2000, currency: "KRW" },
-      source_url: "https://s/new",
+      sourceUrl: "https://s/new",
       mall: "generic",
-      parser_used: "og",
+      parserUsed: "og",
     });
 
     expect(result.ok).toBe(true);

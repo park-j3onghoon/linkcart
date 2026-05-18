@@ -63,8 +63,8 @@ export function ProductList({
       >
         {products.map((product) => (
           <ProductCard
-            key={product.source_url ?? `${product.parser_used}-${product.name ?? "unknown"}`}
-            imageSrc={buildImageSrc(product.image_url)}
+            key={product.sourceUrl ?? `${product.parserUsed}-${product.name ?? "unknown"}`}
+            imageSrc={buildImageSrc(product.imageUrl)}
             product={product}
           />
         ))}

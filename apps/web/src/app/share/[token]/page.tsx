@@ -34,7 +34,7 @@ export default async function SharePage({ params }: SharePageProps) {
   }
 
   const shareList = result.data;
-  const createdAt = formatDate(shareList.created_at);
+  const createdAt = formatDate(shareList.createdAt);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 lg:px-10 lg:py-16">
@@ -65,8 +65,8 @@ export default async function SharePage({ params }: SharePageProps) {
               key={item.id}
               item={item}
               imageSrc={
-                item.image_url
-                  ? `${BACKEND_URL}/api/v1/images/proxy?url=${encodeURIComponent(item.image_url)}`
+                item.imageUrl
+                  ? `${BACKEND_URL}/api/v1/images/proxy?url=${encodeURIComponent(item.imageUrl)}`
                   : null
               }
             />

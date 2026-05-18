@@ -6,20 +6,20 @@ export type UserProduct = {
   id: number;
   name: string;
   price: Money;
-  image_url?: string | null;
-  source_url: string;
+  imageUrl?: string | null;
+  sourceUrl: string;
   mall: MallType;
-  parser_used: string;
-  created_at?: string | null;
+  parserUsed: string;
+  createdAt?: string | null;
 };
 
 export type SaveProductInput = {
   name: string;
   price: Money;
-  image_url?: string | null;
-  source_url: string;
+  imageUrl?: string | null;
+  sourceUrl: string;
   mall: MallType;
-  parser_used: string;
+  parserUsed: string;
 };
 
 async function readJsonOrError<T>(response: Response): Promise<ApiResult<T>> {

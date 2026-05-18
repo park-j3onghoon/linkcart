@@ -46,8 +46,8 @@ export default function AuthCallbackPage() {
         return;
       }
       storage.setTokens({
-        access_token: result.data.access_token,
-        refresh_token: result.data.refresh_token,
+        accessToken: result.data.accessToken,
+        refreshToken: result.data.refreshToken,
       });
       router.replace("/");
     });

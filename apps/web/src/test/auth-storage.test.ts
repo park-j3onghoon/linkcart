@@ -13,14 +13,14 @@ describe("createMemoryTokenStorage", () => {
 
   it("stores and retrieves tokens", () => {
     const storage = createMemoryTokenStorage();
-    storage.setTokens({ access_token: "A", refresh_token: "R" });
+    storage.setTokens({ accessToken: "A", refreshToken: "R" });
     expect(storage.getAccessToken()).toBe("A");
     expect(storage.getRefreshToken()).toBe("R");
   });
 
   it("clears tokens", () => {
     const storage = createMemoryTokenStorage();
-    storage.setTokens({ access_token: "A", refresh_token: "R" });
+    storage.setTokens({ accessToken: "A", refreshToken: "R" });
     storage.clear();
     expect(storage.getAccessToken()).toBeNull();
     expect(storage.getRefreshToken()).toBeNull();
@@ -41,23 +41,23 @@ describe("createWebTokenStorage", () => {
   });
 
   it("persists tokens into the backing storage", () => {
-    web.setTokens({ access_token: "A", refresh_token: "R" });
-    expect(backing.get("linkcart.auth.access_token")).toBe("A");
-    expect(backing.get("linkcart.auth.refresh_token")).toBe("R");
+    web.setTokens({ accessToken: "A", refreshToken: "R" });
+    expect(backing.get("linkcart.auth.accessToken")).toBe("A");
+    expect(backing.get("linkcart.auth.refreshToken")).toBe("R");
   });
 
   it("reads tokens back from backing storage", () => {
-    backing.set("linkcart.auth.access_token", "X");
-    backing.set("linkcart.auth.refresh_token", "Y");
+    backing.set("linkcart.auth.accessToken", "X");
+    backing.set("linkcart.auth.refreshToken", "Y");
     expect(web.getAccessToken()).toBe("X");
     expect(web.getRefreshToken()).toBe("Y");
   });
 
   it("clear removes both keys", () => {
-    backing.set("linkcart.auth.access_token", "X");
-    backing.set("linkcart.auth.refresh_token", "Y");
+    backing.set("linkcart.auth.accessToken", "X");
+    backing.set("linkcart.auth.refreshToken", "Y");
     web.clear();
-    expect(backing.has("linkcart.auth.access_token")).toBe(false);
-    expect(backing.has("linkcart.auth.refresh_token")).toBe(false);
+    expect(backing.has("linkcart.auth.accessToken")).toBe(false);
+    expect(backing.has("linkcart.auth.refreshToken")).toBe(false);
   });
 });

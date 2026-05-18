@@ -5,8 +5,8 @@ import { AuthBar } from "./AuthBar";
 const user: AuthUser = {
   id: 1,
   email: "ted@example.com",
-  display_name: "Teddy",
-  avatar_url: null,
+  displayName: "Teddy",
+  avatarUrl: null,
   provider: "GOOGLE",
 };
 
@@ -27,7 +27,7 @@ describe("AuthBar", () => {
     expect(onLogin).toHaveBeenCalled();
   });
 
-  it("shows user badge with display_name when user is present", () => {
+  it("shows user badge with displayName when user is present", () => {
     render(
       <AuthBar isHydrated user={user} onLogin={() => {}} onLogout={() => {}} />,
     );
@@ -43,8 +43,8 @@ describe("AuthBar", () => {
     expect(onLogout).toHaveBeenCalled();
   });
 
-  it("falls back to email initial when avatar and display_name are missing", () => {
-    const anonymous: AuthUser = { ...user, display_name: null, avatar_url: null };
+  it("falls back to email initial when avatar and displayName are missing", () => {
+    const anonymous: AuthUser = { ...user, displayName: null, avatarUrl: null };
     render(
       <AuthBar isHydrated user={anonymous} onLogin={() => {}} onLogout={() => {}} />,
     );

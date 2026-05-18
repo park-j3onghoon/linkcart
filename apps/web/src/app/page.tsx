@@ -18,7 +18,7 @@ export default function Home() {
     submitUrl,
   } = useProducts();
   const auth = useAuth();
-  const lastParserUsed = products[0]?.parser_used ?? "대기 중";
+  const lastParserUsed = products[0]?.parserUsed ?? "대기 중";
 
   return (
     <div className="relative min-h-screen overflow-hidden">

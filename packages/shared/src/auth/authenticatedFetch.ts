@@ -17,19 +17,19 @@ export function createAuthenticatedFetch(
         const response = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refresh_token: refreshToken }),
+          body: JSON.stringify({ refreshToken: refreshToken }),
         });
         if (!response.ok) {
           storage.clear();
           return false;
         }
         const tokens = (await response.json()) as {
-          access_token: string;
-          refresh_token: string;
+          accessToken: string;
+          refreshToken: string;
         };
         storage.setTokens({
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
         });
         return true;
       } catch {

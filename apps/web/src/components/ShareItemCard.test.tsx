@@ -6,8 +6,8 @@ const item: ShareListItem = {
   id: 1,
   name: "테스트 상품",
   price: { amount: 15900, currency: "KRW" },
-  image_url: "https://example.com/image.jpg",
-  source_url: "https://example.com/product/1",
+  imageUrl: "https://example.com/image.jpg",
+  sourceUrl: "https://example.com/product/1",
   mall: "coupang",
 };
 

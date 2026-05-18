@@ -3,16 +3,16 @@ import { render, screen } from "@testing-library/react-native";
 import { ProductCard } from "./ProductCard";
 
 const product: ParseResponse = {
-  fallback_used: false,
-  image_url: "https://example.com/image.jpg",
+  fallbackUsed: false,
+  imageUrl: "https://example.com/image.jpg",
   mall: "coupang",
   name: "테스트 상품",
-  parser_used: "coupang-api",
+  parserUsed: "coupang-api",
   price: {
     amount: 15900,
     currency: "KRW",
   },
-  source_url: "https://example.com/product/1",
+  sourceUrl: "https://example.com/product/1",
 };
 
 describe("ProductCard", () => {

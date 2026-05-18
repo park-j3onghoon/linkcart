@@ -66,9 +66,9 @@ export function ProductCard({ imageSrc, product }: ProductCardProps) {
             {mallLabel}
           </span>
           <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">
-            {product.parser_used}
+            {product.parserUsed}
           </span>
-          {product.fallback_used ? (
+          {product.fallbackUsed ? (
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
               OG 폴백
             </span>
@@ -89,10 +89,10 @@ export function ProductCard({ imageSrc, product }: ProductCardProps) {
           </p>
         </div>
 
-        {product.source_url ? (
+        {product.sourceUrl ? (
           <a
             className="inline-flex items-center text-sm font-medium text-sky-700 hover:text-sky-900"
-            href={product.source_url}
+            href={product.sourceUrl}
             target="_blank"
             rel="noreferrer"
           >

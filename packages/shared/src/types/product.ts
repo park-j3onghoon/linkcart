@@ -7,12 +7,12 @@ export type MallType = NonNullable<ApiParseResponse["mall"]>;
 export type Product = {
   name?: ApiParseResponse["name"] | null;
   price?: ApiParseResponse["price"] | null;
-  image_url?: ApiParseResponse["image_url"] | null;
-  source_url?: ApiParseResponse["source_url"] | null;
+  imageUrl?: ApiParseResponse["imageUrl"] | null;
+  sourceUrl?: ApiParseResponse["sourceUrl"] | null;
   mall?: ApiParseResponse["mall"] | null;
 };
 
-export type ParseResponse = Omit<ApiParseResponse, "image_url" | "mall" | "name" | "partial" | "price" | "source_url"> &
+export type ParseResponse = Omit<ApiParseResponse, "imageUrl" | "mall" | "name" | "partial" | "price" | "sourceUrl"> &
   Product & {
   partial?: Record<string, unknown> | null;
 };

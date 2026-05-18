@@ -12,7 +12,7 @@ test("부분 파싱 결과를 카드에서 식별할 수 있다", async ({ page 
       imageUrl: null,
       fallbackUsed: true,
       partial: {
-        image_url: "https://images.example.com/partial.png",
+        imageUrl: "https://images.example.com/partial.png",
         name: "부분 파싱 상품",
       },
     }),

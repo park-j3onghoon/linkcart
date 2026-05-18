@@ -1,6 +1,6 @@
 export type StoredTokens = {
-  access_token: string;
-  refresh_token: string;
+  accessToken: string;
+  refreshToken: string;
 };
 
 export type TokenStorage = {
@@ -17,8 +17,8 @@ export function createMemoryTokenStorage(): TokenStorage {
     getAccessToken: () => accessToken,
     getRefreshToken: () => refreshToken,
     setTokens: (tokens) => {
-      accessToken = tokens.access_token;
-      refreshToken = tokens.refresh_token;
+      accessToken = tokens.accessToken;
+      refreshToken = tokens.refreshToken;
     },
     clear: () => {
       accessToken = null;
@@ -34,14 +34,14 @@ export type WebStorageLike = {
 };
 
 export function createWebTokenStorage(storage: WebStorageLike): TokenStorage {
-  const ACCESS_KEY = "linkcart.auth.access_token";
-  const REFRESH_KEY = "linkcart.auth.refresh_token";
+  const ACCESS_KEY = "linkcart.auth.accessToken";
+  const REFRESH_KEY = "linkcart.auth.refreshToken";
   return {
     getAccessToken: () => storage.getItem(ACCESS_KEY),
     getRefreshToken: () => storage.getItem(REFRESH_KEY),
     setTokens: (tokens) => {
-      storage.setItem(ACCESS_KEY, tokens.access_token);
-      storage.setItem(REFRESH_KEY, tokens.refresh_token);
+      storage.setItem(ACCESS_KEY, tokens.accessToken);
+      storage.setItem(REFRESH_KEY, tokens.refreshToken);
     },
     clear: () => {
       storage.removeItem(ACCESS_KEY);

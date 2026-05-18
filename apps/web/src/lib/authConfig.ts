@@ -14,7 +14,7 @@ export function buildGoogleAuthUrl(
 ): string {
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: redirectUri,
+    redirectUri: redirectUri,
     response_type: "code",
     scope: "openid email profile",
     access_type: "offline",

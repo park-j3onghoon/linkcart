@@ -29,7 +29,7 @@ function formatPrice(product: ParseResponse): string {
 export function ProductCard({ imageUri, product }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const hasPartialFields = product.partial && Object.keys(product.partial).length > 0;
-  const sourceUrl = product.source_url;
+  const sourceUrl = product.sourceUrl;
 
   return (
     <View style={styles.card}>
@@ -55,8 +55,8 @@ export function ProductCard({ imageUri, product }: ProductCardProps) {
           <Text style={[styles.badge, styles.mallBadge]}>
             {product.mall ? mallLabels[product.mall] : "출처 미상"}
           </Text>
-          <Text style={[styles.badge, styles.parserBadge]}>{product.parser_used}</Text>
-          {product.fallback_used ? (
+          <Text style={[styles.badge, styles.parserBadge]}>{product.parserUsed}</Text>
+          {product.fallbackUsed ? (
             <Text style={[styles.badge, styles.fallbackBadge]}>OG 폴백</Text>
           ) : null}
           {hasPartialFields ? (

@@ -18,7 +18,7 @@ describe("createAuthenticatedFetch", () => {
 
   it("attaches Authorization header when access token is present", async () => {
     const storage = createMemoryTokenStorage();
-    storage.setTokens({ access_token: "A", refresh_token: "R" });
+    storage.setTokens({ accessToken: "A", refreshToken: "R" });
     fetchMock.mockResolvedValueOnce(new Response("ok", { status: 200 }));
 
     const fetcher = createAuthenticatedFetch("http://api", storage);
@@ -31,12 +31,12 @@ describe("createAuthenticatedFetch", () => {
 
   it("refreshes the token on 401 and retries the request", async () => {
     const storage = createMemoryTokenStorage();
-    storage.setTokens({ access_token: "expired", refresh_token: "R" });
+    storage.setTokens({ accessToken: "expired", refreshToken: "R" });
 
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 401 }));
     fetchMock.mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ access_token: "new_access", refresh_token: "new_refresh" }),
+        JSON.stringify({ accessToken: "new_access", refreshToken: "new_refresh" }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
     );
@@ -54,7 +54,7 @@ describe("createAuthenticatedFetch", () => {
 
   it("clears tokens when refresh fails", async () => {
     const storage = createMemoryTokenStorage();
-    storage.setTokens({ access_token: "expired", refresh_token: "R" });
+    storage.setTokens({ accessToken: "expired", refreshToken: "R" });
 
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 401 }));
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 401 }));

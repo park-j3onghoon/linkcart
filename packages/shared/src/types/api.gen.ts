@@ -67,15 +67,15 @@ export interface components {
         ParseResponse: {
             name?: string;
             price?: components["schemas"]["Money"];
-            image_url?: string;
-            source_url?: string;
+            imageUrl?: string;
+            sourceUrl?: string;
             /** @enum {string} */
             mall?: "coupang" | "elevenst" | "generic";
             partial?: {
                 [key: string]: Record<string, never>;
             };
-            parser_used: string;
-            fallback_used: boolean;
+            parserUsed: string;
+            fallbackUsed: boolean;
         };
     };
     responses: never;

@@ -23,7 +23,7 @@ export function ProductList({
         products.length === 0 && styles.listContentEmpty,
       ]}
       data={products}
-      keyExtractor={(item) => item.source_url ?? `${item.parser_used}-${item.name ?? "unknown"}`}
+      keyExtractor={(item) => item.sourceUrl ?? `${item.parserUsed}-${item.name ?? "unknown"}`}
       ListEmptyComponent={
         <View style={styles.emptyCard}>
           <Text style={styles.eyebrow}>Product List</Text>
@@ -39,7 +39,7 @@ export function ProductList({
       }
       ListHeaderComponent={header ? <View style={styles.headerContainer}>{header}</View> : null}
       renderItem={({ item }) => (
-        <ProductCard imageUri={buildImageUri(item.image_url)} product={item} />
+        <ProductCard imageUri={buildImageUri(item.imageUrl)} product={item} />
       )}
       showsVerticalScrollIndicator={false}
     />

@@ -38,10 +38,10 @@ export function AuthBar({ isHydrated, user, onLogin, onLogout }: AuthBarProps) {
       data-testid="user-badge"
       className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm"
     >
-      {user.avatar_url ? (
+      {user.avatarUrl ? (
         <Image
-          src={user.avatar_url}
-          alt={`${user.display_name ?? user.email} 프로필`}
+          src={user.avatarUrl}
+          alt={`${user.displayName ?? user.email} 프로필`}
           width={28}
           height={28}
           className="rounded-full"
@@ -49,11 +49,11 @@ export function AuthBar({ isHydrated, user, onLogin, onLogout }: AuthBarProps) {
         />
       ) : (
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
-          {(user.display_name ?? user.email).charAt(0).toUpperCase()}
+          {(user.displayName ?? user.email).charAt(0).toUpperCase()}
         </div>
       )}
       <span className="font-medium text-slate-800">
-        {user.display_name ?? user.email}
+        {user.displayName ?? user.email}
       </span>
       <button
         type="button"
