@@ -1,7 +1,10 @@
 export type AuthProvider = "GOOGLE";
 
+/**
+ * AIP-122/148: name = "users/{id}", 사용자 표시명은 displayName.
+ */
 export type AuthUser = {
-  id: number;
+  name: string;
   email: string;
   displayName: string | null;
   avatarUrl: string | null;
