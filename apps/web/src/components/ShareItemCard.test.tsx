@@ -3,8 +3,8 @@ import type { ShareListItem } from "@linkcart/shared";
 import { ShareItemCard } from "./ShareItemCard";
 
 const item: ShareListItem = {
-  id: 1,
-  name: "테스트 상품",
+  name: "shareLists/1/items/1",
+  displayName: "테스트 상품",
   price: { amount: 15900, currency: "KRW" },
   imageUrl: "https://example.com/image.jpg",
   sourceUrl: "https://example.com/product/1",

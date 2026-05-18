@@ -1,8 +1,11 @@
 import type { MallType, Money } from "./product";
 
+/**
+ * AIP-122/148: name = "shareLists/{parent}/items/{id}", 표시용은 displayName.
+ */
 export type ShareListItem = {
-  id: number;
   name: string;
+  displayName: string;
   price: Money;
   imageUrl?: string | null;
   sourceUrl: string;
@@ -10,11 +13,11 @@ export type ShareListItem = {
 };
 
 export type ShareList = {
-  id: number;
+  name: string;
   token: string;
   title?: string | null;
-  expiresAt?: string | null;
-  createdAt?: string | null;
+  expireTime?: string | null;
+  createTime?: string | null;
   items: ShareListItem[];
 };
 
@@ -22,12 +25,12 @@ export type CopyShareListResult = {
   copiedCount: number;
   skippedCount: number;
   products: Array<{
-    id: number;
     name: string;
+    displayName: string;
     price: Money;
     imageUrl?: string | null;
     sourceUrl: string;
     mall: MallType;
-    createdAt?: string | null;
+    createTime?: string | null;
   }>;
 };

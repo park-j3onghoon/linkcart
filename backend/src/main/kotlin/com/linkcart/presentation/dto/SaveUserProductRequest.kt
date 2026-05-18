@@ -12,12 +12,12 @@ import jakarta.validation.constraints.PositiveOrZero
 
 data class SaveUserProductRequest(
     @field:NotBlank
-    val name: String,
+    val displayName: String,
     @field:NotNull @field:Valid
     val price: PriceDto,
     val imageUrl: String?,
     @field:NotBlank
-    @field:Pattern(regexp = "^https?://.+", message = "source_url은 http(s)로 시작해야 합니다")
+    @field:Pattern(regexp = "^https?://.+", message = "sourceUrl은 http(s)로 시작해야 합니다")
     val sourceUrl: String,
     @field:NotNull
     val mall: Mall,
@@ -26,7 +26,7 @@ data class SaveUserProductRequest(
 ) {
     fun toDomain(userId: Long): UserProduct = UserProduct(
         userId = userId,
-        name = name,
+        name = displayName,
         price = Money(amount = price.amount, currency = price.currency),
         imageUrl = imageUrl,
         sourceUrl = sourceUrl,

@@ -34,7 +34,7 @@ export default async function SharePage({ params }: SharePageProps) {
   }
 
   const shareList = result.data;
-  const createdAt = formatDate(shareList.createdAt);
+  const createTime = formatDate(shareList.createTime);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 lg:px-10 lg:py-16">
@@ -47,7 +47,7 @@ export default async function SharePage({ params }: SharePageProps) {
         </h1>
         <p className="mt-4 text-sm text-slate-600">
           총 {shareList.items.length}개 상품
-          {createdAt ? ` · ${createdAt} 공유` : null}
+          {createTime ? ` · ${createTime} 공유` : null}
         </p>
       </header>
 
@@ -62,7 +62,7 @@ export default async function SharePage({ params }: SharePageProps) {
         >
           {shareList.items.map((item) => (
             <ShareItemCard
-              key={item.id}
+              key={item.name}
               item={item}
               imageSrc={
                 item.imageUrl

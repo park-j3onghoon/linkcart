@@ -2,19 +2,22 @@ import type { AuthenticatedFetch } from "../auth/authenticatedFetch";
 import type { MallType, Money } from "../types/product";
 import type { ApiResult } from "./client";
 
+/**
+ * AIP-122/148: name = "users/me/products/{id}", 상품명은 displayName, time 필드는 RFC3339.
+ */
 export type UserProduct = {
-  id: number;
   name: string;
+  displayName: string;
   price: Money;
   imageUrl?: string | null;
   sourceUrl: string;
   mall: MallType;
   parserUsed: string;
-  createdAt?: string | null;
+  createTime?: string | null;
 };
 
 export type SaveProductInput = {
-  name: string;
+  displayName: string;
   price: Money;
   imageUrl?: string | null;
   sourceUrl: string;
@@ -103,10 +106,15 @@ export function createUserProductsClient(authenticatedFetch: AuthenticatedFetch)
     }
   }
 
-  async function deleteProduct(productId: number): Promise<ApiResult<void>> {
+  async function deleteProductByName(productName: string): Promise<ApiResult<void>> {
+    // productName 형식: "users/me/products/{id}"
+    const id = productName.split("/").pop();
+    if (!id) {
+      return { ok: false, error: { code: "UNKNOWN", message: "productName이 올바르지 않습니다" } };
+    }
     try {
       const response = await authenticatedFetch(
-        `/api/v1/users/me/products/${productId}`,
+        `/api/v1/users/me/products/${id}`,
         { method: "DELETE" },
       );
       return readJsonOrError<void>(response);
@@ -121,7 +129,7 @@ export function createUserProductsClient(authenticatedFetch: AuthenticatedFetch)
     }
   }
 
-  return { listProducts, saveProduct, deleteProduct };
+  return { listProducts, saveProduct, deleteProductByName };
 }
 
 export type UserProductsClient = ReturnType<typeof createUserProductsClient>;

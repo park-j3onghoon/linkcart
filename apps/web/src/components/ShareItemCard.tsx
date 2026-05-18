@@ -32,7 +32,7 @@ export function ShareItemCard({ imageSrc, item }: ShareItemCardProps) {
         {imageSrc && !imageFailed ? (
           <Image
             src={imageSrc}
-            alt={`${item.name} 이미지`}
+            alt={`${item.displayName} 이미지`}
             className="object-cover"
             fill
             onError={() => setImageFailed(true)}
@@ -56,7 +56,7 @@ export function ShareItemCard({ imageSrc, item }: ShareItemCardProps) {
 
         <div className="space-y-2">
           <h3 className="line-clamp-2 min-h-16 text-xl font-semibold leading-8 text-slate-950">
-            {item.name}
+            {item.displayName}
           </h3>
           <p className="text-2xl font-semibold tracking-tight text-slate-950">
             {formatPrice(item)}

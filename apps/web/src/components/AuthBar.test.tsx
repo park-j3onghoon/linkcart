@@ -3,7 +3,7 @@ import type { AuthUser } from "@linkcart/shared";
 import { AuthBar } from "./AuthBar";
 
 const user: AuthUser = {
-  id: 1,
+  name: "users/1",
   email: "ted@example.com",
   displayName: "Teddy",
   avatarUrl: null,

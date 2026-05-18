@@ -18,8 +18,8 @@ describe("createUserProductsClient", () => {
         JSON.stringify({
           products: [
             {
-              id: 1,
-              name: "상품",
+              name: "users/me/products/1",
+              displayName: "상품",
               price: { amount: 1000, currency: "KRW" },
               sourceUrl: "https://s/1",
               mall: "coupang",
@@ -38,7 +38,8 @@ describe("createUserProductsClient", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.products).toHaveLength(1);
-      expect(result.data.products[0].name).toBe("상품");
+      expect(result.data.products[0].displayName).toBe("상품");
+      expect(result.data.products[0].name).toBe("users/me/products/1");
       expect(result.data.nextPageToken).toBe("TOKEN_NEXT");
     }
     expect(authenticatedFetch).toHaveBeenCalledWith("/api/v1/users/me/products");
@@ -76,8 +77,8 @@ describe("createUserProductsClient", () => {
     const authenticatedFetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          id: 99,
-          name: "새 상품",
+          name: "users/me/products/99",
+          displayName: "새 상품",
           price: { amount: 2000, currency: "KRW" },
           sourceUrl: "https://s/new",
           mall: "generic",
@@ -89,7 +90,7 @@ describe("createUserProductsClient", () => {
 
     const client = createUserProductsClient(authenticatedFetch);
     const result = await client.saveProduct({
-      name: "새 상품",
+      displayName: "새 상품",
       price: { amount: 2000, currency: "KRW" },
       sourceUrl: "https://s/new",
       mall: "generic",
@@ -97,20 +98,20 @@ describe("createUserProductsClient", () => {
     });
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.data.id).toBe(99);
+    if (result.ok) expect(result.data.name).toBe("users/me/products/99");
     const [, init] = authenticatedFetch.mock.calls[0] as [string, RequestInit];
     expect(init.method).toBe("POST");
     const body = JSON.parse(init.body as string);
-    expect(body.name).toBe("새 상품");
+    expect(body.displayName).toBe("새 상품");
   });
 
-  it("deleteProduct returns ok when the server replies 204", async () => {
+  it("deleteProductByName returns ok when the server replies 204", async () => {
     const authenticatedFetch = vi
       .fn()
       .mockResolvedValue(new Response(null, { status: 204 }));
 
     const client = createUserProductsClient(authenticatedFetch);
-    const result = await client.deleteProduct(42);
+    const result = await client.deleteProductByName("users/me/products/42");
 
     expect(result.ok).toBe(true);
     expect(authenticatedFetch).toHaveBeenCalledWith(
