@@ -108,11 +108,12 @@ class ShareListControllerTest {
                 .content("""{"productIds":[1],"title":"내 리스트"}"""),
         )
             .andExpect(status().isCreated)
-            .andExpect(jsonPath("$.id").value(42))
+            .andExpect(jsonPath("$.name").value("shareLists/42"))
             .andExpect(jsonPath("$.token").value("TOKEN_ABC"))
             .andExpect(jsonPath("$.title").value("내 리스트"))
             .andExpect(jsonPath("$.items.length()").value(1))
-            .andExpect(jsonPath("$.items[0].name").value("아이패드"))
+            .andExpect(jsonPath("$.items[0].name").value("shareLists/42/items/1"))
+            .andExpect(jsonPath("$.items[0].displayName").value("아이패드"))
             .andExpect(jsonPath("$.items[0].sourceUrl").value("https://s/1"))
             .andExpect(jsonPath("$.items[0].mall").value("coupang"))
     }
@@ -206,8 +207,10 @@ class ShareListControllerTest {
 
         mockMvc.perform(get("/api/v1/shareLists/TOKEN_ABC"))
             .andExpect(status().isOk)
+            .andExpect(jsonPath("$.name").value("shareLists/42"))
             .andExpect(jsonPath("$.token").value("TOKEN_ABC"))
-            .andExpect(jsonPath("$.items[0].name").value("상품"))
+            .andExpect(jsonPath("$.items[0].name").value("shareLists/42/items/1"))
+            .andExpect(jsonPath("$.items[0].displayName").value("상품"))
     }
 
     @Test
@@ -245,7 +248,8 @@ class ShareListControllerTest {
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.copiedCount").value(1))
             .andExpect(jsonPath("$.skippedCount").value(1))
-            .andExpect(jsonPath("$.products[0].name").value("복사된 상품"))
+            .andExpect(jsonPath("$.products[0].name").value("users/me/products/100"))
+            .andExpect(jsonPath("$.products[0].displayName").value("복사된 상품"))
     }
 
     @Test

@@ -6,26 +6,29 @@ import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import java.time.Instant
 
+/**
+ * AIP-122 / AIP-148: name = "users/me/products/{id}", createTime은 RFC3339.
+ */
 data class UserProductResponse(
-    val id: Long,
     val name: String,
+    val displayName: String,
     val price: Money,
     val imageUrl: String?,
     val sourceUrl: String,
     val mall: Mall,
     val parserUsed: ParserName,
-    val createdAt: Instant?,
+    val createTime: Instant?,
 ) {
     companion object {
         fun from(product: UserProduct): UserProductResponse = UserProductResponse(
-            id = requireNotNull(product.id),
-            name = product.name,
+            name = "users/me/products/${requireNotNull(product.id)}",
+            displayName = product.name,
             price = product.price,
             imageUrl = product.imageUrl,
             sourceUrl = product.sourceUrl,
             mall = product.mall,
             parserUsed = product.parserUsed,
-            createdAt = product.createdAt,
+            createTime = product.createdAt,
         )
     }
 }
