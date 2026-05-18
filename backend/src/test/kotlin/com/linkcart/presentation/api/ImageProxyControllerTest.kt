@@ -69,7 +69,7 @@ class ImageProxyControllerTest {
     fun `blank url returns 400 response`() {
         mockMvc.perform(get("/api/v1/images/proxy").param("url", ""))
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("validation_error"))
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 
     @Test
@@ -78,7 +78,7 @@ class ImageProxyControllerTest {
 
         mockMvc.perform(get("/api/v1/images/proxy").param("url", "http://127.0.0.1/internal.png"))
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("invalid_request"))
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 
     @Test
@@ -95,7 +95,7 @@ class ImageProxyControllerTest {
 
         mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/error.jpg"))
             .andExpect(status().isBadGateway)
-            .andExpect(jsonPath("$.code").value("upstream_error"))
+            .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
     }
 
     @Test
@@ -113,7 +113,7 @@ class ImageProxyControllerTest {
 
         mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/not-image"))
             .andExpect(status().isBadGateway)
-            .andExpect(jsonPath("$.code").value("upstream_error"))
+            .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
             .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
     }
 
@@ -132,7 +132,7 @@ class ImageProxyControllerTest {
 
         mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/no-content-type"))
             .andExpect(status().isBadGateway)
-            .andExpect(jsonPath("$.code").value("upstream_error"))
+            .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
             .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
     }
 
@@ -172,7 +172,7 @@ class ImageProxyControllerTest {
 
         mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/test.bmp"))
             .andExpect(status().isBadGateway)
-            .andExpect(jsonPath("$.code").value("upstream_error"))
+            .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
             .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
     }
 
@@ -192,7 +192,7 @@ class ImageProxyControllerTest {
 
         mockMvc.perform(get("/api/v1/images/proxy").param("url", "https://images.example.com/icon.svg"))
             .andExpect(status().isBadGateway)
-            .andExpect(jsonPath("$.code").value("upstream_error"))
+            .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
             .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
     }
 }

@@ -1,8 +1,10 @@
 package com.linkcart.presentation.api
 
+import com.linkcart.presentation.dto.ErrorCode
+import com.linkcart.presentation.dto.ErrorDetail
 import com.linkcart.presentation.dto.ErrorResponse
+import com.linkcart.presentation.dto.FieldViolation
 import jakarta.validation.ConstraintViolationException
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.validation.FieldError
@@ -17,25 +19,48 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleMethodArgumentNotValid(ex: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
-        val firstMessage = ex.bindingResult.allErrors.firstOrNull()?.let { error ->
-            if (error is FieldError) {
-                error.defaultMessage
-            } else {
-                error.defaultMessage
+        val fieldViolations = ex.bindingResult.allErrors.mapNotNull { error ->
+            (error as? FieldError)?.let {
+                FieldViolation(
+                    field = it.field,
+                    description = it.defaultMessage ?: "유효하지 않은 값입니다",
+                )
             }
-        } ?: "요청이 올바르지 않습니다"
-
+        }
+        val message = fieldViolations.firstOrNull()?.description
+            ?: ex.bindingResult.allErrors.firstOrNull()?.defaultMessage
+            ?: "요청이 올바르지 않습니다"
         return ResponseEntity
             .badRequest()
-            .body(ErrorResponse(code = "validation_error", message = firstMessage))
+            .body(
+                ErrorResponse(
+                    code = ErrorCode.INVALID_ARGUMENT,
+                    message = message,
+                    details = fieldViolations.takeIf { it.isNotEmpty() }
+                        ?.let { listOf(ErrorDetail(type = "BadRequest", fieldViolations = it)) },
+                ),
+            )
     }
 
     @ExceptionHandler(ConstraintViolationException::class)
     fun handleConstraintViolation(ex: ConstraintViolationException): ResponseEntity<ErrorResponse> {
-        val message = ex.constraintViolations.firstOrNull()?.message ?: "요청이 올바르지 않습니다"
+        val fieldViolations = ex.constraintViolations.map {
+            FieldViolation(
+                field = it.propertyPath.toString(),
+                description = it.message,
+            )
+        }
+        val message = fieldViolations.firstOrNull()?.description ?: "요청이 올바르지 않습니다"
         return ResponseEntity
             .badRequest()
-            .body(ErrorResponse(code = "validation_error", message = message))
+            .body(
+                ErrorResponse(
+                    code = ErrorCode.INVALID_ARGUMENT,
+                    message = message,
+                    details = fieldViolations.takeIf { it.isNotEmpty() }
+                        ?.let { listOf(ErrorDetail(type = "BadRequest", fieldViolations = it)) },
+                ),
+            )
     }
 
     @ExceptionHandler(MissingServletRequestParameterException::class, HttpMessageNotReadableException::class)
@@ -44,20 +69,14 @@ class GlobalExceptionHandler {
             is MissingServletRequestParameterException -> "${ex.parameterName} 파라미터가 필요합니다"
             else -> "요청 본문이 올바르지 않습니다"
         }
-
         return ResponseEntity
             .badRequest()
-            .body(ErrorResponse(code = "invalid_request", message = message))
+            .body(ErrorResponse(code = ErrorCode.INVALID_ARGUMENT, message = message))
     }
 
     @ExceptionHandler(ResponseStatusException::class)
     fun handleResponseStatusException(ex: ResponseStatusException): ResponseEntity<ErrorResponse> {
-        val code = when (ex.statusCode) {
-            HttpStatus.BAD_REQUEST -> "invalid_request"
-            HttpStatus.BAD_GATEWAY -> "upstream_error"
-            else -> "request_failed"
-        }
-
+        val code = ErrorCode.fromHttpStatus(ex.statusCode)
         return ResponseEntity
             .status(ex.statusCode)
             .body(ErrorResponse(code = code, message = ex.reason ?: "요청 처리에 실패했습니다"))

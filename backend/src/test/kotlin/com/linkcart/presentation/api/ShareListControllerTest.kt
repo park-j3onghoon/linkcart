@@ -126,7 +126,7 @@ class ShareListControllerTest {
                 .content("""{"product_ids":[]}"""),
         )
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("validation_error"))
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 
     @Test
@@ -179,7 +179,7 @@ class ShareListControllerTest {
                 .content("""{"product_ids":[1],"title":"$longTitle"}"""),
         )
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("validation_error"))
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 
     @Test

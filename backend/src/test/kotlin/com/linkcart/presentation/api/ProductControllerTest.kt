@@ -106,7 +106,7 @@ class ProductControllerTest {
                 .content("""{"url":""}"""),
         )
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("validation_error"))
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 
     @Test
@@ -117,7 +117,7 @@ class ProductControllerTest {
                 .content("""{"url":"ftp://example.com/product"}"""),
         )
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("validation_error"))
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 
     @Test
@@ -136,7 +136,7 @@ class ProductControllerTest {
                 .content("""{"url":"https://www.coupang.com/vp/products/404"}"""),
         )
             .andExpect(status().isBadGateway)
-            .andExpect(jsonPath("$.code").value("upstream_error"))
+            .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
             .andExpect(jsonPath("$.message").value("상품 정보를 가져올 수 없습니다"))
     }
 
@@ -178,7 +178,7 @@ class ProductControllerTest {
                 .content("""{"url":"http://127.0.0.1/test"}"""),
         )
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("invalid_request"))
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
             .andExpect(jsonPath("$.message").value("허용되지 않는 URL입니다"))
     }
 
@@ -190,7 +190,7 @@ class ProductControllerTest {
                 .content("""{"url":"   "}"""),
         )
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("validation_error"))
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 
     @Test
@@ -201,6 +201,6 @@ class ProductControllerTest {
                 .content("""{"url":"javascript:alert(1)"}"""),
         )
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("validation_error"))
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 }

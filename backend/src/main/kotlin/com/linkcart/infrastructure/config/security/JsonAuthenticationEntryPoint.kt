@@ -1,6 +1,7 @@
 package com.linkcart.infrastructure.config.security
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.linkcart.presentation.dto.ErrorCode
 import com.linkcart.presentation.dto.ErrorResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -20,7 +21,7 @@ class JsonAuthenticationEntryPoint(
     ) {
         response.status = HttpStatus.UNAUTHORIZED.value()
         response.contentType = MediaType.APPLICATION_JSON_VALUE
-        val body = ErrorResponse(code = "unauthorized", message = "인증이 필요합니다")
+        val body = ErrorResponse(code = ErrorCode.UNAUTHENTICATED, message = "인증이 필요합니다")
         response.writer.write(objectMapper.writeValueAsString(body))
     }
 }

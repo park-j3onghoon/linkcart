@@ -1,6 +1,7 @@
 package com.linkcart.infrastructure.ratelimit
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.linkcart.presentation.dto.ErrorCode
 import com.linkcart.presentation.dto.ErrorResponse
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -37,7 +38,10 @@ class RateLimitFilter(
         response.characterEncoding = Charsets.UTF_8.name()
         objectMapper.writeValue(
             response.writer,
-            ErrorResponse(code = "rate_limited", message = "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
+            ErrorResponse(
+                code = ErrorCode.RESOURCE_EXHAUSTED,
+                message = "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.",
+            ),
         )
     }
 
