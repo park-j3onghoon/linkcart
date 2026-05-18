@@ -18,7 +18,7 @@ import kotlin.test.assertEquals
 class CopyShareListUsecaseTest {
 
     @Test
-    fun `copies all items into viewer's products when no duplicates`() {
+    fun `copies all items into viewer's products when token matches`() {
         val shareList = shareListWith(
             items = listOf(
                 item(name = "a", sourceUrl = "https://s/1", mall = Mall.COUPANG),
@@ -28,7 +28,7 @@ class CopyShareListUsecaseTest {
         val repo = StubUserProductRepository()
         val sut = newSut(shareList, repo)
 
-        val result = sut.execute(viewerId = VIEWER_ID, shareListId = SHARE_LIST_ID)
+        val result = sut.execute(viewerId = VIEWER_ID, shareListId = SHARE_LIST_ID, token = TOKEN)
 
         assertEquals(2, result.copiedCount)
         assertEquals(0, result.skippedCount)
@@ -49,7 +49,7 @@ class CopyShareListUsecaseTest {
         val repo = StubUserProductRepository(existingSourceUrls = setOf("https://s/dup"))
         val sut = newSut(shareList, repo)
 
-        val result = sut.execute(viewerId = VIEWER_ID, shareListId = SHARE_LIST_ID)
+        val result = sut.execute(viewerId = VIEWER_ID, shareListId = SHARE_LIST_ID, token = TOKEN)
 
         assertEquals(1, result.copiedCount)
         assertEquals(1, result.skippedCount)
@@ -57,17 +57,28 @@ class CopyShareListUsecaseTest {
     }
 
     @Test
-    fun `throws ShareListNotFoundException when shareListId is missing`() {
+    fun `throws ShareListNotFoundException when token does not match any list`() {
         val repo = StubUserProductRepository()
-        val sut = CopyShareListUsecase(
-            getShareListByIdUsecase = GetShareListByIdUsecase(
-                StubShareRepo(emptyMap()),
-                fixedClock(),
-            ),
-            userProductRepository = repo,
-        )
+        val sut = newSut(shareList = null, productRepo = repo)
 
-        assertThrows<ShareListNotFoundException> { sut.execute(VIEWER_ID, 999L) }
+        assertThrows<ShareListNotFoundException> {
+            sut.execute(VIEWER_ID, SHARE_LIST_ID, token = "missing")
+        }
+    }
+
+    @Test
+    fun `throws ShareListNotFoundException when path id does not match token's share list`() {
+        val shareList = shareListWith(
+            items = listOf(item(name = "a", sourceUrl = "https://s/1", mall = Mall.GENERIC)),
+        )
+        val repo = StubUserProductRepository()
+        val sut = newSut(shareList, repo)
+
+        // 토큰은 유효하지만 path id가 다른 ShareList를 가리킴 → enumeration 방지
+        assertThrows<ShareListNotFoundException> {
+            sut.execute(VIEWER_ID, shareListId = SHARE_LIST_ID + 1, token = TOKEN)
+        }
+        assertEquals(0, repo.saved.size)
     }
 
     @Test
@@ -78,26 +89,29 @@ class CopyShareListUsecaseTest {
         val repo = StubUserProductRepository()
         val sut = newSut(shareList, repo)
 
-        sut.execute(VIEWER_ID, SHARE_LIST_ID)
+        sut.execute(VIEWER_ID, SHARE_LIST_ID, token = TOKEN)
 
         assertEquals(ParserName.ELEVENST, repo.saved.single().parserUsed)
     }
 
     private fun newSut(
-        shareList: ShareList,
+        shareList: ShareList?,
         productRepo: StubUserProductRepository,
-    ): CopyShareListUsecase = CopyShareListUsecase(
-        getShareListByIdUsecase = GetShareListByIdUsecase(
-            StubShareRepo(mapOf(SHARE_LIST_ID to shareList)),
-            fixedClock(),
-        ),
-        userProductRepository = productRepo,
-    )
+    ): CopyShareListUsecase {
+        val byToken = if (shareList == null) emptyMap() else mapOf(TOKEN to shareList)
+        return CopyShareListUsecase(
+            lookupShareListByTokenUsecase = LookupShareListByTokenUsecase(
+                StubShareRepo(byToken),
+                fixedClock(),
+            ),
+            userProductRepository = productRepo,
+        )
+    }
 
     private fun shareListWith(items: List<ShareListItem>): ShareList = ShareList(
         id = SHARE_LIST_ID,
         ownerId = 99L,
-        token = "TOKEN",
+        token = TOKEN,
         title = "공유",
         expiresAt = null,
         createdAt = Instant.parse("2026-04-20T00:00:00Z"),
@@ -118,6 +132,7 @@ class CopyShareListUsecaseTest {
     companion object {
         private const val VIEWER_ID = 42L
         private const val SHARE_LIST_ID = 1L
+        private const val TOKEN = "TOKEN"
     }
 
     private class StubUserProductRepository(
@@ -140,10 +155,10 @@ class CopyShareListUsecaseTest {
             sourceUrl in existingSourceUrls
     }
 
-    private class StubShareRepo(private val byId: Map<Long, ShareList>) : ShareListRepository {
+    private class StubShareRepo(private val byToken: Map<String, ShareList>) : ShareListRepository {
         override fun save(shareList: ShareList): ShareList = shareList
-        override fun findById(id: Long): ShareList? = byId[id]
-        override fun findByToken(token: String): ShareList? = null
+        override fun findById(id: Long): ShareList? = null
+        override fun findByToken(token: String): ShareList? = byToken[token]
         override fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareList> = emptyList()
         override fun deleteById(id: Long) {}
     }

@@ -50,7 +50,9 @@ class SecurityConfig {
                 "/v3/api-docs/**",
                 "/error",
             ).permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/shareLists/*").permitAll()
+                // AIP-131: ShareList의 secret token으로만 공유 컨텐츠를 조회한다.
+                // ID 기반 GET은 enumeration 위험이 있어 비공개(인증 필요).
+                .requestMatchers(HttpMethod.POST, "/api/v1/shareLists:lookup").permitAll()
                 .anyRequest().authenticated()
         }
         .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter::class.java)

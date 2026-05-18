@@ -5,7 +5,6 @@ import com.linkcart.application.share.usecase.CopyShareListUsecase
 import com.linkcart.application.share.usecase.CreateShareListUsecase
 import com.linkcart.application.share.usecase.DeleteShareListUsecase
 import com.linkcart.application.share.usecase.EmptyShareListException
-import com.linkcart.application.share.usecase.GetShareListByIdUsecase
 import com.linkcart.application.share.usecase.LookupShareListByTokenUsecase
 import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.UserProductNotFoundException
@@ -33,7 +32,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -52,9 +50,6 @@ class ShareListControllerTest {
 
     @MockBean
     private lateinit var createShareListUsecase: CreateShareListUsecase
-
-    @MockBean
-    private lateinit var getShareListByIdUsecase: GetShareListByIdUsecase
 
     @MockBean
     private lateinit var lookupShareListByTokenUsecase: LookupShareListByTokenUsecase
@@ -165,25 +160,6 @@ class ShareListControllerTest {
     }
 
     @Test
-    fun `get by id returns 200`() {
-        given(getShareListByIdUsecase.execute(42L)).willReturn(sampleShareList())
-
-        mockMvc.perform(get("/api/v1/shareLists/42"))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.name").value("shareLists/42"))
-            .andExpect(jsonPath("$.items[0].displayName").value("아이패드"))
-    }
-
-    @Test
-    fun `get by id returns 404 when missing or expired`() {
-        given(getShareListByIdUsecase.execute(999L))
-            .willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
-
-        mockMvc.perform(get("/api/v1/shareLists/999"))
-            .andExpect(status().isNotFound)
-    }
-
-    @Test
     fun `lookup by token returns 200`() {
         given(lookupShareListByTokenUsecase.execute("TOKEN_ABC")).willReturn(sampleShareList())
 
@@ -222,8 +198,10 @@ class ShareListControllerTest {
     }
 
     @Test
-    fun `copy returns 201 with counts and copied products`() {
-        given(copyShareListUsecase.execute(viewerId = OWNER_ID, shareListId = 42L)).willReturn(
+    fun `copy returns 201 with counts and copied products when token matches`() {
+        given(
+            copyShareListUsecase.execute(viewerId = OWNER_ID, shareListId = 42L, token = "TOKEN_ABC"),
+        ).willReturn(
             CopyShareListResult(
                 copiedCount = 1,
                 skippedCount = 1,
@@ -243,7 +221,11 @@ class ShareListControllerTest {
             ),
         )
 
-        mockMvc.perform(post("/api/v1/shareLists/42:copy"))
+        mockMvc.perform(
+            post("/api/v1/shareLists/42:copy")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"token":"TOKEN_ABC"}"""),
+        )
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.copiedCount").value(1))
             .andExpect(jsonPath("$.skippedCount").value(1))
@@ -252,12 +234,28 @@ class ShareListControllerTest {
     }
 
     @Test
-    fun `copy returns 404 when id missing`() {
-        given(copyShareListUsecase.execute(viewerId = OWNER_ID, shareListId = 999L))
-            .willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
+    fun `copy returns 404 when token does not match`() {
+        given(
+            copyShareListUsecase.execute(viewerId = OWNER_ID, shareListId = 42L, token = "wrong"),
+        ).willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
 
-        mockMvc.perform(post("/api/v1/shareLists/999:copy"))
+        mockMvc.perform(
+            post("/api/v1/shareLists/42:copy")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"token":"wrong"}"""),
+        )
             .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `copy with blank token returns 400`() {
+        mockMvc.perform(
+            post("/api/v1/shareLists/42:copy")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"token":""}"""),
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 
     @Test
