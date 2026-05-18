@@ -51,6 +51,6 @@ class RateLimitFilter(
     }
 
     companion object {
-        const val PARSE_PATH = "/api/v1/products/parse"
+        const val PARSE_PATH = "/api/v1/products:parse"
     }
 }

@@ -241,7 +241,7 @@ class ShareListControllerTest {
             ),
         )
 
-        mockMvc.perform(post("/api/v1/shareLists/TOKEN_ABC/copy"))
+        mockMvc.perform(post("/api/v1/shareLists/TOKEN_ABC:copy"))
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.copiedCount").value(1))
             .andExpect(jsonPath("$.skippedCount").value(1))
@@ -253,7 +253,7 @@ class ShareListControllerTest {
         given(copyShareListUsecase.execute(viewerId = OWNER_ID, token = "missing"))
             .willThrow(ShareListNotFoundException("공유 리스트를 찾을 수 없습니다"))
 
-        mockMvc.perform(post("/api/v1/shareLists/missing/copy"))
+        mockMvc.perform(post("/api/v1/shareLists/missing:copy"))
             .andExpect(status().isNotFound)
     }
 

@@ -9,18 +9,16 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
 @RestController
-@RequestMapping("/api/v1/products")
 class ProductController(
     private val parseProductUseCase: ParseProductUseCase,
     private val safeUrlChecker: SafeUrlChecker,
 ) {
 
-    @PostMapping("/parse")
+    @PostMapping("/api/v1/products:parse")
     fun parse(
         @Valid @RequestBody request: ParseRequest,
     ): ParseResponse {

@@ -58,7 +58,7 @@ class ProductControllerTest {
         )
 
         mockMvc.perform(
-            post("/api/v1/products/parse")
+            post("/api/v1/products:parse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"url":"https://www.coupang.com/vp/products/123"}"""),
         )
@@ -90,7 +90,7 @@ class ProductControllerTest {
         )
 
         mockMvc.perform(
-            post("/api/v1/products/parse")
+            post("/api/v1/products:parse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"url":"https://www.11st.co.kr/products/456"}"""),
         )
@@ -101,7 +101,7 @@ class ProductControllerTest {
     @Test
     fun `blank url returns 400 response`() {
         mockMvc.perform(
-            post("/api/v1/products/parse")
+            post("/api/v1/products:parse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"url":""}"""),
         )
@@ -112,7 +112,7 @@ class ProductControllerTest {
     @Test
     fun `invalid url format returns 400 response`() {
         mockMvc.perform(
-            post("/api/v1/products/parse")
+            post("/api/v1/products:parse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"url":"ftp://example.com/product"}"""),
         )
@@ -131,7 +131,7 @@ class ProductControllerTest {
         )
 
         mockMvc.perform(
-            post("/api/v1/products/parse")
+            post("/api/v1/products:parse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"url":"https://www.coupang.com/vp/products/404"}"""),
         )
@@ -155,7 +155,7 @@ class ProductControllerTest {
         )
 
         mockMvc.perform(
-            post("/api/v1/products/parse")
+            post("/api/v1/products:parse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"url":"https://example.com/product/partial"}"""),
         )
@@ -173,7 +173,7 @@ class ProductControllerTest {
         given(safeUrlChecker.isSafe("http://127.0.0.1/test")).willReturn(false)
 
         mockMvc.perform(
-            post("/api/v1/products/parse")
+            post("/api/v1/products:parse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"url":"http://127.0.0.1/test"}"""),
         )
@@ -185,7 +185,7 @@ class ProductControllerTest {
     @Test
     fun `whitespace-only url returns 400 response`() {
         mockMvc.perform(
-            post("/api/v1/products/parse")
+            post("/api/v1/products:parse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"url":"   "}"""),
         )
@@ -196,7 +196,7 @@ class ProductControllerTest {
     @Test
     fun `javascript protocol returns 400 response`() {
         mockMvc.perform(
-            post("/api/v1/products/parse")
+            post("/api/v1/products:parse")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"url":"javascript:alert(1)"}"""),
         )

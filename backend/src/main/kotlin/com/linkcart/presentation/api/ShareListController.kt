@@ -20,12 +20,10 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
 @RestController
-@RequestMapping("/api/v1/shareLists")
 class ShareListController(
     private val createShareListUsecase: CreateShareListUsecase,
     private val getShareListByTokenUsecase: GetShareListByTokenUsecase,
@@ -33,7 +31,7 @@ class ShareListController(
     private val deleteShareListUsecase: DeleteShareListUsecase,
 ) {
 
-    @PostMapping
+    @PostMapping("/api/v1/shareLists")
     fun create(
         @AuthenticationPrincipal ownerId: Long,
         @Valid @RequestBody request: CreateShareListRequest,
@@ -53,7 +51,7 @@ class ShareListController(
         return ResponseEntity.status(HttpStatus.CREATED).body(ShareListResponse.from(shareList))
     }
 
-    @GetMapping("/{token}")
+    @GetMapping("/api/v1/shareLists/{token}")
     fun findByToken(@PathVariable token: String): ResponseEntity<ShareListResponse> {
         val shareList = try {
             getShareListByTokenUsecase.execute(token)
@@ -63,7 +61,7 @@ class ShareListController(
         return ResponseEntity.ok(ShareListResponse.from(shareList))
     }
 
-    @PostMapping("/{token}/copy")
+    @PostMapping("/api/v1/shareLists/{token}:copy")
     fun copy(
         @AuthenticationPrincipal viewerId: Long,
         @PathVariable token: String,
@@ -82,7 +80,7 @@ class ShareListController(
         )
     }
 
-    @DeleteMapping("/{token}")
+    @DeleteMapping("/api/v1/shareLists/{token}")
     fun delete(
         @AuthenticationPrincipal ownerId: Long,
         @PathVariable token: String,

@@ -21,7 +21,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import java.time.Clock
@@ -29,7 +28,6 @@ import java.time.Duration
 import java.time.Instant
 
 @RestController
-@RequestMapping("/api/v1/auth")
 class AuthController(
     private val loginWithGoogleUsecase: LoginWithGoogleUsecase,
     private val refreshTokensUsecase: RefreshTokensUsecase,
@@ -38,7 +36,7 @@ class AuthController(
     private val clock: Clock = Clock.systemUTC(),
 ) {
 
-    @PostMapping("/oauth/google")
+    @PostMapping("/api/v1/auth/oauth/google")
     fun loginWithGoogle(@Valid @RequestBody request: OAuthLoginRequest): ResponseEntity<OAuthLoginResponse> {
         val result = try {
             loginWithGoogleUsecase.execute(code = request.code, redirectUri = request.redirectUri)
@@ -57,7 +55,7 @@ class AuthController(
         )
     }
 
-    @PostMapping("/refresh")
+    @PostMapping("/api/v1/auth/tokens:refresh")
     fun refresh(@Valid @RequestBody request: RefreshRequest): ResponseEntity<RefreshResponse> {
         val tokens = try {
             refreshTokensUsecase.execute(request.refreshToken)
@@ -75,13 +73,13 @@ class AuthController(
         )
     }
 
-    @PostMapping("/logout")
+    @PostMapping("/api/v1/auth/tokens:revoke")
     fun logout(@Valid @RequestBody request: LogoutRequest): ResponseEntity<Void> {
         logoutUsecase.execute(request.refreshToken)
         return ResponseEntity.noContent().build()
     }
 
-    @GetMapping("/me")
+    @GetMapping("/api/v1/auth/me")
     fun me(@AuthenticationPrincipal userId: Long): ResponseEntity<MeResponse> {
         val user = userRepository.findById(userId)
             ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다")

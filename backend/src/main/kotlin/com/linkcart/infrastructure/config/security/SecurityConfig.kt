@@ -40,8 +40,9 @@ class SecurityConfig {
         .authorizeHttpRequests {
             it.requestMatchers(
                 "/api/v1/auth/oauth/**",
-                "/api/v1/products/parse",
-                "/api/v1/images/proxy",
+                "/api/v1/auth/tokens:refresh",
+                "/api/v1/products:parse",
+                "/api/v1/images:proxy",
                 "/openapi.json",
                 "/docs/**",
                 "/swagger-ui/**",

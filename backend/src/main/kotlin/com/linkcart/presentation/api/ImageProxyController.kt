@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.client.RestClientException
@@ -19,14 +18,13 @@ import org.springframework.web.server.ResponseStatusException
 
 @Validated
 @RestController
-@RequestMapping("/api/v1/images")
 class ImageProxyController(
     private val safeUrlChecker: SafeUrlChecker,
     @Qualifier("imageProxyRestTemplate")
     private val restTemplate: RestTemplate,
 ) {
 
-    @GetMapping("/proxy")
+    @GetMapping("/api/v1/images:proxy")
     fun proxy(
         @RequestParam @NotBlank(message = "이미지 URL은 비어 있을 수 없습니다") url: String,
     ): ResponseEntity<ByteArray> {
