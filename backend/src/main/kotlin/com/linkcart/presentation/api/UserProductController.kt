@@ -2,6 +2,7 @@ package com.linkcart.presentation.api
 
 import com.linkcart.application.user.usecase.DeleteUserProductUsecase
 import com.linkcart.application.user.usecase.DuplicateUserProductException
+import com.linkcart.application.user.usecase.InvalidPageTokenException
 import com.linkcart.application.user.usecase.ListUserProductsUsecase
 import com.linkcart.application.user.usecase.SaveUserProductUsecase
 import com.linkcart.application.user.usecase.UserProductNotFoundException
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
@@ -43,9 +45,22 @@ class UserProductController(
     }
 
     @GetMapping
-    fun list(@AuthenticationPrincipal userId: Long): ResponseEntity<UserProductsResponse> {
-        val products = listUserProductsUsecase.execute(userId).map(UserProductResponse::from)
-        return ResponseEntity.ok(UserProductsResponse(products = products))
+    fun list(
+        @AuthenticationPrincipal userId: Long,
+        @RequestParam(defaultValue = "50") pageSize: Int,
+        @RequestParam(required = false) pageToken: String?,
+    ): ResponseEntity<UserProductsResponse> {
+        val page = try {
+            listUserProductsUsecase.execute(userId = userId, pageSize = pageSize, pageToken = pageToken)
+        } catch (e: InvalidPageTokenException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message, e)
+        }
+        return ResponseEntity.ok(
+            UserProductsResponse(
+                products = page.products.map(UserProductResponse::from),
+                nextPageToken = page.nextPageToken,
+            ),
+        )
     }
 
     @DeleteMapping("/{productId}")

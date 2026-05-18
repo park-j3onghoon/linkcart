@@ -22,6 +22,16 @@ export type SaveProductInput = {
   parserUsed: string;
 };
 
+export type ListUserProductsResponse = {
+  products: UserProduct[];
+  nextPageToken: string | null;
+};
+
+export type ListUserProductsOptions = {
+  pageSize?: number;
+  pageToken?: string;
+};
+
 async function readJsonOrError<T>(response: Response): Promise<ApiResult<T>> {
   if (response.status === 401) {
     return { ok: false, error: { code: "UNAUTHORIZED", message: "인증이 만료되었습니다" } };
@@ -42,12 +52,27 @@ async function readJsonOrError<T>(response: Response): Promise<ApiResult<T>> {
 }
 
 export function createUserProductsClient(authenticatedFetch: AuthenticatedFetch) {
-  async function listProducts(): Promise<ApiResult<UserProduct[]>> {
+  async function listProducts(
+    options: ListUserProductsOptions = {},
+  ): Promise<ApiResult<ListUserProductsResponse>> {
+    const params = new URLSearchParams();
+    if (options.pageSize !== undefined) params.set("pageSize", String(options.pageSize));
+    if (options.pageToken) params.set("pageToken", options.pageToken);
+    const queryString = params.toString();
+    const path = queryString
+      ? `/api/v1/users/me/products?${queryString}`
+      : "/api/v1/users/me/products";
     try {
-      const response = await authenticatedFetch("/api/v1/users/me/products");
-      const parsed = await readJsonOrError<{ products: UserProduct[] }>(response);
+      const response = await authenticatedFetch(path);
+      const parsed = await readJsonOrError<{ products: UserProduct[]; nextPageToken?: string | null }>(response);
       if (!parsed.ok) return parsed;
-      return { ok: true, data: parsed.data.products };
+      return {
+        ok: true,
+        data: {
+          products: parsed.data.products,
+          nextPageToken: parsed.data.nextPageToken ?? null,
+        },
+      };
     } catch (err) {
       return {
         ok: false,

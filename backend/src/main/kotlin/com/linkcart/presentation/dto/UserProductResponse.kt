@@ -32,4 +32,5 @@ data class UserProductResponse(
 
 data class UserProductsResponse(
     val products: List<UserProductResponse>,
+    val nextPageToken: String? = null,
 )

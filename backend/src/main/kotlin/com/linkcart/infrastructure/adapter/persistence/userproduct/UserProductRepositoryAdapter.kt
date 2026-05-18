@@ -2,7 +2,9 @@ package com.linkcart.infrastructure.adapter.persistence.userproduct
 
 import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.port.UserProductRepository
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @Component
 class UserProductRepositoryAdapter(
@@ -17,6 +19,18 @@ class UserProductRepositoryAdapter(
 
     override fun findAllByUserIdOrderByCreatedAtDesc(userId: Long): List<UserProduct> =
         jpaRepository.findAllByUserIdOrderByCreatedAtDesc(userId).map { it.toDomain() }
+
+    override fun findPageByUserId(
+        userId: Long,
+        cursorCreatedAt: Instant?,
+        cursorId: Long?,
+        limit: Int,
+    ): List<UserProduct> = jpaRepository.findPage(
+        userId = userId,
+        cursorCreatedAt = cursorCreatedAt,
+        cursorId = cursorId,
+        pageable = PageRequest.of(0, limit),
+    ).map { it.toDomain() }
 
     override fun deleteById(id: Long) {
         jpaRepository.deleteById(id)

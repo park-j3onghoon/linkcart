@@ -12,7 +12,7 @@ describe("createUserProductsClient", () => {
     vi.restoreAllMocks();
   });
 
-  it("listProducts maps the products array out of the response envelope", async () => {
+  it("listProducts returns products with nextPageToken when present", async () => {
     const authenticatedFetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -26,6 +26,7 @@ describe("createUserProductsClient", () => {
               parserUsed: "coupang-api",
             },
           ],
+          nextPageToken: "TOKEN_NEXT",
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
@@ -36,10 +37,27 @@ describe("createUserProductsClient", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].name).toBe("상품");
+      expect(result.data.products).toHaveLength(1);
+      expect(result.data.products[0].name).toBe("상품");
+      expect(result.data.nextPageToken).toBe("TOKEN_NEXT");
     }
     expect(authenticatedFetch).toHaveBeenCalledWith("/api/v1/users/me/products");
+  });
+
+  it("listProducts passes pageSize and pageToken as query params", async () => {
+    const authenticatedFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ products: [], nextPageToken: null }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const client = createUserProductsClient(authenticatedFetch);
+    await client.listProducts({ pageSize: 20, pageToken: "abc" });
+
+    expect(authenticatedFetch).toHaveBeenCalledWith(
+      "/api/v1/users/me/products?pageSize=20&pageToken=abc",
+    );
   });
 
   it("listProducts returns UNAUTHORIZED on 401", async () => {

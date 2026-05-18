@@ -134,6 +134,7 @@ class CreateShareListUsecaseTest {
         override fun save(product: UserProduct): UserProduct = product
         override fun findById(id: Long): UserProduct? = products[id]
         override fun findAllByUserIdOrderByCreatedAtDesc(userId: Long): List<UserProduct> = emptyList()
+        override fun findPageByUserId(userId: Long, cursorCreatedAt: java.time.Instant?, cursorId: Long?, limit: Int): List<UserProduct> = emptyList()
         override fun deleteById(id: Long) {}
         override fun existsByUserIdAndSourceUrl(userId: Long, sourceUrl: String): Boolean = false
     }
