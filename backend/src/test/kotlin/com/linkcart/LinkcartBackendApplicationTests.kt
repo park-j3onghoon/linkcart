@@ -18,15 +18,15 @@ class LinkcartBackendApplicationTests(
 	}
 
 	@Test
-	fun openApiUsesSnakeCaseForParseResponse() {
+	fun openApiUsesCamelCaseForParseResponse() {
 		mockMvc.get("/openapi.json")
 			.andExpect {
 				status { isOk() }
-				jsonPath("$.components.schemas.ParseResponse.properties.image_url") { exists() }
-				jsonPath("$.components.schemas.ParseResponse.properties.source_url") { exists() }
-				jsonPath("$.components.schemas.ParseResponse.properties.parser_used") { exists() }
-				jsonPath("$.components.schemas.ParseResponse.properties.fallback_used") { exists() }
-				jsonPath("$.components.schemas.ParseResponse.properties.imageUrl") { doesNotExist() }
+				jsonPath("$.components.schemas.ParseResponse.properties.imageUrl") { exists() }
+				jsonPath("$.components.schemas.ParseResponse.properties.sourceUrl") { exists() }
+				jsonPath("$.components.schemas.ParseResponse.properties.parserUsed") { exists() }
+				jsonPath("$.components.schemas.ParseResponse.properties.fallbackUsed") { exists() }
+				jsonPath("$.components.schemas.ParseResponse.properties.image_url") { doesNotExist() }
 			}
 	}
 
