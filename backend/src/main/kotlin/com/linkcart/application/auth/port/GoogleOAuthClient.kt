@@ -1,6 +1,6 @@
 package com.linkcart.application.auth.port
 
-import com.linkcart.domain.model.GoogleIdentity
+import com.linkcart.domain.vo.GoogleIdentity
 
 interface GoogleOAuthClient {
     /**

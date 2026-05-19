@@ -1,6 +1,6 @@
 package com.linkcart.application.auth.port
 
-import com.linkcart.domain.model.AccessToken
+import com.linkcart.domain.vo.AccessToken
 
 interface AccessTokenIssuer {
     fun issue(userId: Long): AccessToken

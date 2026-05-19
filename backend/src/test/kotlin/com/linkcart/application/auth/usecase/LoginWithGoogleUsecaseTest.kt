@@ -6,9 +6,9 @@ import com.linkcart.application.auth.port.GoogleOAuthException
 import com.linkcart.application.auth.port.RefreshTokenGenerator
 import com.linkcart.domain.model.RefreshToken
 import com.linkcart.domain.model.User
-import com.linkcart.domain.model.AccessToken
+import com.linkcart.domain.vo.AccessToken
 import com.linkcart.domain.model.AuthProvider
-import com.linkcart.domain.model.GoogleIdentity
+import com.linkcart.domain.vo.GoogleIdentity
 import com.linkcart.domain.port.RefreshTokenRepository
 import com.linkcart.domain.port.UserRepository
 import org.junit.jupiter.api.Test

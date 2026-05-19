@@ -5,7 +5,7 @@ import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.linkcart.application.auth.port.GoogleOAuthClient
 import com.linkcart.application.auth.port.GoogleOAuthException
-import com.linkcart.domain.model.GoogleIdentity
+import com.linkcart.domain.vo.GoogleIdentity
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.web.client.RestTemplateBuilder

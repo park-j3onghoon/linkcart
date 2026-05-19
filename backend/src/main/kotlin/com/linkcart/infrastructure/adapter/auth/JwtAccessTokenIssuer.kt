@@ -2,7 +2,7 @@ package com.linkcart.infrastructure.adapter.auth
 
 import com.linkcart.application.auth.port.AccessTokenIssuer
 import com.linkcart.application.auth.port.InvalidAccessTokenException
-import com.linkcart.domain.model.AccessToken
+import com.linkcart.domain.vo.AccessToken
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys

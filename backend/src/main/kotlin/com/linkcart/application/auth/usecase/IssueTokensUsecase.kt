@@ -3,7 +3,7 @@ package com.linkcart.application.auth.usecase
 import com.linkcart.application.auth.port.AccessTokenIssuer
 import com.linkcart.application.auth.port.RefreshTokenGenerator
 import com.linkcart.domain.model.RefreshToken
-import com.linkcart.domain.model.AccessToken
+import com.linkcart.domain.vo.AccessToken
 import com.linkcart.domain.port.RefreshTokenRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service

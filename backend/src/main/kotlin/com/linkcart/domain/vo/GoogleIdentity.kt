@@ -1,4 +1,4 @@
-package com.linkcart.domain.model
+package com.linkcart.domain.vo
 
 data class GoogleIdentity(
     val subject: String,
