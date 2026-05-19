@@ -3,10 +3,7 @@ package com.linkcart.presentation.api
 import com.linkcart.application.share.usecase.CopyShareListUsecase
 import com.linkcart.application.share.usecase.CreateShareListUsecase
 import com.linkcart.application.share.usecase.DeleteShareListUsecase
-import com.linkcart.application.share.usecase.EmptyShareListException
 import com.linkcart.application.share.usecase.LookupShareListByTokenUsecase
-import com.linkcart.application.share.usecase.ShareListNotFoundException
-import com.linkcart.application.user.usecase.UserProductNotFoundException
 import com.linkcart.presentation.dto.CopyShareListRequest
 import com.linkcart.presentation.dto.CopyShareListResponse
 import com.linkcart.presentation.dto.CreateShareListRequest
@@ -22,7 +19,6 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.server.ResponseStatusException
 
 @RestController
 class ShareListController(
@@ -37,18 +33,12 @@ class ShareListController(
         @AuthenticationPrincipal ownerId: Long,
         @Valid @RequestBody request: CreateShareListRequest,
     ): ResponseEntity<ShareListResponse> {
-        val shareList = try {
-            createShareListUsecase.execute(
-                ownerId = ownerId,
-                productIds = request.productIds,
-                title = request.title,
-                expiresAt = request.expireTime,
-            )
-        } catch (e: EmptyShareListException) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message, e)
-        } catch (e: UserProductNotFoundException) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
-        }
+        val shareList = createShareListUsecase.execute(
+            ownerId = ownerId,
+            productIds = request.productIds,
+            title = request.title,
+            expiresAt = request.expireTime,
+        )
         return ResponseEntity.status(HttpStatus.CREATED).body(ShareListResponse.from(shareList))
     }
 
@@ -61,11 +51,7 @@ class ShareListController(
     fun lookupByToken(
         @Valid @RequestBody request: LookupShareListRequest,
     ): ResponseEntity<ShareListResponse> {
-        val shareList = try {
-            lookupShareListByTokenUsecase.execute(request.token)
-        } catch (e: ShareListNotFoundException) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
-        }
+        val shareList = lookupShareListByTokenUsecase.execute(request.token)
         return ResponseEntity.ok(ShareListResponse.from(shareList))
     }
 
@@ -75,11 +61,11 @@ class ShareListController(
         @PathVariable id: Long,
         @Valid @RequestBody request: CopyShareListRequest,
     ): ResponseEntity<CopyShareListResponse> {
-        val result = try {
-            copyShareListUsecase.execute(viewerId = viewerId, shareListId = id, token = request.token)
-        } catch (e: ShareListNotFoundException) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
-        }
+        val result = copyShareListUsecase.execute(
+            viewerId = viewerId,
+            shareListId = id,
+            token = request.token,
+        )
         return ResponseEntity.status(HttpStatus.CREATED).body(
             CopyShareListResponse(
                 copiedCount = result.copiedCount,
@@ -94,11 +80,7 @@ class ShareListController(
         @AuthenticationPrincipal ownerId: Long,
         @PathVariable id: Long,
     ): ResponseEntity<Void> {
-        try {
-            deleteShareListUsecase.execute(ownerId = ownerId, shareListId = id)
-        } catch (e: ShareListNotFoundException) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
-        }
+        deleteShareListUsecase.execute(ownerId = ownerId, shareListId = id)
         return ResponseEntity.noContent().build()
     }
 }

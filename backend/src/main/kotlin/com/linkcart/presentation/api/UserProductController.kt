@@ -1,11 +1,8 @@
 package com.linkcart.presentation.api
 
 import com.linkcart.application.user.usecase.DeleteUserProductUsecase
-import com.linkcart.application.user.usecase.DuplicateUserProductException
-import com.linkcart.application.user.usecase.InvalidPageTokenException
 import com.linkcart.application.user.usecase.ListUserProductsUsecase
 import com.linkcart.application.user.usecase.SaveUserProductUsecase
-import com.linkcart.application.user.usecase.UserProductNotFoundException
 import com.linkcart.presentation.dto.SaveUserProductRequest
 import com.linkcart.presentation.dto.UserProductResponse
 import com.linkcart.presentation.dto.UserProductsResponse
@@ -21,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.server.ResponseStatusException
 
 @RestController
 @RequestMapping("/api/v1/users/me/products")
@@ -36,11 +32,7 @@ class UserProductController(
         @AuthenticationPrincipal userId: Long,
         @Valid @RequestBody request: SaveUserProductRequest,
     ): ResponseEntity<UserProductResponse> {
-        val saved = try {
-            saveUserProductUsecase.execute(request.toDomain(userId))
-        } catch (e: DuplicateUserProductException) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, e.message, e)
-        }
+        val saved = saveUserProductUsecase.execute(request.toDomain(userId))
         return ResponseEntity.status(HttpStatus.CREATED).body(UserProductResponse.from(saved))
     }
 
@@ -50,11 +42,7 @@ class UserProductController(
         @RequestParam(defaultValue = "50") pageSize: Int,
         @RequestParam(required = false) pageToken: String?,
     ): ResponseEntity<UserProductsResponse> {
-        val page = try {
-            listUserProductsUsecase.execute(userId = userId, pageSize = pageSize, pageToken = pageToken)
-        } catch (e: InvalidPageTokenException) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message, e)
-        }
+        val page = listUserProductsUsecase.execute(userId = userId, pageSize = pageSize, pageToken = pageToken)
         return ResponseEntity.ok(
             UserProductsResponse(
                 products = page.products.map(UserProductResponse::from),
@@ -68,11 +56,7 @@ class UserProductController(
         @AuthenticationPrincipal userId: Long,
         @PathVariable productId: Long,
     ): ResponseEntity<Void> {
-        try {
-            deleteUserProductUsecase.execute(userId = userId, productId = productId)
-        } catch (e: UserProductNotFoundException) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, e.message, e)
-        }
+        deleteUserProductUsecase.execute(userId = userId, productId = productId)
         return ResponseEntity.noContent().build()
     }
 }
