@@ -4,6 +4,7 @@ plugins {
 	kotlin("plugin.jpa") version "1.9.25"
 	id("org.springframework.boot") version "3.5.3"
 	id("io.spring.dependency-management") version "1.1.7"
+	jacoco
 }
 
 group = "com.linkcart"
@@ -72,8 +73,34 @@ kotlin {
 	}
 }
 
+jacoco {
+	toolVersion = "0.8.12"
+}
+
+tasks.jacocoTestReport {
+	dependsOn(tasks.test)
+	reports {
+		html.required.set(true)
+		xml.required.set(true)
+	}
+	classDirectories.setFrom(
+		files(classDirectories.files.map {
+			fileTree(it) {
+				// 커버리지 측정에서 제외: 단순 매핑 객체, 설정, main, generated
+				exclude(
+					"com/linkcart/LinkcartBackendApplication*",
+					"com/linkcart/**/dto/**",
+					"com/linkcart/**/config/**",
+					"com/linkcart/infrastructure/adapter/persistence/**/Entity*",
+				)
+			}
+		}),
+	)
+}
+
 tasks.withType<Test> {
 	useJUnitPlatform()
+	finalizedBy(tasks.jacocoTestReport)
 	// Rancher Desktop 사용 시 Testcontainers가 Docker socket을 자동 감지하도록 보조.
 	// DOCKER_HOST가 이미 설정되어 있으면 그대로 사용, 아니면 ~/.rd/docker.sock 우선 탐지.
 	val existingDockerHost = System.getenv("DOCKER_HOST").orEmpty()
