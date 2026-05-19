@@ -4,6 +4,70 @@
  */
 
 export interface paths {
+    "/api/v1/users/me/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post: operations["save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shareLists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shareLists:lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["lookupByToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shareLists/{id}:copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["copy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products:parse": {
         parameters: {
             query?: never;
@@ -20,6 +84,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/tokens:revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/tokens:refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oauth/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["loginWithGoogle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -28,6 +140,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["me"];
         put?: never;
         post?: never;
         delete?: never;
@@ -52,17 +180,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me/products/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shareLists/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ParseRequest: {
-            url: string;
+        PriceDto: {
+            /** Format: int64 */
+            amount: number;
+            currency: string;
+        };
+        SaveUserProductRequest: {
+            displayName: string;
+            price: components["schemas"]["PriceDto"];
+            imageUrl?: string;
+            sourceUrl: string;
+            /** @enum {string} */
+            mall: "coupang" | "elevenst" | "generic";
+            /** @enum {string} */
+            parserUsed: "og" | "coupang-api" | "11st-api";
         };
         Money: {
             /** Format: int64 */
             amount: number;
             currency: string;
+        };
+        UserProductResponse: {
+            name: string;
+            displayName: string;
+            price: components["schemas"]["Money"];
+            imageUrl?: string;
+            sourceUrl: string;
+            /** @enum {string} */
+            mall: "coupang" | "elevenst" | "generic";
+            /** @enum {string} */
+            parserUsed: "og" | "coupang-api" | "11st-api";
+            /** Format: date-time */
+            createTime?: string;
+        };
+        CreateShareListRequest: {
+            productIds: number[];
+            title?: string;
+            /** Format: date-time */
+            expireTime?: string;
+        };
+        ShareListItemResponse: {
+            name: string;
+            displayName: string;
+            price: components["schemas"]["Money"];
+            imageUrl?: string;
+            sourceUrl: string;
+            /** @enum {string} */
+            mall: "coupang" | "elevenst" | "generic";
+        };
+        ShareListResponse: {
+            name: string;
+            token: string;
+            title?: string;
+            /** Format: date-time */
+            expireTime?: string;
+            /** Format: date-time */
+            createTime?: string;
+            items: components["schemas"]["ShareListItemResponse"][];
+        };
+        LookupShareListRequest: {
+            token: string;
+        };
+        CopyShareListRequest: {
+            token: string;
+        };
+        CopyShareListResponse: {
+            /** Format: int32 */
+            copiedCount: number;
+            /** Format: int32 */
+            skippedCount: number;
+            products: components["schemas"]["UserProductResponse"][];
+        };
+        ParseRequest: {
+            url: string;
         };
         ParseResponse: {
             name?: string;
@@ -74,8 +300,49 @@ export interface components {
             partial?: {
                 [key: string]: Record<string, never>;
             };
-            parserUsed: string;
+            /** @enum {string} */
+            parserUsed: "og" | "coupang-api" | "11st-api";
             fallbackUsed: boolean;
+        };
+        LogoutRequest: {
+            refreshToken: string;
+        };
+        RefreshRequest: {
+            refreshToken: string;
+        };
+        RefreshResponse: {
+            accessToken: string;
+            refreshToken: string;
+            tokenType: string;
+            /** Format: int64 */
+            expiresIn: number;
+        };
+        OAuthLoginRequest: {
+            code: string;
+            redirectUri: string;
+        };
+        OAuthLoginResponse: {
+            accessToken: string;
+            refreshToken: string;
+            tokenType: string;
+            /** Format: int64 */
+            expiresIn: number;
+            user: components["schemas"]["UserResponse"];
+        };
+        UserResponse: {
+            name: string;
+            email: string;
+            displayName?: string;
+            avatarUrl?: string;
+            /** @enum {string} */
+            provider: "google";
+        };
+        MeResponse: {
+            user: components["schemas"]["UserResponse"];
+        };
+        UserProductsResponse: {
+            products: components["schemas"]["UserProductResponse"][];
+            nextPageToken?: string;
         };
     };
     responses: never;
@@ -86,6 +353,127 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list: {
+        parameters: {
+            query?: {
+                pageSize?: number;
+                pageToken?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserProductsResponse"];
+                };
+            };
+        };
+    };
+    save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveUserProductRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserProductResponse"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateShareListRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShareListResponse"];
+                };
+            };
+        };
+    };
+    lookupByToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LookupShareListRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShareListResponse"];
+                };
+            };
+        };
+    };
+    copy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyShareListRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CopyShareListResponse"];
+                };
+            };
+        };
+    };
     parse: {
         parameters: {
             query?: never;
@@ -106,6 +494,76 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ParseResponse"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogoutRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefreshResponse"];
+                };
+            };
+        };
+    };
+    loginWithGoogle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OAuthLoginResponse"];
                 };
             };
         };
@@ -132,6 +590,26 @@ export interface operations {
             };
         };
     };
+    me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
     proxy: {
         parameters: {
             query: {
@@ -151,6 +629,46 @@ export interface operations {
                 content: {
                     "*/*": string;
                 };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
