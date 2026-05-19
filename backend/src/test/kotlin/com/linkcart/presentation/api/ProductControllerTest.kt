@@ -145,10 +145,8 @@ class ProductControllerTest {
         given(safeUrlChecker.isSafe("https://example.com/product/partial")).willReturn(true)
         given(parseProductUseCase.execute("https://example.com/product/partial")).willReturn(
             ParseResult.Partial(
-                fields = mapOf(
-                    "name" to "부분 상품",
-                    "imageUrl" to "https://example.com/partial.jpg",
-                ),
+                name = "부분 상품",
+                imageUrl = "https://example.com/partial.jpg",
                 parserUsed = ParserName.OG,
                 fallbackUsed = true,
             ),

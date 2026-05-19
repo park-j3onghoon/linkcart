@@ -45,7 +45,7 @@ class OgParserTest {
         val result = parser.parseHtml(html, "https://example.com/product/2")
 
         assertIs<ParseResult.Partial>(result)
-        assertEquals("Some Product", result.fields["name"])
+        assertEquals("Some Product", result.name)
         assertEquals(ParserName.OG, result.parserUsed)
     }
 
@@ -60,7 +60,7 @@ class OgParserTest {
         val result = parser.parseHtml(html, "https://example.com/product/3")
 
         assertIs<ParseResult.Partial>(result)
-        assertEquals("상품 상세 - 쇼핑몰", result.fields["name"])
+        assertEquals("상품 상세 - 쇼핑몰", result.name)
     }
 
     @Test
@@ -101,9 +101,9 @@ class OgParserTest {
         val result = parser.parseHtml(html, "https://example.com/product/broken-price")
 
         assertIs<ParseResult.Partial>(result)
-        assertEquals("가격 깨진 상품", result.fields["name"])
-        assertEquals("https://example.com/image.jpg", result.fields["imageUrl"])
-        assertFalse(result.fields.containsKey("price"))
+        assertEquals("가격 깨진 상품", result.name)
+        assertEquals("https://example.com/image.jpg", result.imageUrl)
+        assertFalse(result.price != null)
     }
 
     @Test
@@ -117,9 +117,9 @@ class OgParserTest {
         val result = parser.parseHtml(html, "https://example.com/product/image-only")
 
         assertIs<ParseResult.Partial>(result)
-        assertEquals("https://example.com/only-image.jpg", result.fields["imageUrl"])
-        assertFalse(result.fields.containsKey("name"))
-        assertFalse(result.fields.containsKey("price"))
+        assertEquals("https://example.com/only-image.jpg", result.imageUrl)
+        assertFalse(result.name != null)
+        assertFalse(result.price != null)
     }
 
     @Test

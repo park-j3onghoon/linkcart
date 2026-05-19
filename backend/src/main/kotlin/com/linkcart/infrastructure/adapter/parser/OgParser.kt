@@ -60,19 +60,16 @@ class OgParser(
             )
         }
 
-        val partialFields = mutableMapOf<String, Any>()
-        name?.let { partialFields["name"] = it }
-        imageUrl?.let { partialFields["imageUrl"] = it }
-        priceAmount?.let { partialFields["price"] = Money(amount = it, currency = ogPriceCurrency) }
-
-        if (partialFields.isEmpty()) {
-            return ParseResult.Failure(reason = "파싱 가능한 정보가 없습니다", parserUsed = ParserName.OG)
-        }
-
-        return ParseResult.Partial(
-            fields = partialFields,
+        val partial = ParseResult.Partial(
+            name = name,
+            price = priceAmount?.let { Money(amount = it, currency = ogPriceCurrency) },
+            imageUrl = imageUrl,
             parserUsed = ParserName.OG,
         )
+        if (!partial.hasAnyField()) {
+            return ParseResult.Failure(reason = "파싱 가능한 정보가 없습니다", parserUsed = ParserName.OG)
+        }
+        return partial
     }
 
     companion object {

@@ -16,6 +16,10 @@ data class ParseResponse(
     val fallbackUsed: Boolean,
 ) {
     companion object {
+        /**
+         * 도메인 ParseResult를 wire 응답으로 변환.
+         * 프론트 ParseResponse가 Product 필드를 top-level로 펼친 flat 구조라 nested "product"를 쓰지 않는다.
+         */
         fun from(result: ParseResult, requestedUrl: String): ParseResponse =
             when (result) {
                 is ParseResult.Success -> ParseResponse(
@@ -30,12 +34,12 @@ data class ParseResponse(
                 )
 
                 is ParseResult.Partial -> ParseResponse(
-                    name = result.fields["name"] as? String,
-                    price = result.fields["price"] as? Money,
-                    imageUrl = result.fields["imageUrl"] as? String,
+                    name = result.name,
+                    price = result.price,
+                    imageUrl = result.imageUrl,
                     sourceUrl = requestedUrl,
-                    mall = result.fields["mall"] as? Mall,
-                    partial = result.fields,
+                    mall = result.mall,
+                    partial = result.toFieldMap(),
                     parserUsed = result.parserUsed,
                     fallbackUsed = result.fallbackUsed,
                 )

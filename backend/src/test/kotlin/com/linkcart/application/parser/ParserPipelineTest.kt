@@ -54,7 +54,7 @@ class ParserPipelineTest {
         )
         val fallback = fallbackStub {
             ParseResult.Partial(
-                fields = mapOf("name" to "OG 상품명"),
+                name = "OG 상품명",
                 parserUsed = ParserName.OG,
             )
         }
@@ -63,7 +63,7 @@ class ParserPipelineTest {
         val result = pipeline.parseWithFallback("https://www.11st.co.kr/products/123")
 
         assertIs<ParseResult.Partial>(result)
-        assertEquals("OG 상품명", result.fields["name"])
+        assertEquals("OG 상품명", result.name)
         assertTrue(result.fallbackUsed)
     }
 
