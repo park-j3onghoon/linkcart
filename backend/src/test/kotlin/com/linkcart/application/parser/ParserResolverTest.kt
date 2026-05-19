@@ -2,14 +2,14 @@ package com.linkcart.application.parser
 
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.model.ParserName
+import com.linkcart.infrastructure.adapter.parser.DefaultSafeUrlChecker
 import com.linkcart.infrastructure.adapter.parser.OgParser
-import com.linkcart.infrastructure.adapter.parser.SafeUrlChecker
 import org.junit.jupiter.api.Test
 import kotlin.test.assertSame
 
 class ParserResolverTest {
 
-    private val ogParser = OgParser(SafeUrlChecker())
+    private val ogParser = OgParser(DefaultSafeUrlChecker())
 
     @Test
     fun `returns fallback when no dedicated parser is registered`() {

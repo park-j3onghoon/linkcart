@@ -1,6 +1,6 @@
 package com.linkcart.presentation.api
 
-import com.linkcart.infrastructure.adapter.parser.SafeUrlChecker
+import com.linkcart.application.parser.port.SafeUrlChecker
 import com.linkcart.infrastructure.config.WebConfig
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given

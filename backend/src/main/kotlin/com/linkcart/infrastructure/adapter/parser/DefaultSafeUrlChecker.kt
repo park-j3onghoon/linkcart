@@ -1,13 +1,14 @@
 package com.linkcart.infrastructure.adapter.parser
 
+import com.linkcart.application.parser.port.SafeUrlChecker
 import org.springframework.stereotype.Component
 import java.net.InetAddress
 import java.net.URI
 
 @Component
-class SafeUrlChecker {
+class DefaultSafeUrlChecker : SafeUrlChecker {
 
-    fun isSafe(url: String): Boolean {
+    override fun isSafe(url: String): Boolean {
         val uri = runCatching { URI(url) }.getOrNull() ?: return false
         if (uri.scheme !in ALLOWED_SCHEMES) {
             return false

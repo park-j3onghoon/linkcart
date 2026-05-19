@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class SafeUrlCheckerTest {
+class DefaultSafeUrlCheckerTest {
 
-    private val checker = SafeUrlChecker()
+    private val checker = DefaultSafeUrlChecker()
 
     @Test
     fun `valid external url returns true`() {

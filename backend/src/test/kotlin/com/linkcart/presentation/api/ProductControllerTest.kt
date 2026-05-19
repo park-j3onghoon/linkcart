@@ -6,7 +6,7 @@ import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
-import com.linkcart.infrastructure.adapter.parser.SafeUrlChecker
+import com.linkcart.application.parser.port.SafeUrlChecker
 import com.linkcart.infrastructure.config.WebConfig
 import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.Test

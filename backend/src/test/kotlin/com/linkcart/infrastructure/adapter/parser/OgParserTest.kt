@@ -10,7 +10,7 @@ import kotlin.test.assertIs
 
 class OgParserTest {
 
-    private val parser = OgParser(SafeUrlChecker())
+    private val parser = OgParser(DefaultSafeUrlChecker())
 
     @Test
     fun `parses full OG tags into Success`() {

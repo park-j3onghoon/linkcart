@@ -1,6 +1,6 @@
 package com.linkcart.presentation.api
 
-import com.linkcart.infrastructure.adapter.parser.SafeUrlChecker
+import com.linkcart.application.parser.port.SafeUrlChecker
 import jakarta.validation.constraints.NotBlank
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.HttpEntity
