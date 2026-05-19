@@ -13,12 +13,19 @@ data class ListUserProductsPage(
 
 class InvalidPageTokenException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
+class InvalidPageSizeException(message: String) : RuntimeException(message)
+
 @Service
 class ListUserProductsUsecase(
     private val userProductRepository: UserProductRepository,
 ) {
     fun execute(userId: Long, pageSize: Int, pageToken: String?): ListUserProductsPage {
-        val limit = pageSize.coerceIn(MIN_PAGE_SIZE, MAX_PAGE_SIZE)
+        if (pageSize < MIN_PAGE_SIZE || pageSize > MAX_PAGE_SIZE) {
+            throw InvalidPageSizeException(
+                "pageSize는 $MIN_PAGE_SIZE 이상 $MAX_PAGE_SIZE 이하여야 합니다 (입력: $pageSize)",
+            )
+        }
+        val limit = pageSize
         val cursor = pageToken?.let(::decodeCursor)
         // limit + 1로 조회해서 hasNext 판단
         val fetched = userProductRepository.findPageByUserId(

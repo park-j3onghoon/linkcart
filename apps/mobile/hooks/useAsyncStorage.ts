@@ -24,7 +24,8 @@ export function useAsyncStorage<T>(
         if (!cancelled && storedValue !== null) {
           setValue(JSON.parse(storedValue) as T);
         }
-      } catch {
+      } catch (err) {
+        console.warn(`[useAsyncStorage] hydrate("${key}") failed; resetting`, err);
         await AsyncStorage.removeItem(key);
         if (!cancelled) {
           setValue(initialValueRef.current);
@@ -48,8 +49,9 @@ export function useAsyncStorage<T>(
       return;
     }
 
-    AsyncStorage.setItem(key, JSON.stringify(value)).catch(() => {
-      // 저장소가 비활성화된 환경에서는 메모리 상태만 유지한다.
+    AsyncStorage.setItem(key, JSON.stringify(value)).catch((err) => {
+      // 저장소가 비활성화된 환경에서는 메모리 상태만 유지한다. 디버깅을 위해 원인은 남긴다.
+      console.warn(`[useAsyncStorage] setItem("${key}") failed`, err);
     });
   }, [isHydrated, key, value]);
 

@@ -101,15 +101,18 @@ class ListUserProductsUsecaseTest {
     }
 
     @Test
-    fun `coerces pageSize within bounds`() {
-        val repo = StubRepo((1..200L).map { product(id = it, createdAt = "2026-04-${"%02d".format(it.toInt() % 28 + 1)}T00:00:00Z") })
-        val sut = ListUserProductsUsecase(repo)
+    fun `throws InvalidPageSizeException when pageSize is out of bounds`() {
+        val sut = ListUserProductsUsecase(StubRepo(emptyList()))
 
-        val tooLarge = sut.execute(userId = USER_ID, pageSize = 9999, pageToken = null)
-        assertEquals(ListUserProductsUsecase.MAX_PAGE_SIZE, tooLarge.products.size)
-
-        val tooSmall = sut.execute(userId = USER_ID, pageSize = 0, pageToken = null)
-        assertEquals(ListUserProductsUsecase.MIN_PAGE_SIZE, tooSmall.products.size)
+        assertThrows<InvalidPageSizeException> {
+            sut.execute(userId = USER_ID, pageSize = 0, pageToken = null)
+        }
+        assertThrows<InvalidPageSizeException> {
+            sut.execute(userId = USER_ID, pageSize = 9999, pageToken = null)
+        }
+        assertThrows<InvalidPageSizeException> {
+            sut.execute(userId = USER_ID, pageSize = -1, pageToken = null)
+        }
     }
 
     private fun product(id: Long, createdAt: String): UserProduct = UserProduct(
