@@ -17,7 +17,7 @@ export function createAuthenticatedFetch(
         const response = await fetch(`${baseUrl}/api/v1/auth/tokens:refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken: refreshToken }),
+          body: JSON.stringify({ refreshToken }),
         });
         if (!response.ok) {
           storage.clear();
