@@ -1,6 +1,6 @@
 "use client";
 
-import type { ShareListItem } from "@linkcart/shared";
+import { MALL_LABELS, type ShareListItem } from "@linkcart/shared";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -8,12 +8,6 @@ type ShareItemCardProps = {
   imageSrc: string | null;
   item: ShareListItem;
 };
-
-const mallLabels = {
-  coupang: "쿠팡",
-  elevenst: "11번가",
-  generic: "일반 링크",
-} as const;
 
 function formatPrice(item: ShareListItem): string {
   const formatted = new Intl.NumberFormat("ko-KR").format(item.price.amount);
@@ -51,7 +45,7 @@ export function ShareItemCard({ imageSrc, item }: ShareItemCardProps) {
 
       <div className="space-y-4 p-5 sm:p-6">
         <span className="inline-block rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
-          {mallLabels[item.mall]}
+          {MALL_LABELS[item.mall]}
         </span>
 
         <div className="space-y-2">

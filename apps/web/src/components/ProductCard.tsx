@@ -1,6 +1,6 @@
 "use client";
 
-import type { ParseResponse } from "@linkcart/shared";
+import { MALL_LABELS, type ParseResponse } from "@linkcart/shared";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -8,12 +8,6 @@ type ProductCardProps = {
   imageSrc: string | null;
   product: ParseResponse;
 };
-
-const mallLabels = {
-  coupang: "쿠팡",
-  elevenst: "11번가",
-  generic: "일반 링크",
-} as const;
 
 function formatPrice(product: ParseResponse): string {
   if (!product.price) {
@@ -31,7 +25,7 @@ function formatPrice(product: ParseResponse): string {
 export function ProductCard({ imageSrc, product }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const imageAlt = `${product.name ?? "상품"} 이미지`;
-  const mallLabel = product.mall ? mallLabels[product.mall] : "출처 미상";
+  const mallLabel = product.mall ? MALL_LABELS[product.mall] : "출처 미상";
   const hasPartialFields = product.partial && Object.keys(product.partial).length > 0;
 
   return (

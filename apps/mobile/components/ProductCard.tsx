@@ -1,4 +1,4 @@
-import type { ParseResponse } from "@linkcart/shared";
+import { MALL_LABELS, type ParseResponse } from "@linkcart/shared";
 import { useState } from "react";
 import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -6,12 +6,6 @@ type ProductCardProps = {
   imageUri: string | null;
   product: ParseResponse;
 };
-
-const mallLabels = {
-  coupang: "쿠팡",
-  elevenst: "11번가",
-  generic: "일반 링크",
-} as const;
 
 function formatPrice(product: ParseResponse): string {
   if (!product.price) {
@@ -53,7 +47,7 @@ export function ProductCard({ imageUri, product }: ProductCardProps) {
       <View style={styles.content}>
         <View style={styles.badges}>
           <Text style={[styles.badge, styles.mallBadge]}>
-            {product.mall ? mallLabels[product.mall] : "출처 미상"}
+            {product.mall ? MALL_LABELS[product.mall] : "출처 미상"}
           </Text>
           <Text style={[styles.badge, styles.parserBadge]}>{product.parserUsed}</Text>
           {product.fallbackUsed ? (
