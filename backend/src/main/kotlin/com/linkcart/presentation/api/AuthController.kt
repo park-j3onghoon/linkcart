@@ -1,7 +1,5 @@
 package com.linkcart.presentation.api
 
-import com.linkcart.application.auth.port.GoogleOAuthException
-import com.linkcart.application.auth.usecase.InvalidRefreshTokenException
 import com.linkcart.application.auth.usecase.LoginWithGoogleUsecase
 import com.linkcart.application.auth.usecase.LogoutUsecase
 import com.linkcart.application.auth.usecase.RefreshTokensUsecase
@@ -12,12 +10,10 @@ import com.linkcart.presentation.dto.RefreshRequest
 import com.linkcart.presentation.dto.RefreshResponse
 import com.linkcart.presentation.dto.UserResponse
 import jakarta.validation.Valid
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.server.ResponseStatusException
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -32,12 +28,7 @@ class AuthController(
 
     @PostMapping("/api/v1/auth/oauth/google")
     fun loginWithGoogle(@Valid @RequestBody request: OAuthLoginRequest): ResponseEntity<OAuthLoginResponse> {
-        val result = try {
-            loginWithGoogleUsecase.execute(code = request.code, redirectUri = request.redirectUri)
-        } catch (e: GoogleOAuthException) {
-            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Google 인증에 실패했습니다", e)
-        }
-
+        val result = loginWithGoogleUsecase.execute(code = request.code, redirectUri = request.redirectUri)
         return ResponseEntity.ok(
             OAuthLoginResponse(
                 accessToken = result.tokens.accessToken.token,
@@ -51,12 +42,7 @@ class AuthController(
 
     @PostMapping("/api/v1/auth/tokens:refresh")
     fun refresh(@Valid @RequestBody request: RefreshRequest): ResponseEntity<RefreshResponse> {
-        val tokens = try {
-            refreshTokensUsecase.execute(request.refreshToken)
-        } catch (e: InvalidRefreshTokenException) {
-            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token이 유효하지 않습니다", e)
-        }
-
+        val tokens = refreshTokensUsecase.execute(request.refreshToken)
         return ResponseEntity.ok(
             RefreshResponse(
                 accessToken = tokens.accessToken.token,

@@ -1,5 +1,7 @@
 package com.linkcart.presentation.api
 
+import com.linkcart.application.auth.port.GoogleOAuthException
+import com.linkcart.application.auth.usecase.InvalidRefreshTokenException
 import com.linkcart.application.error.ErrorCode
 import com.linkcart.application.error.ErrorDetail
 import com.linkcart.application.error.ErrorResponse
@@ -112,6 +114,18 @@ class GlobalExceptionHandler {
         ResponseEntity
             .status(ErrorCode.UNAVAILABLE.httpStatus)
             .body(ErrorResponse(code = ErrorCode.UNAVAILABLE, message = ex.message ?: "외부 서비스 오류"))
+
+    @ExceptionHandler(GoogleOAuthException::class)
+    fun handleGoogleOAuth(ex: GoogleOAuthException): ResponseEntity<ErrorResponse> =
+        ResponseEntity
+            .status(ErrorCode.UNAUTHENTICATED.httpStatus)
+            .body(ErrorResponse(code = ErrorCode.UNAUTHENTICATED, message = "Google 인증에 실패했습니다"))
+
+    @ExceptionHandler(InvalidRefreshTokenException::class)
+    fun handleInvalidRefreshToken(ex: InvalidRefreshTokenException): ResponseEntity<ErrorResponse> =
+        ResponseEntity
+            .status(ErrorCode.UNAUTHENTICATED.httpStatus)
+            .body(ErrorResponse(code = ErrorCode.UNAUTHENTICATED, message = "Refresh token이 유효하지 않습니다"))
 
     @ExceptionHandler(ResponseStatusException::class)
     fun handleResponseStatusException(ex: ResponseStatusException): ResponseEntity<ErrorResponse> {
