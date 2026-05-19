@@ -1,4 +1,4 @@
-package com.linkcart.presentation.dto
+package com.linkcart.application.error
 
 /**
  * AIP-193 google.rpc.Status subset.

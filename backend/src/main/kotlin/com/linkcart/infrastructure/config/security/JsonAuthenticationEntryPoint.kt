@@ -1,8 +1,8 @@
 package com.linkcart.infrastructure.config.security
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.linkcart.presentation.dto.ErrorCode
-import com.linkcart.presentation.dto.ErrorResponse
+import com.linkcart.application.error.ErrorCode
+import com.linkcart.application.error.ErrorResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpStatus

@@ -1,4 +1,4 @@
-package com.linkcart.presentation.dto
+package com.linkcart.application.error
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatusCode

@@ -1,9 +1,9 @@
 package com.linkcart.presentation.api
 
-import com.linkcart.presentation.dto.ErrorCode
-import com.linkcart.presentation.dto.ErrorDetail
-import com.linkcart.presentation.dto.ErrorResponse
-import com.linkcart.presentation.dto.FieldViolation
+import com.linkcart.application.error.ErrorCode
+import com.linkcart.application.error.ErrorDetail
+import com.linkcart.application.error.ErrorResponse
+import com.linkcart.application.error.FieldViolation
 import jakarta.validation.ConstraintViolationException
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
