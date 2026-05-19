@@ -4,6 +4,9 @@ import com.linkcart.application.error.ErrorCode
 import com.linkcart.application.error.ErrorDetail
 import com.linkcart.application.error.ErrorResponse
 import com.linkcart.application.error.FieldViolation
+import com.linkcart.application.image.usecase.ImageFetchFailedException
+import com.linkcart.application.image.usecase.UnsafeImageUrlException
+import com.linkcart.application.image.usecase.UnsupportedImageFormatException
 import com.linkcart.application.share.usecase.EmptyShareListException
 import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.DuplicateUserProductException
@@ -88,7 +91,11 @@ class GlobalExceptionHandler {
             .status(ErrorCode.NOT_FOUND.httpStatus)
             .body(ErrorResponse(code = ErrorCode.NOT_FOUND, message = ex.message ?: "리소스를 찾을 수 없습니다"))
 
-    @ExceptionHandler(EmptyShareListException::class, InvalidPageTokenException::class)
+    @ExceptionHandler(
+        EmptyShareListException::class,
+        InvalidPageTokenException::class,
+        UnsafeImageUrlException::class,
+    )
     fun handleInvalidArgumentDomain(ex: RuntimeException): ResponseEntity<ErrorResponse> =
         ResponseEntity
             .badRequest()
@@ -99,6 +106,12 @@ class GlobalExceptionHandler {
         ResponseEntity
             .status(ErrorCode.ALREADY_EXISTS.httpStatus)
             .body(ErrorResponse(code = ErrorCode.ALREADY_EXISTS, message = ex.message ?: "이미 존재하는 리소스입니다"))
+
+    @ExceptionHandler(ImageFetchFailedException::class, UnsupportedImageFormatException::class)
+    fun handleUpstreamUnavailable(ex: RuntimeException): ResponseEntity<ErrorResponse> =
+        ResponseEntity
+            .status(ErrorCode.UNAVAILABLE.httpStatus)
+            .body(ErrorResponse(code = ErrorCode.UNAVAILABLE, message = ex.message ?: "외부 서비스 오류"))
 
     @ExceptionHandler(ResponseStatusException::class)
     fun handleResponseStatusException(ex: ResponseStatusException): ResponseEntity<ErrorResponse> {

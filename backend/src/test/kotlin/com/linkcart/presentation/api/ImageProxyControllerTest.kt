@@ -1,31 +1,27 @@
 package com.linkcart.presentation.api
 
-import com.linkcart.application.parser.port.SafeUrlChecker
+import com.linkcart.application.image.usecase.ImageFetchFailedException
+import com.linkcart.application.image.usecase.ProxyImageUsecase
+import com.linkcart.application.image.usecase.UnsafeImageUrlException
+import com.linkcart.application.image.usecase.UnsupportedImageFormatException
 import com.linkcart.infrastructure.config.WebConfig
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
-import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.ComponentScan.Filter
 import org.springframework.context.annotation.FilterType
-import org.springframework.http.HttpEntity
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.springframework.web.client.RestClientException
-import org.springframework.web.client.RestTemplate
 
 @WebMvcTest(
     controllers = [ImageProxyController::class],
@@ -39,42 +35,33 @@ class ImageProxyControllerTest {
     private lateinit var mockMvc: MockMvc
 
     @MockBean
-    private lateinit var safeUrlChecker: SafeUrlChecker
-
-    @MockBean(name = "imageProxyRestTemplate")
-    @Qualifier("imageProxyRestTemplate")
-    private lateinit var restTemplate: RestTemplate
+    private lateinit var proxyImageUsecase: ProxyImageUsecase
 
     @Test
-    fun `successful image proxy returns image bytes`() {
+    fun `success returns image bytes with content-type and cache header`() {
         val imageBytes = byteArrayOf(1, 2, 3, 4)
-        val headers = HttpHeaders().apply { contentType = MediaType.IMAGE_JPEG }
-        given(safeUrlChecker.isSafe("https://images.example.com/test.jpg")).willReturn(true)
-        given(
-            restTemplate.exchange(
-                "https://images.example.com/test.jpg",
-                HttpMethod.GET,
-                HttpEntity.EMPTY,
-                ByteArray::class.java,
-            ),
-        ).willReturn(ResponseEntity(imageBytes, headers, HttpStatus.OK))
+        given(proxyImageUsecase.execute("https://images.example.com/test.jpg")).willReturn(
+            ProxyImageUsecase.ProxiedImage(bytes = imageBytes, contentType = MediaType.IMAGE_JPEG),
+        )
 
         mockMvc.perform(get("/api/v1/images:proxy").param("url", "https://images.example.com/test.jpg"))
             .andExpect(status().isOk)
             .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.IMAGE_JPEG_VALUE))
+            .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "public, max-age=300"))
             .andExpect(content().bytes(imageBytes))
     }
 
     @Test
-    fun `blank url returns 400 response`() {
+    fun `blank url returns 400`() {
         mockMvc.perform(get("/api/v1/images:proxy").param("url", ""))
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"))
     }
 
     @Test
-    fun `unsafe url returns 400 response`() {
-        given(safeUrlChecker.isSafe("http://127.0.0.1/internal.png")).willReturn(false)
+    fun `UnsafeImageUrlException maps to 400 INVALID_ARGUMENT`() {
+        given(proxyImageUsecase.execute("http://127.0.0.1/internal.png"))
+            .willThrow(UnsafeImageUrlException("허용되지 않는 URL입니다"))
 
         mockMvc.perform(get("/api/v1/images:proxy").param("url", "http://127.0.0.1/internal.png"))
             .andExpect(status().isBadRequest)
@@ -82,116 +69,22 @@ class ImageProxyControllerTest {
     }
 
     @Test
-    fun `image fetch failure returns 502 response`() {
-        given(safeUrlChecker.isSafe("https://images.example.com/error.jpg")).willReturn(true)
-        given(
-            restTemplate.exchange(
-                "https://images.example.com/error.jpg",
-                HttpMethod.GET,
-                HttpEntity.EMPTY,
-                ByteArray::class.java,
-            ),
-        ).willThrow(RestClientException("timeout"))
+    fun `ImageFetchFailedException maps to 503 UNAVAILABLE`() {
+        given(proxyImageUsecase.execute("https://images.example.com/error.jpg"))
+            .willThrow(ImageFetchFailedException("이미지를 가져올 수 없습니다"))
 
         mockMvc.perform(get("/api/v1/images:proxy").param("url", "https://images.example.com/error.jpg"))
-            .andExpect(status().isBadGateway)
+            .andExpect(status().isServiceUnavailable)
             .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
     }
 
     @Test
-    fun `non image response returns 502 response`() {
-        val headers = HttpHeaders().apply { contentType = MediaType.TEXT_HTML }
-        given(safeUrlChecker.isSafe("https://images.example.com/not-image")).willReturn(true)
-        given(
-            restTemplate.exchange(
-                "https://images.example.com/not-image",
-                HttpMethod.GET,
-                HttpEntity.EMPTY,
-                ByteArray::class.java,
-            ),
-        ).willReturn(ResponseEntity("not image".toByteArray(), headers, HttpStatus.OK))
-
-        mockMvc.perform(get("/api/v1/images:proxy").param("url", "https://images.example.com/not-image"))
-            .andExpect(status().isBadGateway)
-            .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
-            .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
-    }
-
-    @Test
-    fun `missing content type returns 502 response`() {
-        val headers = HttpHeaders()
-        given(safeUrlChecker.isSafe("https://images.example.com/no-content-type")).willReturn(true)
-        given(
-            restTemplate.exchange(
-                "https://images.example.com/no-content-type",
-                HttpMethod.GET,
-                HttpEntity.EMPTY,
-                ByteArray::class.java,
-            ),
-        ).willReturn(ResponseEntity(ByteArray(0), headers, HttpStatus.OK))
-
-        mockMvc.perform(get("/api/v1/images:proxy").param("url", "https://images.example.com/no-content-type"))
-            .andExpect(status().isBadGateway)
-            .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
-            .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
-    }
-
-    @Test
-    fun `png content type is allowed`() {
-        val imageBytes = byteArrayOf(5, 6, 7, 8)
-        val headers = HttpHeaders().apply { contentType = MediaType.IMAGE_PNG }
-        given(safeUrlChecker.isSafe("https://images.example.com/test.png")).willReturn(true)
-        given(
-            restTemplate.exchange(
-                "https://images.example.com/test.png",
-                HttpMethod.GET,
-                HttpEntity.EMPTY,
-                ByteArray::class.java,
-            ),
-        ).willReturn(ResponseEntity(imageBytes, headers, HttpStatus.OK))
-
-        mockMvc.perform(get("/api/v1/images:proxy").param("url", "https://images.example.com/test.png"))
-            .andExpect(status().isOk)
-            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.IMAGE_PNG_VALUE))
-            .andExpect(content().bytes(imageBytes))
-    }
-
-    @Test
-    fun `bmp content type is blocked with 502 response`() {
-        val bmpBytes = byteArrayOf(0x42, 0x4D)
-        val headers = HttpHeaders().apply { contentType = MediaType.valueOf("image/bmp") }
-        given(safeUrlChecker.isSafe("https://images.example.com/test.bmp")).willReturn(true)
-        given(
-            restTemplate.exchange(
-                "https://images.example.com/test.bmp",
-                HttpMethod.GET,
-                HttpEntity.EMPTY,
-                ByteArray::class.java,
-            ),
-        ).willReturn(ResponseEntity(bmpBytes, headers, HttpStatus.OK))
-
-        mockMvc.perform(get("/api/v1/images:proxy").param("url", "https://images.example.com/test.bmp"))
-            .andExpect(status().isBadGateway)
-            .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
-            .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
-    }
-
-    @Test
-    fun `svg content type is blocked with 502 response`() {
-        val svgBytes = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>".toByteArray()
-        val headers = HttpHeaders().apply { contentType = MediaType.valueOf("image/svg+xml") }
-        given(safeUrlChecker.isSafe("https://images.example.com/icon.svg")).willReturn(true)
-        given(
-            restTemplate.exchange(
-                "https://images.example.com/icon.svg",
-                HttpMethod.GET,
-                HttpEntity.EMPTY,
-                ByteArray::class.java,
-            ),
-        ).willReturn(ResponseEntity(svgBytes, headers, HttpStatus.OK))
+    fun `UnsupportedImageFormatException maps to 503 UNAVAILABLE`() {
+        given(proxyImageUsecase.execute("https://images.example.com/icon.svg"))
+            .willThrow(UnsupportedImageFormatException("지원하지 않는 이미지 형식입니다"))
 
         mockMvc.perform(get("/api/v1/images:proxy").param("url", "https://images.example.com/icon.svg"))
-            .andExpect(status().isBadGateway)
+            .andExpect(status().isServiceUnavailable)
             .andExpect(jsonPath("$.code").value("UNAVAILABLE"))
             .andExpect(jsonPath("$.message").value("지원하지 않는 이미지 형식입니다"))
     }
