@@ -11,9 +11,9 @@ import org.springframework.http.MediaType
 import org.springframework.web.filter.OncePerRequestFilter
 
 class RateLimitFilter(
-    private val parseRateLimiter: RateLimiter,
+    private val rateLimiter: RateLimiter,
     private val objectMapper: ObjectMapper,
-    private val pathPrefixes: Set<String> = setOf(PARSE_PATH),
+    private val pathPrefixes: Set<String> = setOf(PARSE_PATH, SHARELISTS_LOOKUP_PATH),
 ) : OncePerRequestFilter() {
 
     override fun doFilterInternal(
@@ -28,7 +28,7 @@ class RateLimitFilter(
         }
 
         val key = clientKey(request)
-        if (parseRateLimiter.tryConsume(key)) {
+        if (rateLimiter.tryConsume(key)) {
             filterChain.doFilter(request, response)
             return
         }
@@ -52,5 +52,10 @@ class RateLimitFilter(
 
     companion object {
         const val PARSE_PATH = "/api/v1/products:parse"
+
+        /**
+         * AIP-131: ShareList token은 unauth로 노출되므로 enumeration probing을 막기 위해 동일 버킷으로 묶는다.
+         */
+        const val SHARELISTS_LOOKUP_PATH = "/api/v1/shareLists:lookup"
     }
 }

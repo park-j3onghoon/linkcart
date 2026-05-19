@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration
 class RateLimitConfig {
 
     @Bean
-    fun parseRateLimiter(
+    fun apiRateLimiter(
         @Value("\${linkcart.rate-limit.parse.capacity:30}") capacity: Int,
         @Value("\${linkcart.rate-limit.parse.refill-per-second:0.5}") refillPerSecond: Double,
     ): RateLimiter = InMemoryTokenBucketRateLimiter(
@@ -22,10 +22,10 @@ class RateLimitConfig {
 
     @Bean
     fun rateLimitFilter(
-        parseRateLimiter: RateLimiter,
+        apiRateLimiter: RateLimiter,
         objectMapper: ObjectMapper,
     ): RateLimitFilter = RateLimitFilter(
-        parseRateLimiter = parseRateLimiter,
+        rateLimiter = apiRateLimiter,
         objectMapper = objectMapper,
     )
 }
