@@ -30,12 +30,13 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({} as Record<string, unknown>));
-        const detail = typeof body === "object" && body !== null && "detail" in body
-          ? String(body.detail)
+        // AIP-193: 에러 응답은 `{code, message, details}` 구조. `body.message`를 우선 사용한다.
+        const message = typeof body === "object" && body !== null && "message" in body
+          ? String(body.message)
           : `HTTP ${response.status} ${response.statusText}`;
         return {
           ok: false,
-          error: { code: "PARSE_FAILED", message: detail },
+          error: { code: "PARSE_FAILED", message },
         };
       }
 
