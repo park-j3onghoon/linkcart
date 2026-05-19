@@ -1,4 +1,5 @@
 import type { ApiResult } from "../api/client";
+import { API_PATHS } from "../api/paths";
 import type { AuthTokens, AuthUser, OAuthLoginResult } from "../types/auth";
 
 const TIMEOUT_MS = 15_000;
@@ -46,7 +47,7 @@ async function request<T>(
 
 export function createAuthClient(baseUrl: string) {
   function loginWithGoogle(code: string, redirectUri: string): Promise<ApiResult<OAuthLoginResult>> {
-    return request<OAuthLoginResult>(`${baseUrl}/api/v1/auth/oauth/google`, {
+    return request<OAuthLoginResult>(`${baseUrl}${API_PATHS.authOAuthGoogle}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code, redirectUri }),
@@ -54,7 +55,7 @@ export function createAuthClient(baseUrl: string) {
   }
 
   function refreshTokens(refreshToken: string): Promise<ApiResult<AuthTokens>> {
-    return request<AuthTokens>(`${baseUrl}/api/v1/auth/tokens:refresh`, {
+    return request<AuthTokens>(`${baseUrl}${API_PATHS.authTokensRefresh}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
@@ -62,7 +63,7 @@ export function createAuthClient(baseUrl: string) {
   }
 
   function logout(refreshToken: string): Promise<ApiResult<void>> {
-    return request<void>(`${baseUrl}/api/v1/auth/tokens:revoke`, {
+    return request<void>(`${baseUrl}${API_PATHS.authTokensRevoke}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
@@ -70,7 +71,7 @@ export function createAuthClient(baseUrl: string) {
   }
 
   function getMe(accessToken: string): Promise<ApiResult<{ user: AuthUser }>> {
-    return request<{ user: AuthUser }>(`${baseUrl}/api/v1/users/me`, {
+    return request<{ user: AuthUser }>(`${baseUrl}${API_PATHS.usersMe}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
   }

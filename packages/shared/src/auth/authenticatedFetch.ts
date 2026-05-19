@@ -1,3 +1,4 @@
+import { API_PATHS } from "../api/paths";
 import type { TokenStorage } from "./storage";
 
 export type AuthenticatedFetch = (path: string, init?: RequestInit) => Promise<Response>;
@@ -14,7 +15,7 @@ export function createAuthenticatedFetch(
     if (!refreshToken) return false;
     refreshInFlight = (async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/v1/auth/tokens:refresh`, {
+        const response = await fetch(`${baseUrl}${API_PATHS.authTokensRefresh}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refreshToken }),

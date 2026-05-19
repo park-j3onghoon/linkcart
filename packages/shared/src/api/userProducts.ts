@@ -1,6 +1,7 @@
 import type { AuthenticatedFetch } from "../auth/authenticatedFetch";
 import type { MallType, Money } from "../types/product";
 import type { ApiResult } from "./client";
+import { API_PATHS, userProductByIdPath } from "./paths";
 
 /**
  * AIP-122/148: name = "users/me/products/{id}", 상품명은 displayName, time 필드는 RFC3339.
@@ -63,8 +64,8 @@ export function createUserProductsClient(authenticatedFetch: AuthenticatedFetch)
     if (options.pageToken) params.set("pageToken", options.pageToken);
     const queryString = params.toString();
     const path = queryString
-      ? `/api/v1/users/me/products?${queryString}`
-      : "/api/v1/users/me/products";
+      ? `${API_PATHS.userProducts}?${queryString}`
+      : API_PATHS.userProducts;
     try {
       const response = await authenticatedFetch(path);
       const parsed = await readJsonOrError<{ products: UserProduct[]; nextPageToken?: string | null }>(response);
@@ -89,7 +90,7 @@ export function createUserProductsClient(authenticatedFetch: AuthenticatedFetch)
 
   async function saveProduct(input: SaveProductInput): Promise<ApiResult<UserProduct>> {
     try {
-      const response = await authenticatedFetch("/api/v1/users/me/products", {
+      const response = await authenticatedFetch(API_PATHS.userProducts, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
@@ -114,7 +115,7 @@ export function createUserProductsClient(authenticatedFetch: AuthenticatedFetch)
     }
     try {
       const response = await authenticatedFetch(
-        `/api/v1/users/me/products/${id}`,
+        userProductByIdPath(id),
         { method: "DELETE" },
       );
       return readJsonOrError<void>(response);

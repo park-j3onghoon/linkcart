@@ -1,4 +1,5 @@
 import type { ParseResponse, ShareList } from "../types";
+import { API_PATHS } from "./paths";
 
 export type ApiResult<T> =
   | { ok: true; data: T }
@@ -21,7 +22,7 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      const response = await fetch(`${baseUrl}/api/v1/products:parse`, {
+      const response = await fetch(`${baseUrl}${API_PATHS.productsParse}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
@@ -59,7 +60,7 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
   }
 
   function imageProxyUrl(originalUrl: string): string {
-    return `${baseUrl}/api/v1/images:proxy?url=${encodeURIComponent(originalUrl)}`;
+    return `${baseUrl}${API_PATHS.imagesProxy}?url=${encodeURIComponent(originalUrl)}`;
   }
 
   /**
@@ -70,7 +71,7 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      const response = await fetch(`${baseUrl}/api/v1/shareLists:lookup`, {
+      const response = await fetch(`${baseUrl}${API_PATHS.shareListsLookup}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
