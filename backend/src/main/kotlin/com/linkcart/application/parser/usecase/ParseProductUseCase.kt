@@ -1,4 +1,4 @@
-package com.linkcart.application.usecase
+package com.linkcart.application.parser.usecase
 
 import com.linkcart.application.parser.ParserPipeline
 import com.linkcart.domain.model.ParseResult
