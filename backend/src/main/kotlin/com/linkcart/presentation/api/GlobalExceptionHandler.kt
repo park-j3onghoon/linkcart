@@ -14,6 +14,7 @@ import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.DuplicateUserProductException
 import com.linkcart.application.user.usecase.InvalidPageSizeException
 import com.linkcart.application.user.usecase.InvalidPageTokenException
+import com.linkcart.application.user.usecase.UnauthenticatedException
 import com.linkcart.application.user.usecase.UserProductNotFoundException
 import jakarta.validation.ConstraintViolationException
 import org.slf4j.LoggerFactory
@@ -128,6 +129,12 @@ class GlobalExceptionHandler {
         ResponseEntity
             .status(ErrorCode.UNAUTHENTICATED.httpStatus)
             .body(ErrorResponse(code = ErrorCode.UNAUTHENTICATED, message = "Refresh token이 유효하지 않습니다"))
+
+    @ExceptionHandler(UnauthenticatedException::class)
+    fun handleUnauthenticated(ex: UnauthenticatedException): ResponseEntity<ErrorResponse> =
+        ResponseEntity
+            .status(ErrorCode.UNAUTHENTICATED.httpStatus)
+            .body(ErrorResponse(code = ErrorCode.UNAUTHENTICATED, message = ex.message ?: "인증이 필요합니다"))
 
     @ExceptionHandler(ResponseStatusException::class)
     fun handleResponseStatusException(ex: ResponseStatusException): ResponseEntity<ErrorResponse> {
