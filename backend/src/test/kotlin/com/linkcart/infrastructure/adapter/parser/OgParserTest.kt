@@ -1,9 +1,12 @@
 package com.linkcart.infrastructure.adapter.parser
 
+import com.linkcart.application.parser.port.SafeUrlChecker
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import org.junit.jupiter.api.Test
+import org.mockito.BDDMockito.given
+import org.mockito.Mockito.mock
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -11,6 +14,32 @@ import kotlin.test.assertIs
 class OgParserTest {
 
     private val parser = OgParser(DefaultSafeUrlChecker())
+
+    @Test
+    fun `parse returns Failure when URL is unsafe`() {
+        val unsafeChecker: SafeUrlChecker = mock(SafeUrlChecker::class.java)
+        given(unsafeChecker.isSafe("http://169.254.169.254/internal")).willReturn(false)
+        val sut = OgParser(unsafeChecker)
+
+        val result = sut.parse("http://169.254.169.254/internal")
+
+        assertIs<ParseResult.Failure>(result)
+        assertEquals("허용되지 않는 URL입니다", result.reason)
+        assertEquals(ParserName.OG, result.parserUsed)
+    }
+
+    @Test
+    fun `parse returns Failure when upstream fetch fails`() {
+        val safeChecker: SafeUrlChecker = mock(SafeUrlChecker::class.java)
+        given(safeChecker.isSafe(org.mockito.ArgumentMatchers.anyString())).willReturn(true)
+        val sut = OgParser(safeChecker)
+
+        // 127.0.0.1:1 → 닫힌 포트라 Jsoup이 IOException으로 즉시 실패
+        val result = sut.parse("http://127.0.0.1:1/nope")
+
+        assertIs<ParseResult.Failure>(result)
+        assertEquals(ParserName.OG, result.parserUsed)
+    }
 
     @Test
     fun `parses full OG tags into Success`() {

@@ -47,4 +47,55 @@ class JwtAccessTokenIssuerTest {
 
         assertThrows<InvalidAccessTokenException> { sut.verify(tampered) }
     }
+
+    @Test
+    fun `rejects secret shorter than 32 bytes at construction`() {
+        assertThrows<IllegalArgumentException> {
+            JwtAccessTokenIssuer(
+                secret = "too-short-secret",
+                ttlSeconds = 900,
+                issuer = "linkcart-test",
+                audience = "linkcart-api-test",
+            )
+        }
+    }
+
+    @Test
+    fun `verify throws on token signed with different secret`() {
+        val sut = issuer()
+        val foreignToken = JwtAccessTokenIssuer(
+            secret = "different-jwt-secret-at-least-32-bytes-long!!!",
+            ttlSeconds = 900,
+            issuer = "linkcart-test",
+            audience = "linkcart-api-test",
+        ).issue(userId = 1L).token
+
+        assertThrows<InvalidAccessTokenException> { sut.verify(foreignToken) }
+    }
+
+    @Test
+    fun `verify throws when issuer claim does not match`() {
+        val foreign = JwtAccessTokenIssuer(
+            secret = "test-jwt-secret-at-least-32-bytes-long-for-hmac-sha256",
+            ttlSeconds = 900,
+            issuer = "other-issuer",
+            audience = "linkcart-api-test",
+        ).issue(userId = 1L).token
+        val sut = issuer()
+
+        assertThrows<InvalidAccessTokenException> { sut.verify(foreign) }
+    }
+
+    @Test
+    fun `verify throws when audience claim does not match`() {
+        val foreign = JwtAccessTokenIssuer(
+            secret = "test-jwt-secret-at-least-32-bytes-long-for-hmac-sha256",
+            ttlSeconds = 900,
+            issuer = "linkcart-test",
+            audience = "other-audience",
+        ).issue(userId = 1L).token
+        val sut = issuer()
+
+        assertThrows<InvalidAccessTokenException> { sut.verify(foreign) }
+    }
 }

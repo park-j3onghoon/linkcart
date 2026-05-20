@@ -69,11 +69,44 @@ class ListUserProductsUsecaseTest {
     }
 
     @Test
-    fun `throws InvalidPageTokenException on malformed page_token`() {
+    fun `throws InvalidPageTokenException when token is not base64`() {
         val sut = ListUserProductsUsecase(StubRepo(emptyList()))
 
         assertThrows<InvalidPageTokenException> {
             sut.execute(userId = USER_ID, pageSize = 50, pageToken = "not-base64!@#")
+        }
+    }
+
+    @Test
+    fun `throws InvalidPageTokenException when token has wrong shape (no colon)`() {
+        val sut = ListUserProductsUsecase(StubRepo(emptyList()))
+        val badToken = java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString("123.456-no-colon-id".toByteArray())
+
+        assertThrows<InvalidPageTokenException> {
+            sut.execute(userId = USER_ID, pageSize = 50, pageToken = badToken)
+        }
+    }
+
+    @Test
+    fun `throws InvalidPageTokenException when time segment lacks dot separator`() {
+        val sut = ListUserProductsUsecase(StubRepo(emptyList()))
+        val badToken = java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString("1234567890:42".toByteArray())
+
+        assertThrows<InvalidPageTokenException> {
+            sut.execute(userId = USER_ID, pageSize = 50, pageToken = badToken)
+        }
+    }
+
+    @Test
+    fun `throws InvalidPageTokenException when numeric parts are not numbers`() {
+        val sut = ListUserProductsUsecase(StubRepo(emptyList()))
+        val badToken = java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString("abc.def:xyz".toByteArray())
+
+        assertThrows<InvalidPageTokenException> {
+            sut.execute(userId = USER_ID, pageSize = 50, pageToken = badToken)
         }
     }
 
