@@ -43,7 +43,7 @@ class CreateShareListUsecase(
     private fun findOwnedProduct(productId: Long, ownerId: Long): UserProduct {
         val product = userProductRepository.findById(productId)
             ?: throw UserProductNotFoundException("상품을 찾을 수 없습니다")
-        if (product.userId != ownerId) {
+        if (!product.isOwnedBy(ownerId)) {
             throw UserProductNotFoundException("상품을 찾을 수 없습니다")
         }
         return product

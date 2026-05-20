@@ -15,4 +15,8 @@ data class ShareList(
         val expiry = expiresAt ?: return false
         return !at.isBefore(expiry)
     }
+
+    fun isOwnedBy(ownerId: Long): Boolean = this.ownerId == ownerId
+
+    fun matches(id: Long): Boolean = this.id == id
 }

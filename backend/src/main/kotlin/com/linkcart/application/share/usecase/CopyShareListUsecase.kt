@@ -25,7 +25,7 @@ class CopyShareListUsecase(
      */
     fun execute(viewerId: Long, shareListId: Long, token: String): CopyShareListResult {
         val shareList = lookupShareListByTokenUsecase.execute(token)
-        if (shareList.id != shareListId) {
+        if (!shareList.matches(shareListId)) {
             throw ShareListNotFoundException("공유 리스트를 찾을 수 없습니다")
         }
         val copied = mutableListOf<UserProduct>()

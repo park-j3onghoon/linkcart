@@ -5,7 +5,6 @@ import com.linkcart.domain.port.RefreshTokenRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.util.UUID
 
 @Component
 class RefreshTokenRepositoryAdapter(
@@ -19,10 +18,7 @@ class RefreshTokenRepositoryAdapter(
         jpaRepository.findByTokenHash(tokenHash)?.toDomain()
 
     @Transactional
-    override fun revokeAllActiveForUser(userId: Long, revokedAt: Instant): Int =
+    override fun revokeAllActiveForUser(userId: Long, revokedAt: Instant) {
         jpaRepository.revokeAllActiveForUser(userId, revokedAt)
-
-    @Transactional
-    override fun markRevoked(id: UUID, revokedAt: Instant, replacedByTokenId: UUID?): Int =
-        jpaRepository.markRevoked(id, revokedAt, replacedByTokenId)
+    }
 }

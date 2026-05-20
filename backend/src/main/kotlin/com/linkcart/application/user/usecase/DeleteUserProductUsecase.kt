@@ -13,8 +13,8 @@ class DeleteUserProductUsecase(
     fun execute(userId: Long, productId: Long) {
         val product = userProductRepository.findById(productId)
             ?: throw UserProductNotFoundException("상품을 찾을 수 없습니다")
-        if (product.userId != userId) {
-            // 타인 소유 — 존재 정보 노출 방지로 동일한 not-found 반환.
+        // 타인 소유 시에도 동일 NotFound. 존재 정보 누설 방지 정책.
+        if (!product.isOwnedBy(userId)) {
             throw UserProductNotFoundException("상품을 찾을 수 없습니다")
         }
         userProductRepository.deleteById(productId)

@@ -34,11 +34,7 @@ class RefreshTokensUsecase(
         }
 
         val newIssue = issueTokensUsecase.execute(existing.userId)
-        refreshTokenRepository.markRevoked(
-            id = requireNotNull(existing.id),
-            revokedAt = now,
-            replacedByTokenId = newIssue.refreshTokenId,
-        )
+        refreshTokenRepository.save(existing.revoked(at = now, replacedBy = newIssue.refreshTokenId))
         return newIssue
     }
 }

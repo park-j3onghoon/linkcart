@@ -17,16 +17,4 @@ interface RefreshTokenJpaRepository : JpaRepository<RefreshTokenEntity, UUID> {
             "WHERE r.userId = :userId AND r.revokedAt IS NULL",
     )
     fun revokeAllActiveForUser(@Param("userId") userId: Long, @Param("revokedAt") revokedAt: Instant): Int
-
-    @Modifying
-    @Query(
-        "UPDATE RefreshTokenEntity r " +
-            "SET r.revokedAt = :revokedAt, r.replacedByTokenId = :replacedByTokenId " +
-            "WHERE r.id = :id",
-    )
-    fun markRevoked(
-        @Param("id") id: UUID,
-        @Param("revokedAt") revokedAt: Instant,
-        @Param("replacedByTokenId") replacedByTokenId: UUID?,
-    ): Int
 }

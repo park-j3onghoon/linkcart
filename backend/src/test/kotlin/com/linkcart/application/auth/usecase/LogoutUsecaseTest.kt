@@ -9,11 +9,12 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class LogoutUsecaseTest {
 
     @Test
-    fun `revokes active refresh token`() {
+    fun `revokes active refresh token via save with revoked instance`() {
         val now = Instant.parse("2026-04-17T00:00:00Z")
         val tokenId = UUID.randomUUID()
         val repo = StubRepo(
@@ -28,7 +29,10 @@ class LogoutUsecaseTest {
 
         sut.execute("raw")
 
-        assertEquals(1, repo.markRevokedCalls)
+        val saved = repo.lastSaved
+        assertNotNull(saved)
+        assertEquals(now, saved.revokedAt)
+        assertEquals(tokenId, saved.id)
     }
 
     @Test
@@ -52,7 +56,7 @@ class LogoutUsecaseTest {
 
         sut.execute("raw")
 
-        assertEquals(0, repo.markRevokedCalls)
+        assertEquals(null, repo.lastSaved)
     }
 
     private class FixedHashGenerator : RefreshTokenGenerator {
@@ -63,15 +67,14 @@ class LogoutUsecaseTest {
     private class StubRepo(
         private val byHash: Map<String, RefreshToken> = emptyMap(),
     ) : RefreshTokenRepository {
-        var markRevokedCalls = 0
+        var lastSaved: RefreshToken? = null
             private set
 
-        override fun save(token: RefreshToken): RefreshToken = token
-        override fun findByTokenHash(tokenHash: String): RefreshToken? = byHash[tokenHash]
-        override fun revokeAllActiveForUser(userId: Long, revokedAt: Instant): Int = 0
-        override fun markRevoked(id: UUID, revokedAt: Instant, replacedByTokenId: UUID?): Int {
-            markRevokedCalls += 1
-            return 1
+        override fun save(token: RefreshToken): RefreshToken {
+            lastSaved = token
+            return token
         }
+        override fun findByTokenHash(tokenHash: String): RefreshToken? = byHash[tokenHash]
+        override fun revokeAllActiveForUser(userId: Long, revokedAt: Instant) {}
     }
 }

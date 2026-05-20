@@ -15,4 +15,6 @@ data class UserProduct(
     val mall: Mall,
     val parserUsed: ParserName,
     val createdAt: Instant? = null,
-)
+) {
+    fun isOwnedBy(userId: Long): Boolean = this.userId == userId
+}

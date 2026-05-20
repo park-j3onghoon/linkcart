@@ -29,7 +29,6 @@ class RefreshTokensUsecaseTest {
                     expiresAt = now.plusSeconds(60),
                 ),
             ),
-            saveAssign = { it.copy(id = UUID.randomUUID()) },
         )
         val sut = RefreshTokensUsecase(
             refreshTokenRepository = repo,
@@ -41,7 +40,11 @@ class RefreshTokensUsecaseTest {
         val result = sut.execute("raw-old")
 
         assertEquals("new-access", result.accessToken.token)
-        assertEquals(1, repo.markRevokedCalls)
+        // 새 토큰 저장은 StubIssueTokens 내부 repo, revoke 만 outer repo 로 들어온다.
+        assertEquals(1, repo.saved.size)
+        val revokedSave = repo.saved.single()
+        assertEquals(oldId, revokedSave.id)
+        assertEquals(now, revokedSave.revokedAt)
     }
 
     @Test
@@ -98,22 +101,17 @@ class RefreshTokensUsecaseTest {
 
     private class StubRefreshRepo(
         private val byHash: Map<String, RefreshToken> = emptyMap(),
-        private val saveAssign: (RefreshToken) -> RefreshToken = { it },
     ) : RefreshTokenRepository {
-        var markRevokedCalls = 0
-            private set
+        val saved = mutableListOf<RefreshToken>()
         val revokeAllForUserIds = mutableListOf<Long>()
 
-        override fun save(token: RefreshToken): RefreshToken = saveAssign(token)
-        override fun findByTokenHash(tokenHash: String): RefreshToken? = byHash[tokenHash]
-        override fun revokeAllActiveForUser(userId: Long, revokedAt: Instant): Int {
-            revokeAllForUserIds += userId
-            return 1
+        override fun save(token: RefreshToken): RefreshToken {
+            saved += token
+            return token
         }
-
-        override fun markRevoked(id: UUID, revokedAt: Instant, replacedByTokenId: UUID?): Int {
-            markRevokedCalls += 1
-            return 1
+        override fun findByTokenHash(tokenHash: String): RefreshToken? = byHash[tokenHash]
+        override fun revokeAllActiveForUser(userId: Long, revokedAt: Instant) {
+            revokeAllForUserIds += userId
         }
     }
 
@@ -129,8 +127,7 @@ class RefreshTokensUsecaseTest {
         refreshTokenRepository = object : RefreshTokenRepository {
             override fun save(token: RefreshToken): RefreshToken = token.copy(id = UUID.randomUUID())
             override fun findByTokenHash(tokenHash: String): RefreshToken? = null
-            override fun revokeAllActiveForUser(userId: Long, revokedAt: Instant): Int = 0
-            override fun markRevoked(id: UUID, revokedAt: Instant, replacedByTokenId: UUID?): Int = 0
+            override fun revokeAllActiveForUser(userId: Long, revokedAt: Instant) {}
         },
     )
 }

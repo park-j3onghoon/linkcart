@@ -18,10 +18,6 @@ class LogoutUsecase(
         val tokenHash = refreshTokenGenerator.hash(rawRefreshToken)
         val existing = refreshTokenRepository.findByTokenHash(tokenHash) ?: return
         if (!existing.isActive) return
-        refreshTokenRepository.markRevoked(
-            id = requireNotNull(existing.id),
-            revokedAt = clock.instant(),
-            replacedByTokenId = null,
-        )
+        refreshTokenRepository.save(existing.revoked(at = clock.instant()))
     }
 }
