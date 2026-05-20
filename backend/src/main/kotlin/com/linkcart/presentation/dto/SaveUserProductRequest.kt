@@ -17,7 +17,7 @@ data class SaveUserProductRequest(
     val price: PriceDto,
     val imageUrl: String?,
     @field:NotBlank
-    @field:Pattern(regexp = "^https?://.+", message = "sourceUrl은 http(s)로 시작해야 합니다")
+    @field:Pattern(regexp = ValidationPatterns.HTTP_URL, message = "sourceUrl은 http(s)로 시작해야 합니다")
     val sourceUrl: String,
     @field:NotNull
     val mall: Mall,
@@ -38,6 +38,6 @@ data class SaveUserProductRequest(
         @field:PositiveOrZero
         val amount: Long,
         @field:NotBlank
-        val currency: String = "KRW",
+        val currency: String = Money.DEFAULT_CURRENCY,
     )
 }

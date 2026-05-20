@@ -59,7 +59,6 @@ class DeleteShareListUsecaseTest {
         override fun save(shareList: ShareList): ShareList = shareList
         override fun findById(id: Long): ShareList? = byId[id]
         override fun findByToken(token: String): ShareList? = null
-        override fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareList> = emptyList()
         override fun deleteById(id: Long) {
             deletedIds.add(id)
         }

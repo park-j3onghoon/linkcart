@@ -6,6 +6,5 @@ interface ShareListRepository {
     fun save(shareList: ShareList): ShareList
     fun findById(id: Long): ShareList?
     fun findByToken(token: String): ShareList?
-    fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareList>
     fun deleteById(id: Long)
 }

@@ -1,13 +1,9 @@
 package com.linkcart.application.image.usecase
 
-import com.linkcart.application.parser.port.SafeUrlChecker
-import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.http.HttpEntity
-import org.springframework.http.HttpMethod
+import com.linkcart.application.image.port.ImageFetcher
+import com.linkcart.application.port.SafeUrlChecker
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
-import org.springframework.web.client.RestClientException
-import org.springframework.web.client.RestTemplate
 
 class UnsafeImageUrlException(message: String) : RuntimeException(message)
 class ImageFetchFailedException(message: String) : RuntimeException(message)
@@ -16,8 +12,7 @@ class UnsupportedImageFormatException(message: String) : RuntimeException(messag
 @Service
 class ProxyImageUsecase(
     private val safeUrlChecker: SafeUrlChecker,
-    @Qualifier("imageProxyRestTemplate")
-    private val restTemplate: RestTemplate,
+    private val imageFetcher: ImageFetcher,
 ) {
 
     data class ProxiedImage(val bytes: ByteArray, val contentType: MediaType)
@@ -27,20 +22,20 @@ class ProxyImageUsecase(
             throw UnsafeImageUrlException("허용되지 않는 URL입니다")
         }
 
-        val upstream = try {
-            restTemplate.exchange(url, HttpMethod.GET, HttpEntity.EMPTY, ByteArray::class.java)
-        } catch (_: RestClientException) {
+        val fetched = try {
+            imageFetcher.fetch(url)
+        } catch (_: ImageFetcher.FetchFailed) {
             throw ImageFetchFailedException("이미지를 가져올 수 없습니다")
         }
 
-        val contentType = upstream.headers.contentType
+        val contentType = fetched.contentType
         if (contentType == null || contentType.type != "image" ||
             contentType.subtype !in ALLOWED_IMAGE_SUBTYPES
         ) {
             throw UnsupportedImageFormatException("지원하지 않는 이미지 형식입니다")
         }
 
-        return ProxiedImage(bytes = upstream.body ?: ByteArray(0), contentType = contentType)
+        return ProxiedImage(bytes = fetched.bytes, contentType = contentType)
     }
 
     companion object {

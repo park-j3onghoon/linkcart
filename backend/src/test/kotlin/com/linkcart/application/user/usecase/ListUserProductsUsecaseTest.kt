@@ -183,7 +183,6 @@ class ListUserProductsUsecaseTest {
 
         override fun save(product: UserProduct): UserProduct = product
         override fun findById(id: Long): UserProduct? = null
-        override fun findAllByUserIdOrderByCreatedAtDesc(userId: Long): List<UserProduct> = sorted
 
         override fun findPageByUserId(
             userId: Long,

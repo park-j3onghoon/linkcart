@@ -148,7 +148,6 @@ class CopyShareListUsecaseTest {
         }
 
         override fun findById(id: Long): UserProduct? = null
-        override fun findAllByUserIdOrderByCreatedAtDesc(userId: Long): List<UserProduct> = emptyList()
         override fun findPageByUserId(userId: Long, cursorCreatedAt: java.time.Instant?, cursorId: Long?, limit: Int): List<UserProduct> = emptyList()
         override fun deleteById(id: Long) {}
         override fun existsByUserIdAndSourceUrl(userId: Long, sourceUrl: String): Boolean =
@@ -159,7 +158,6 @@ class CopyShareListUsecaseTest {
         override fun save(shareList: ShareList): ShareList = shareList
         override fun findById(id: Long): ShareList? = null
         override fun findByToken(token: String): ShareList? = byToken[token]
-        override fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareList> = emptyList()
         override fun deleteById(id: Long) {}
     }
 }

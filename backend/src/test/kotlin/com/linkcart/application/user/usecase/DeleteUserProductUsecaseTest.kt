@@ -55,7 +55,6 @@ class DeleteUserProductUsecaseTest {
 
         override fun save(product: UserProduct): UserProduct = product.copy(id = 1L)
         override fun findById(id: Long): UserProduct? = byId[id]
-        override fun findAllByUserIdOrderByCreatedAtDesc(userId: Long): List<UserProduct> = emptyList()
         override fun findPageByUserId(userId: Long, cursorCreatedAt: java.time.Instant?, cursorId: Long?, limit: Int): List<UserProduct> = emptyList()
         override fun deleteById(id: Long) {
             deletedIds += id

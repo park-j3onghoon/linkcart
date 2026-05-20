@@ -17,9 +17,6 @@ class UserProductRepositoryAdapter(
     override fun findById(id: Long): UserProduct? =
         jpaRepository.findById(id).orElse(null)?.toDomain()
 
-    override fun findAllByUserIdOrderByCreatedAtDesc(userId: Long): List<UserProduct> =
-        jpaRepository.findAllByUserIdOrderByCreatedAtDesc(userId).map { it.toDomain() }
-
     override fun findPageByUserId(
         userId: Long,
         cursorCreatedAt: Instant?,

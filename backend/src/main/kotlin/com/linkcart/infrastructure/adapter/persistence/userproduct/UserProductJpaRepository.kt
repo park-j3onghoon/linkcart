@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param
 import java.time.Instant
 
 interface UserProductJpaRepository : JpaRepository<UserProductEntity, Long> {
-    fun findAllByUserIdOrderByCreatedAtDesc(userId: Long): List<UserProductEntity>
     fun existsByUserIdAndSourceUrl(userId: Long, sourceUrl: String): Boolean
 
     @Query(

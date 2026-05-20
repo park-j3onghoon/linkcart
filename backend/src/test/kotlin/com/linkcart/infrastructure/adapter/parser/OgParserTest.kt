@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.parser
 
-import com.linkcart.application.parser.port.SafeUrlChecker
+import com.linkcart.application.port.SafeUrlChecker
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall

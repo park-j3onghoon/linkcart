@@ -88,7 +88,6 @@ class LookupShareListByTokenUsecaseTest {
         override fun save(shareList: ShareList): ShareList = shareList
         override fun findById(id: Long): ShareList? = null
         override fun findByToken(token: String): ShareList? = byToken[token]
-        override fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareList> = emptyList()
         override fun deleteById(id: Long) {}
     }
 }

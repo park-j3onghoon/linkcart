@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.parser
 
-import com.linkcart.application.parser.port.SafeUrlChecker
+import com.linkcart.application.port.SafeUrlChecker
 import com.linkcart.domain.model.Product
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.model.ParserName
@@ -41,7 +41,7 @@ class OgParser(
         val ogTitle = doc.select("meta[property=og:title]").attr("content").ifBlank { null }
         val ogImage = doc.select("meta[property=og:image]").attr("content").ifBlank { null }
         val ogPriceAmount = doc.select("meta[property=product:price:amount]").attr("content").ifBlank { null }
-        val ogPriceCurrency = doc.select("meta[property=product:price:currency]").attr("content").ifBlank { "KRW" }
+        val ogPriceCurrency = doc.select("meta[property=product:price:currency]").attr("content").ifBlank { Money.DEFAULT_CURRENCY }
 
         val name = ogTitle ?: doc.title().ifBlank { null }
         val imageUrl = ogImage

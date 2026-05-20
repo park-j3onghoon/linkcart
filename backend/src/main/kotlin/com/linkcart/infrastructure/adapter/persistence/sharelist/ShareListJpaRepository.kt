@@ -4,5 +4,4 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface ShareListJpaRepository : JpaRepository<ShareListEntity, Long> {
     fun findByToken(token: String): ShareListEntity?
-    fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareListEntity>
 }

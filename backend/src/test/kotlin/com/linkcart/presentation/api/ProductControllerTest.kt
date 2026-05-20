@@ -1,12 +1,12 @@
 package com.linkcart.presentation.api
 
-import com.linkcart.application.parser.usecase.ParseProductUseCase
+import com.linkcart.application.parser.usecase.ParseProductUsecase
 import com.linkcart.domain.model.Product
 import com.linkcart.domain.model.ParseResult
 import com.linkcart.domain.model.ParserName
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
-import com.linkcart.application.parser.port.SafeUrlChecker
+import com.linkcart.application.port.SafeUrlChecker
 import com.linkcart.infrastructure.config.WebConfig
 import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.Test
@@ -36,7 +36,7 @@ class ProductControllerTest {
     private lateinit var mockMvc: MockMvc
 
     @MockBean
-    private lateinit var parseProductUseCase: ParseProductUseCase
+    private lateinit var parseProductUseCase: ParseProductUsecase
 
     @MockBean
     private lateinit var safeUrlChecker: SafeUrlChecker

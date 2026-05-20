@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.parser
 
-import com.linkcart.application.parser.port.SafeUrlChecker
+import com.linkcart.application.port.SafeUrlChecker
 import org.springframework.stereotype.Component
 import java.net.InetAddress
 import java.net.URI

@@ -18,9 +18,6 @@ class ShareListRepositoryAdapter(
     override fun findByToken(token: String): ShareList? =
         jpaRepository.findByToken(token)?.toDomain()
 
-    override fun findAllByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareList> =
-        jpaRepository.findAllByOwnerIdOrderByCreatedAtDesc(ownerId).map { it.toDomain() }
-
     override fun deleteById(id: Long) {
         jpaRepository.deleteById(id)
     }

@@ -130,7 +130,7 @@ class CoupangParser(
         return ParseResult.Success(
             product = Product(
                 name = name,
-                price = Money(amount = price, currency = data.currency ?: "KRW"),
+                price = Money(amount = price, currency = data.currency ?: Money.DEFAULT_CURRENCY),
                 imageUrl = imageUrl,
                 sourceUrl = sourceUrl,
                 mall = Mall.COUPANG,

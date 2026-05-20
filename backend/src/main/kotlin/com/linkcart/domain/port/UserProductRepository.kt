@@ -6,7 +6,6 @@ import java.time.Instant
 interface UserProductRepository {
     fun save(product: UserProduct): UserProduct
     fun findById(id: Long): UserProduct?
-    fun findAllByUserIdOrderByCreatedAtDesc(userId: Long): List<UserProduct>
     fun findPageByUserId(
         userId: Long,
         cursorCreatedAt: Instant?,

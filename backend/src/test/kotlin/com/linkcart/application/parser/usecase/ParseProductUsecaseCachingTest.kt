@@ -24,11 +24,11 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-@SpringBootTest(classes = [ParseProductUseCaseCachingTest.TestApp::class])
-class ParseProductUseCaseCachingTest {
+@SpringBootTest(classes = [ParseProductUsecaseCachingTest.TestApp::class])
+class ParseProductUsecaseCachingTest {
 
     @Autowired
-    private lateinit var parseProductUseCase: ParseProductUseCase
+    private lateinit var parseProductUseCase: ParseProductUsecase
 
     @Autowired
     private lateinit var dedicatedParser: DedicatedCountingParser
@@ -117,7 +117,7 @@ class ParseProductUseCaseCachingTest {
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @EnableCaching
-    @Import(ParseProductUseCase::class, ParserPipeline::class, ParserResolver::class, TestConfig::class)
+    @Import(ParseProductUsecase::class, ParserPipeline::class, ParserResolver::class, TestConfig::class)
     class TestApp
 
     @TestConfiguration

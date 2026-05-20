@@ -51,7 +51,6 @@ class SaveUserProductUsecaseTest {
         }
 
         override fun findById(id: Long): UserProduct? = null
-        override fun findAllByUserIdOrderByCreatedAtDesc(userId: Long): List<UserProduct> = emptyList()
         override fun findPageByUserId(userId: Long, cursorCreatedAt: java.time.Instant?, cursorId: Long?, limit: Int): List<UserProduct> = emptyList()
         override fun deleteById(id: Long) {}
         override fun existsByUserIdAndSourceUrl(userId: Long, sourceUrl: String): Boolean = alreadyExists

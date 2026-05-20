@@ -1,8 +1,8 @@
 package com.linkcart.presentation.api
 
-import com.linkcart.application.parser.usecase.ParseProductUseCase
+import com.linkcart.application.parser.usecase.ParseProductUsecase
 import com.linkcart.domain.model.ParseResult
-import com.linkcart.application.parser.port.SafeUrlChecker
+import com.linkcart.application.port.SafeUrlChecker
 import com.linkcart.presentation.dto.ParseRequest
 import com.linkcart.presentation.dto.ParseResponse
 import jakarta.validation.Valid
@@ -14,7 +14,7 @@ import org.springframework.web.server.ResponseStatusException
 
 @RestController
 class ProductController(
-    private val parseProductUseCase: ParseProductUseCase,
+    private val parseProductUseCase: ParseProductUsecase,
     private val safeUrlChecker: SafeUrlChecker,
 ) {
 
