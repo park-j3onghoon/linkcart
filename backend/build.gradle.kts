@@ -86,12 +86,16 @@ tasks.jacocoTestReport {
 	classDirectories.setFrom(
 		files(classDirectories.files.map {
 			fileTree(it) {
-				// 커버리지 측정에서 제외: 단순 매핑 객체, 설정, main, generated
+				// 프레임워크 글루·생성 코드는 측정 제외 (단위 테스트로 의미 있게 잡히지 않음).
+				// 통합 테스트가 필요한 영역은 Testcontainers 기반으로 별도 진행.
 				exclude(
 					"com/linkcart/LinkcartBackendApplication*",
 					"com/linkcart/**/dto/**",
 					"com/linkcart/**/config/**",
-					"com/linkcart/infrastructure/adapter/persistence/**/Entity*",
+					"com/linkcart/infrastructure/adapter/persistence/**/*Entity*",
+					"com/linkcart/infrastructure/adapter/persistence/**/*JpaRepository*",
+					"com/linkcart/infrastructure/adapter/persistence/**/*Mappers*",
+					"com/linkcart/infrastructure/adapter/persistence/**/*RepositoryAdapter*",
 				)
 			}
 		}),
