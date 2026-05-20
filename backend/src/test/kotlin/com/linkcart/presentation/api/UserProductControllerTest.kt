@@ -8,7 +8,7 @@ import com.linkcart.application.user.usecase.ListUserProductsPage
 import com.linkcart.application.user.usecase.ListUserProductsUsecase
 import com.linkcart.application.user.usecase.SaveUserProductUsecase
 import com.linkcart.application.user.usecase.UserProductNotFoundException
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money

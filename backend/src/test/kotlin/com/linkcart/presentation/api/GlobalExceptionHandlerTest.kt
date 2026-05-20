@@ -6,7 +6,7 @@ import com.linkcart.application.error.ErrorCode
 import com.linkcart.application.image.usecase.ImageFetchFailedException
 import com.linkcart.application.image.usecase.UnsafeImageUrlException
 import com.linkcart.application.image.usecase.UnsupportedImageFormatException
-import com.linkcart.application.share.usecase.EmptyShareListException
+import com.linkcart.domain.model.EmptyShareListException
 import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.DuplicateUserProductException
 import com.linkcart.application.user.usecase.InvalidPageSizeException

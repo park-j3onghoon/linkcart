@@ -4,11 +4,11 @@ import com.linkcart.application.share.usecase.CopyShareListResult
 import com.linkcart.application.share.usecase.CopyShareListUsecase
 import com.linkcart.application.share.usecase.CreateShareListUsecase
 import com.linkcart.application.share.usecase.DeleteShareListUsecase
-import com.linkcart.application.share.usecase.EmptyShareListException
+import com.linkcart.domain.model.EmptyShareListException
 import com.linkcart.application.share.usecase.LookupShareListByTokenUsecase
 import com.linkcart.application.share.usecase.ShareListNotFoundException
 import com.linkcart.application.user.usecase.UserProductNotFoundException
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.model.ShareList
 import com.linkcart.domain.model.ShareListItem
 import com.linkcart.domain.model.UserProduct

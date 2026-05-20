@@ -1,6 +1,6 @@
 package com.linkcart.infrastructure.adapter.persistence.userproduct
 
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.vo.Mall
 import jakarta.persistence.Column
 import jakarta.persistence.Entity

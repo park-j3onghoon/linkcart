@@ -1,7 +1,7 @@
 package com.linkcart.application.parser
 
 import com.linkcart.domain.model.ParseResult
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.infrastructure.adapter.parser.DefaultSafeUrlChecker
 import com.linkcart.infrastructure.adapter.parser.OgParser
 import org.junit.jupiter.api.Test

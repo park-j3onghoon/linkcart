@@ -2,7 +2,8 @@ package com.linkcart.application.share.usecase
 
 import com.linkcart.application.share.port.ShareListTokenGenerator
 import com.linkcart.application.user.usecase.UserProductNotFoundException
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.model.EmptyShareListException
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.model.ShareList
 import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.port.ShareListRepository

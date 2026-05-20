@@ -1,7 +1,7 @@
 package com.linkcart.presentation.dto
 
 import com.linkcart.domain.model.ParseResult
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 
@@ -39,12 +39,20 @@ data class ParseResponse(
                     imageUrl = result.imageUrl,
                     sourceUrl = requestedUrl,
                     mall = result.mall,
-                    partial = result.toFieldMap(),
+                    partial = partialFieldMap(result),
                     parserUsed = result.parserUsed,
                     fallbackUsed = result.fallbackUsed,
                 )
 
-                is ParseResult.Failure -> throw IllegalArgumentException("Failure result cannot be converted to ParseResponse")
+                is ParseResult.Failure -> error("Failure result cannot be converted to ParseResponse")
             }
+
+        /** Partial 의 추출 필드만 wire-format 키로 모은다. 도메인 대신 presentation 이 wire 표현을 소유. */
+        private fun partialFieldMap(partial: ParseResult.Partial): Map<String, Any> = buildMap {
+            partial.name?.let { put("name", it) }
+            partial.price?.let { put("price", it) }
+            partial.imageUrl?.let { put("imageUrl", it) }
+            partial.mall?.let { put("mall", it) }
+        }
     }
 }

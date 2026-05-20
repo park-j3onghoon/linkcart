@@ -1,6 +1,6 @@
 package com.linkcart.application.share.usecase
 
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.model.ShareListItem
 import com.linkcart.domain.model.UserProduct
 import com.linkcart.domain.port.UserProductRepository

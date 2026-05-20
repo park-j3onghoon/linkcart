@@ -10,8 +10,6 @@ import com.linkcart.domain.port.UserProductRepository
 import org.springframework.stereotype.Service
 import java.time.Instant
 
-class EmptyShareListException(message: String) : RuntimeException(message)
-
 @Service
 class CreateShareListUsecase(
     private val userProductRepository: UserProductRepository,
@@ -25,17 +23,13 @@ class CreateShareListUsecase(
         title: String? = null,
         expiresAt: Instant? = null,
     ): ShareList {
-        if (productIds.isEmpty()) {
-            throw EmptyShareListException("공유할 상품을 1개 이상 선택해주세요")
-        }
         val products = productIds.map { id -> findOwnedProduct(id, ownerId) }
-        val items = products.map(ShareListItem::fromUserProduct)
-        val shareList = ShareList(
+        val shareList = ShareList.create(
             ownerId = ownerId,
             token = tokenGenerator.generate(),
+            items = products.map(ShareListItem::fromUserProduct),
             title = title,
             expiresAt = expiresAt,
-            items = items,
         )
         return shareListRepository.save(shareList)
     }

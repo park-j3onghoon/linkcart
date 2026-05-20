@@ -4,7 +4,7 @@ import com.linkcart.application.parser.ParserPipeline
 import com.linkcart.application.parser.ParserResolver
 import com.linkcart.domain.model.Product
 import com.linkcart.domain.model.ParseResult
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.port.DedicatedProductParser
 import com.linkcart.domain.port.FallbackProductParser
 import com.linkcart.domain.vo.Mall

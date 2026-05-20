@@ -2,6 +2,7 @@ package com.linkcart.domain.model
 
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
+import com.linkcart.domain.vo.ParserName
 
 sealed interface ParseResult {
     data class Success(
@@ -18,14 +19,6 @@ sealed interface ParseResult {
         val parserUsed: ParserName,
         val fallbackUsed: Boolean = false,
     ) : ParseResult {
-        /** presentation 직렬화용. 추출된 필드만 골라낸다. */
-        fun toFieldMap(): Map<String, Any> = buildMap {
-            name?.let { put("name", it) }
-            price?.let { put("price", it) }
-            imageUrl?.let { put("imageUrl", it) }
-            mall?.let { put("mall", it) }
-        }
-
         fun hasAnyField(): Boolean =
             name != null || price != null || imageUrl != null || mall != null
     }

@@ -1,7 +1,7 @@
 package com.linkcart.application.user.usecase
 
 import com.linkcart.domain.model.UserProduct
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.port.UserProductRepository
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money

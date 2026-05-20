@@ -1,6 +1,6 @@
 package com.linkcart.domain.model
 
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import java.time.Instant

@@ -1,7 +1,7 @@
 package com.linkcart.presentation.dto
 
 import com.linkcart.domain.model.UserProduct
-import com.linkcart.domain.model.ParserName
+import com.linkcart.domain.vo.ParserName
 import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import jakarta.validation.Valid
