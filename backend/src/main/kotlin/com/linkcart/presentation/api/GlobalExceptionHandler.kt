@@ -42,40 +42,30 @@ class GlobalExceptionHandler {
                 )
             }
         }
-        val message = fieldViolations.firstOrNull()?.description
-            ?: ex.bindingResult.allErrors.firstOrNull()?.defaultMessage
-            ?: "요청이 올바르지 않습니다"
-        return ResponseEntity
-            .badRequest()
-            .body(
-                ErrorResponse(
-                    code = ErrorCode.INVALID_ARGUMENT,
-                    message = message,
-                    details = fieldViolations.takeIf { it.isNotEmpty() }
-                        ?.let { listOf(ErrorDetail(type = "BadRequest", fieldViolations = it)) },
-                ),
-            )
+        val fallbackMessage = ex.bindingResult.allErrors.firstOrNull()?.defaultMessage
+        return badRequestWithFieldViolations(fieldViolations, fallbackMessage)
     }
 
     @ExceptionHandler(ConstraintViolationException::class)
     fun handleConstraintViolation(ex: ConstraintViolationException): ResponseEntity<ErrorResponse> {
         val fieldViolations = ex.constraintViolations.map {
-            FieldViolation(
-                field = it.propertyPath.toString(),
-                description = it.message,
-            )
+            FieldViolation(field = it.propertyPath.toString(), description = it.message)
         }
-        val message = fieldViolations.firstOrNull()?.description ?: "요청이 올바르지 않습니다"
+        return badRequestWithFieldViolations(fieldViolations, fallbackMessage = null)
+    }
+
+    private fun badRequestWithFieldViolations(
+        fieldViolations: List<FieldViolation>,
+        fallbackMessage: String?,
+    ): ResponseEntity<ErrorResponse> {
+        val message = fieldViolations.firstOrNull()?.description
+            ?: fallbackMessage
+            ?: "요청이 올바르지 않습니다"
+        val details = fieldViolations.takeIf { it.isNotEmpty() }
+            ?.let { listOf(ErrorDetail(type = "BadRequest", fieldViolations = it)) }
         return ResponseEntity
             .badRequest()
-            .body(
-                ErrorResponse(
-                    code = ErrorCode.INVALID_ARGUMENT,
-                    message = message,
-                    details = fieldViolations.takeIf { it.isNotEmpty() }
-                        ?.let { listOf(ErrorDetail(type = "BadRequest", fieldViolations = it)) },
-                ),
-            )
+            .body(ErrorResponse(code = ErrorCode.INVALID_ARGUMENT, message = message, details = details))
     }
 
     @ExceptionHandler(MissingServletRequestParameterException::class, HttpMessageNotReadableException::class)

@@ -60,5 +60,5 @@ class AuthController(
     }
 
     private fun expiresInSeconds(expiresAt: Instant): Long =
-        Duration.between(Instant.now(clock), expiresAt).seconds
+        Duration.between(clock.instant(), expiresAt).seconds
 }

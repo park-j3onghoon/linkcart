@@ -1,5 +1,6 @@
 import type { ParseResponse, ShareList } from "../types";
 import { API_PATHS } from "./paths";
+import { request } from "./request";
 
 export type ApiResult<T> =
   | { ok: true; data: T }
@@ -14,49 +15,19 @@ export type ApiError =
   | { code: "UNKNOWN"; message: string };
 
 const DEFAULT_BASE_URL = "";
-const TIMEOUT_MS = 15_000;
 
 export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
   async function parseProduct(url: string): Promise<ApiResult<ParseResponse>> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    try {
-      const response = await fetch(`${baseUrl}${API_PATHS.productsParse}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({} as Record<string, unknown>));
-        // AIP-193 error body: { code, message, details }
-        const message = typeof body === "object" && body !== null && "message" in body
-          ? String(body.message)
-          : `HTTP ${response.status} ${response.statusText}`;
-        return {
-          ok: false,
-          error: { code: "PARSE_FAILED", message },
-        };
-      }
-
-      const data = (await response.json()) as ParseResponse;
-      return { ok: true, data };
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        return { ok: false, error: { code: "TIMEOUT", message: "요청 시간이 초과되었습니다" } };
-      }
-      return {
-        ok: false,
-        error: {
-          code: "NETWORK",
-          message: err instanceof Error ? err.message : "네트워크 오류가 발생했습니다",
-        },
-      };
-    } finally {
-      clearTimeout(timeoutId);
+    const result = await request<ParseResponse>(`${baseUrl}${API_PATHS.productsParse}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    // request 헬퍼는 일반 실패를 UNKNOWN 으로 반환하므로, 도메인 의미(PARSE_FAILED) 로 좁힌다.
+    if (!result.ok && result.error.code === "UNKNOWN") {
+      return { ok: false, error: { code: "PARSE_FAILED", message: result.error.message } };
     }
+    return result;
   }
 
   function imageProxyUrl(originalUrl: string): string {
@@ -64,50 +35,21 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
   }
 
   /** AIP-131: token이 secret이라 URL이 아닌 body로 전달. */
-  async function lookupShareListByToken(token: string): Promise<ApiResult<ShareList>> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    try {
-      const response = await fetch(`${baseUrl}${API_PATHS.shareListsLookup}`, {
+  function lookupShareListByToken(token: string): Promise<ApiResult<ShareList>> {
+    return request<ShareList>(
+      `${baseUrl}${API_PATHS.shareListsLookup}`,
+      {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
-        signal: controller.signal,
-      });
-
-      if (response.status === 404) {
-        return {
+      },
+      {
+        404: {
           ok: false,
           error: { code: "NOT_FOUND", message: "공유 리스트를 찾을 수 없거나 만료되었습니다" },
-        };
-      }
-      if (!response.ok) {
-        return {
-          ok: false,
-          error: {
-            code: "UNKNOWN",
-            message: `HTTP ${response.status} ${response.statusText}`,
-          },
-        };
-      }
-
-      const data = (await response.json()) as ShareList;
-      return { ok: true, data };
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        return { ok: false, error: { code: "TIMEOUT", message: "요청 시간이 초과되었습니다" } };
-      }
-      return {
-        ok: false,
-        error: {
-          code: "NETWORK",
-          message: err instanceof Error ? err.message : "네트워크 오류가 발생했습니다",
         },
-      };
-    } finally {
-      clearTimeout(timeoutId);
-    }
+      },
+    );
   }
 
   return { parseProduct, imageProxyUrl, lookupShareListByToken };
