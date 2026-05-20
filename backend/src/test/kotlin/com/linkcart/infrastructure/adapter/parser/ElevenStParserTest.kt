@@ -136,6 +136,42 @@ class ElevenStParserTest {
         assertContains(result.reason, "인증 키가 유효하지 않습니다")
     }
 
+    @Test
+    fun `canParse accepts 11st hosts and subdomains, rejects others`() {
+        val parser = parser()
+
+        assertEquals(true, parser.canParse("https://11st.co.kr/products/1"))
+        assertEquals(true, parser.canParse("https://www.11st.co.kr/products/1"))
+        assertEquals(true, parser.canParse("https://m.11st.co.kr/products/1"))
+        assertEquals(false, parser.canParse("https://coupang.com/products/1"))
+        assertEquals(false, parser.canParse("https://11st.co.kr.evil.com/products/1"))
+        assertEquals(false, parser.canParse("garbage"))
+    }
+
+    @Test
+    fun `parse returns Failure when api key is blank`() {
+        val parser = ElevenStParser(
+            apiKey = "",
+            baseUrl = "https://11st.test",
+            restTemplateBuilder = RestTemplateBuilder(),
+        )
+
+        val result = parser.parse(REQUEST_URL)
+
+        assertIs<ParseResult.Failure>(result)
+        assertEquals("11번가 API 키가 설정되지 않았습니다", result.reason)
+    }
+
+    @Test
+    fun `parse returns Failure when URL is unparseable`() {
+        val parser = parser()
+
+        val result = parser.parse("http://[invalid")
+
+        assertIs<ParseResult.Failure>(result)
+        assertEquals("11번가 상품 ID를 추출할 수 없습니다", result.reason)
+    }
+
     private fun parser(): ElevenStParser =
         ElevenStParser(
             apiKey = "test-key",

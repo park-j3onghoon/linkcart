@@ -166,6 +166,44 @@ class CoupangParserTest {
     }
 
     @Test
+    fun `canParse accepts coupang hosts and subdomains and rejects others`() {
+        val parser = parser()
+
+        assertEquals(true, parser.canParse("https://coupang.com/vp/products/1"))
+        assertEquals(true, parser.canParse("https://www.coupang.com/vp/products/1"))
+        assertEquals(true, parser.canParse("https://m.coupang.com/vm/products/1"))
+        assertEquals(false, parser.canParse("https://example.com/products/1"))
+        assertEquals(false, parser.canParse("https://coupang.com.evil.com/products/1"))
+        assertEquals(false, parser.canParse("not-a-url"))
+    }
+
+    @Test
+    fun `parse returns Failure when access key is blank`() {
+        val parser = CoupangParser(
+            accessKey = "",
+            secretKey = "test-secret",
+            baseUrl = "https://coupang.test",
+            restTemplateBuilder = RestTemplateBuilder(),
+            objectMapper = jacksonObjectMapper(),
+        )
+
+        val result = parser.parse(REQUEST_URL)
+
+        assertIs<ParseResult.Failure>(result)
+        assertEquals("쿠팡 access key/secret key가 설정되지 않았습니다", result.reason)
+    }
+
+    @Test
+    fun `parse returns Failure when product id cannot be extracted from url`() {
+        val parser = parser()
+
+        val result = parser.parse("https://www.coupang.com/category/foo")
+
+        assertIs<ParseResult.Failure>(result)
+        assertEquals("쿠팡 상품 ID를 추출할 수 없습니다", result.reason)
+    }
+
+    @Test
     fun `empty data returns Failure`() {
         val parser = parser()
         val server = MockRestServiceServer.createServer(parser.restTemplate)
