@@ -1,8 +1,5 @@
 package com.linkcart.domain.vo
 
-/**
- * 화폐 금액 VO. 음수 amount나 잘못된 currency 코드는 생성 시점에 거부한다.
- */
 data class Money(
     val amount: Long,
     val currency: String = DEFAULT_CURRENCY,

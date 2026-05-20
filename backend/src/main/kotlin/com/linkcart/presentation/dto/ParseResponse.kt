@@ -6,9 +6,8 @@ import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 
 /**
- * `:parse`의 method 응답. 리소스 조회 응답이 아니므로 AIP-148(name=리소스 path) 규칙에 따르지 않는다.
- * 여기의 `name`은 파싱된 상품명(display name)이며, UserProduct/ShareList 등의 리소스 응답에서 쓰는 `name`(리소스 path)과 의미가 다르다.
- * 파싱 결과를 그대로 저장할 수 있도록 Product 필드를 top-level로 펼친 flat 구조를 유지한다.
+ * `:parse`는 method 응답이라 AIP-148(name=리소스 path) 적용 안 함.
+ * 여기의 `name`은 상품명(display name)이며 리소스 응답의 `name`(리소스 path)과 의미가 다르다.
  */
 data class ParseResponse(
     val name: String?,

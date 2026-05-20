@@ -20,9 +20,8 @@ class CopyShareListUsecase(
 ) {
 
     /**
-     * token으로 ShareList를 lookup한 뒤 path의 shareListId가 일치하는 경우에만 복제한다.
-     * - token이 capability이고 id는 보조 식별자. 일치하지 않으면 NotFound(404)로 응답.
-     * - 만료/미존재도 NotFound (LookupShareListByTokenUsecase 동작).
+     * token이 capability, id는 보조. id 불일치도 NotFound로 응답해 enumeration을 막는다.
+     * 만료/미존재 NotFound 처리는 [LookupShareListByTokenUsecase]에 위임.
      */
     fun execute(viewerId: Long, shareListId: Long, token: String): CopyShareListResult {
         val shareList = lookupShareListByTokenUsecase.execute(token)

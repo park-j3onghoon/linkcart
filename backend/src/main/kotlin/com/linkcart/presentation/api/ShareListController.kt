@@ -42,11 +42,7 @@ class ShareListController(
         return ResponseEntity.status(HttpStatus.CREATED).body(ShareListResponse.from(shareList))
     }
 
-    /**
-     * 비로그인 공유 페이지가 사용하는 토큰 → 리소스 조회.
-     * 토큰은 secret이므로 URL이 아닌 request body로 받는다.
-     * ID 기반 GET endpoint는 일부러 노출하지 않는다 (enumeration 방지).
-     */
+    /** AIP-131: token이 secret이라 body로 받고, ID 기반 GET은 enumeration 위험으로 일부러 빼놓음. */
     @PostMapping("/api/v1/shareLists:lookup")
     fun lookupByToken(
         @Valid @RequestBody request: LookupShareListRequest,

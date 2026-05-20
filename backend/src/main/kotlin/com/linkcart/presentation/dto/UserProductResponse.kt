@@ -6,9 +6,7 @@ import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import java.time.Instant
 
-/**
- * AIP-122 / AIP-148: name = "users/me/products/{id}", createTime은 RFC3339.
- */
+/** AIP-148 resource: name = "users/me/products/{id}". */
 data class UserProductResponse(
     val name: String,
     val displayName: String,

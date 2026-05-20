@@ -13,12 +13,6 @@ class UnsafeImageUrlException(message: String) : RuntimeException(message)
 class ImageFetchFailedException(message: String) : RuntimeException(message)
 class UnsupportedImageFormatException(message: String) : RuntimeException(message)
 
-/**
- * 외부 이미지를 안전하게 프록시.
- * - SafeUrlChecker로 SSRF/내부망 차단
- * - upstream 실패는 ImageFetchFailedException
- * - 허용 MIME(png/jpeg/gif/webp)만 통과, SVG 등은 XSS 위험으로 차단
- */
 @Service
 class ProxyImageUsecase(
     private val safeUrlChecker: SafeUrlChecker,

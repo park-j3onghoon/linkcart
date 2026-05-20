@@ -3,9 +3,7 @@ package com.linkcart.presentation.dto
 import com.linkcart.domain.model.User
 import com.linkcart.domain.model.AuthProvider
 
-/**
- * AIP-122 / AIP-148: 리소스는 path 형식의 `name`으로 식별한다.
- */
+/** AIP-148 resource: name = "users/{id}". */
 data class UserResponse(
     val name: String,
     val email: String,

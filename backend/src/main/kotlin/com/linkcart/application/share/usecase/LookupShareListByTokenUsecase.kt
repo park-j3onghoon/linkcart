@@ -5,10 +5,7 @@ import com.linkcart.domain.port.ShareListRepository
 import org.springframework.stereotype.Service
 import java.time.Clock
 
-/**
- * AIP-136 custom method: 토큰은 secret이라 path/query에 두지 않고 request body로 받는다.
- * 만료된 토큰은 미존재와 같은 NotFound로 응답한다 (존재 정보 노출 방지).
- */
+/** 만료된 토큰도 미존재와 동일하게 NotFound로 응답해 존재 정보 누설을 막는다 (AIP-131). */
 @Service
 class LookupShareListByTokenUsecase(
     private val shareListRepository: ShareListRepository,

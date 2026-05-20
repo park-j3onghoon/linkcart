@@ -31,7 +31,7 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({} as Record<string, unknown>));
-        // AIP-193: 에러 응답은 `{code, message, details}` 구조. `body.message`를 우선 사용한다.
+        // AIP-193 error body: { code, message, details }
         const message = typeof body === "object" && body !== null && "message" in body
           ? String(body.message)
           : `HTTP ${response.status} ${response.statusText}`;
@@ -63,9 +63,7 @@ export function createApiClient(baseUrl: string = DEFAULT_BASE_URL) {
     return `${baseUrl}${API_PATHS.imagesProxy}?url=${encodeURIComponent(originalUrl)}`;
   }
 
-  /**
-   * 토큰은 secret이므로 URL이 아닌 request body로 전달한다 (AIP-136 custom :lookup).
-   */
+  /** AIP-131: token이 secret이라 URL이 아닌 body로 전달. */
   async function lookupShareListByToken(token: string): Promise<ApiResult<ShareList>> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);

@@ -1,8 +1,6 @@
 import type { MallType, Money } from "./product";
 
-/**
- * AIP-122/148: name = "shareLists/{parent}/items/{id}", 표시용은 displayName.
- */
+/** AIP-148: name = "shareLists/{parent}/items/{id}". */
 export type ShareListItem = {
   name: string;
   displayName: string;

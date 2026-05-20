@@ -8,9 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 
-/**
- * AIP-156 singleton: 현재 인증된 사용자 리소스(`users/me`)는 컬렉션 없이 단독으로 노출한다.
- */
+/** AIP-156 singleton: `users/me`는 컬렉션 없이 단독 리소스로 노출. */
 @RestController
 class UserController(
     private val getMeUsecase: GetMeUsecase,

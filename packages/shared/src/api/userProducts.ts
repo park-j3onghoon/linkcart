@@ -3,9 +3,7 @@ import type { MallType, Money } from "../types/product";
 import type { ApiResult } from "./client";
 import { API_PATHS, userProductByIdPath } from "./paths";
 
-/**
- * AIP-122/148: name = "users/me/products/{id}", 상품명은 displayName, time 필드는 RFC3339.
- */
+/** AIP-148: name = "users/me/products/{id}". */
 export type UserProduct = {
   name: string;
   displayName: string;

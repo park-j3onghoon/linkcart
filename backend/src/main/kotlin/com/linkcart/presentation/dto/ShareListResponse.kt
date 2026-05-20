@@ -6,10 +6,7 @@ import com.linkcart.domain.vo.Mall
 import com.linkcart.domain.vo.Money
 import java.time.Instant
 
-/**
- * AIP-122 / AIP-148: name = "shareLists/{id}", time 필드는 RFC3339(create/expire).
- * 아이템은 부모-자식 path "shareLists/{parent}/items/{id}"로 식별한다.
- */
+/** AIP-148 resource: name = "shareLists/{id}", 아이템은 "shareLists/{parent}/items/{id}". */
 data class ShareListResponse(
     val name: String,
     val token: String,
