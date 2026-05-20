@@ -32,12 +32,13 @@ class GoogleOAuthAdapter(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    internal val restTemplate = restTemplateBuilder
+    // var로 둬 테스트에서 RestTemplate/Verifier를 mock으로 교체 가능 (internal 가시성).
+    internal var restTemplate = restTemplateBuilder
         .connectTimeout(Duration.ofSeconds(3))
         .readTimeout(Duration.ofSeconds(5))
         .build()
 
-    internal val idTokenVerifier: GoogleIdTokenVerifier = GoogleIdTokenVerifier.Builder(
+    internal var idTokenVerifier: GoogleIdTokenVerifier = GoogleIdTokenVerifier.Builder(
         NetHttpTransport(),
         GsonFactory.getDefaultInstance(),
     ).setAudience(Collections.singletonList(clientId)).build()

@@ -96,6 +96,8 @@ tasks.jacocoTestReport {
 					"com/linkcart/infrastructure/adapter/persistence/**/*JpaRepository*",
 					"com/linkcart/infrastructure/adapter/persistence/**/*Mappers*",
 					"com/linkcart/infrastructure/adapter/persistence/**/*RepositoryAdapter*",
+					// 외부 wire format 매핑 데이터 클래스 (Google OAuth token response 등)
+					"com/linkcart/infrastructure/adapter/auth/GoogleOAuthAdapter\$GoogleTokenResponse*",
 				)
 			}
 		}),
