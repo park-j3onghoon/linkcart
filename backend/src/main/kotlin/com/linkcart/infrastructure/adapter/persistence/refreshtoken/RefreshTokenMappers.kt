@@ -1,7 +1,6 @@
 package com.linkcart.infrastructure.adapter.persistence.refreshtoken
 
 import com.linkcart.domain.model.RefreshToken
-import java.util.UUID
 
 internal fun RefreshTokenEntity.toDomain(): RefreshToken = RefreshToken(
     id = id,
@@ -14,7 +13,7 @@ internal fun RefreshTokenEntity.toDomain(): RefreshToken = RefreshToken(
 )
 
 internal fun RefreshToken.toEntity(): RefreshTokenEntity = RefreshTokenEntity(
-    id = id ?: UUID.randomUUID(),
+    id = requireNotNull(id) { "RefreshToken.id must be set before persistence (assign at construction)" },
     userId = userId,
     tokenHash = tokenHash,
     expiresAt = expiresAt,

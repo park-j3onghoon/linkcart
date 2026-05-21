@@ -14,7 +14,7 @@ import org.springframework.web.server.ResponseStatusException
 
 @RestController
 class ProductController(
-    private val parseProductUseCase: ParseProductUsecase,
+    private val parseProductUsecase: ParseProductUsecase,
     private val safeUrlChecker: SafeUrlChecker,
 ) {
 
@@ -26,7 +26,7 @@ class ProductController(
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "허용되지 않는 URL입니다")
         }
 
-        return when (val result = parseProductUseCase.execute(request.url)) {
+        return when (val result = parseProductUsecase.execute(request.url)) {
             is ParseResult.Failure -> throw ResponseStatusException(HttpStatus.BAD_GATEWAY, result.reason)
             else -> ParseResponse.from(result, request.url)
         }

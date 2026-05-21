@@ -10,14 +10,4 @@ data class ShareListItem(
     val imageUrl: String?,
     val sourceUrl: String,
     val mall: Mall,
-) {
-    companion object {
-        fun fromUserProduct(product: UserProduct): ShareListItem = ShareListItem(
-            name = product.name,
-            price = product.price,
-            imageUrl = product.imageUrl,
-            sourceUrl = product.sourceUrl,
-            mall = product.mall,
-        )
-    }
-}
+)

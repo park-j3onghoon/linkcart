@@ -26,15 +26,18 @@ class IssueTokensUsecase(
         val rawRefresh = refreshTokenGenerator.generate()
         val refreshHash = refreshTokenGenerator.hash(rawRefresh)
 
-        val saved = refreshTokenRepository.save(
+        // ID 부여는 도메인/usecase 책임. 매퍼가 비결정적 난수를 만들지 않도록.
+        val tokenId = UUID.randomUUID()
+        refreshTokenRepository.save(
             RefreshToken(
+                id = tokenId,
                 userId = userId,
                 tokenHash = refreshHash,
                 expiresAt = clock.instant().plus(Duration.ofDays(refreshTokenTtlDays)),
             ),
         )
 
-        return IssueResult(accessToken = access, rawRefreshToken = rawRefresh, refreshTokenId = requireNotNull(saved.id))
+        return IssueResult(accessToken = access, rawRefreshToken = rawRefresh, refreshTokenId = tokenId)
     }
 
     data class IssueResult(

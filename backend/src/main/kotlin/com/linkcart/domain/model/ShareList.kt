@@ -20,7 +20,7 @@ data class ShareList(
 
     fun isOwnedBy(ownerId: Long): Boolean = this.ownerId == ownerId
 
-    fun matches(id: Long): Boolean = this.id == id
+    fun hasId(id: Long): Boolean = this.id == id
 
     companion object {
         /**

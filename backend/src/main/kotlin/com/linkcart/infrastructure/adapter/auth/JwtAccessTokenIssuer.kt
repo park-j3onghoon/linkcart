@@ -27,6 +27,7 @@ class JwtAccessTokenIssuer(
     private val audience: String,
 ) : AccessTokenIssuer {
 
+    // var로 둬 테스트에서 fixed Clock 으로 교체 가능 (internal 가시성).
     internal var clock: Clock = Clock.systemUTC()
 
     private val signingKey: SecretKey = run {

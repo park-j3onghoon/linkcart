@@ -31,6 +31,7 @@ class ElevenStParser(
     restTemplateBuilder: RestTemplateBuilder,
 ) : DedicatedProductParser {
 
+    // 테스트에서 MockRestServiceServer 로 stub 응답을 주입할 수 있도록 internal 노출.
     internal val restTemplate = restTemplateBuilder
         .connectTimeout(Duration.ofSeconds(3))
         .readTimeout(Duration.ofSeconds(3))

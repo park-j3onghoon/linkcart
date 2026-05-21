@@ -40,12 +40,14 @@ class CoupangParser(
     private val objectMapper: ObjectMapper,
 ) : DedicatedProductParser {
 
+    // 테스트에서 MockRestServiceServer 로 stub 응답을 주입할 수 있도록 internal 노출.
     internal val restTemplate = restTemplateBuilder
         .connectTimeout(Duration.ofSeconds(3))
         .readTimeout(Duration.ofSeconds(3))
         .additionalMessageConverters(StringHttpMessageConverter(StandardCharsets.UTF_8))
         .build()
 
+    // var로 둬 테스트에서 fixed Clock 으로 교체 가능 (서명 시각 고정용).
     internal var clock: Clock = Clock.systemUTC()
 
     override fun canParse(url: String): Boolean = hostMatches(url, "coupang.com")

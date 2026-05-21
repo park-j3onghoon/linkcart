@@ -36,7 +36,7 @@ class ProductControllerTest {
     private lateinit var mockMvc: MockMvc
 
     @MockBean
-    private lateinit var parseProductUseCase: ParseProductUsecase
+    private lateinit var parseProductUsecase: ParseProductUsecase
 
     @MockBean
     private lateinit var safeUrlChecker: SafeUrlChecker
@@ -44,7 +44,7 @@ class ProductControllerTest {
     @Test
     fun `successful parse returns 200 response`() {
         given(safeUrlChecker.isSafe("https://www.coupang.com/vp/products/123")).willReturn(true)
-        given(parseProductUseCase.execute("https://www.coupang.com/vp/products/123")).willReturn(
+        given(parseProductUsecase.execute("https://www.coupang.com/vp/products/123")).willReturn(
             ParseResult.Success(
                 product = Product(
                     name = "테스트 상품",
@@ -76,7 +76,7 @@ class ProductControllerTest {
     @Test
     fun `successful 11st parse returns 200 response with parser_used 11st-api`() {
         given(safeUrlChecker.isSafe("https://www.11st.co.kr/products/456")).willReturn(true)
-        given(parseProductUseCase.execute("https://www.11st.co.kr/products/456")).willReturn(
+        given(parseProductUsecase.execute("https://www.11st.co.kr/products/456")).willReturn(
             ParseResult.Success(
                 product = Product(
                     name = "11번가 상품",
@@ -123,7 +123,7 @@ class ProductControllerTest {
     @Test
     fun `parse failure returns 502 response`() {
         given(safeUrlChecker.isSafe("https://www.coupang.com/vp/products/404")).willReturn(true)
-        given(parseProductUseCase.execute("https://www.coupang.com/vp/products/404")).willReturn(
+        given(parseProductUsecase.execute("https://www.coupang.com/vp/products/404")).willReturn(
             ParseResult.Failure(
                 reason = "상품 정보를 가져올 수 없습니다",
                 parserUsed = ParserName.COUPANG,
@@ -143,7 +143,7 @@ class ProductControllerTest {
     @Test
     fun `partial parse returns 200 response with snake case partial keys`() {
         given(safeUrlChecker.isSafe("https://example.com/product/partial")).willReturn(true)
-        given(parseProductUseCase.execute("https://example.com/product/partial")).willReturn(
+        given(parseProductUsecase.execute("https://example.com/product/partial")).willReturn(
             ParseResult.Partial(
                 name = "부분 상품",
                 imageUrl = "https://example.com/partial.jpg",

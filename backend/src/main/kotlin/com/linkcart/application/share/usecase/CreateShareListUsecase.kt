@@ -27,7 +27,7 @@ class CreateShareListUsecase(
         val shareList = ShareList.create(
             ownerId = ownerId,
             token = tokenGenerator.generate(),
-            items = products.map(ShareListItem::fromUserProduct),
+            items = products.map(::toShareListItem),
             title = title,
             expiresAt = expiresAt,
         )
@@ -42,4 +42,14 @@ class CreateShareListUsecase(
         }
         return product
     }
+
+    // UserProduct ↔ ShareListItem 매핑은 도메인 cross-aggregate 의존을 피하려고 application 에 둔다.
+    // 역방향(ShareListItem → UserProduct)도 CopyShareListUsecase 가 같은 위치에 둔다.
+    private fun toShareListItem(product: UserProduct): ShareListItem = ShareListItem(
+        name = product.name,
+        price = product.price,
+        imageUrl = product.imageUrl,
+        sourceUrl = product.sourceUrl,
+        mall = product.mall,
+    )
 }

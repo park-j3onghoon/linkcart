@@ -28,7 +28,7 @@ import kotlin.test.assertTrue
 class ParseProductUsecaseCachingTest {
 
     @Autowired
-    private lateinit var parseProductUseCase: ParseProductUsecase
+    private lateinit var parseProductUsecase: ParseProductUsecase
 
     @Autowired
     private lateinit var dedicatedParser: DedicatedCountingParser
@@ -48,10 +48,10 @@ class ParseProductUsecaseCachingTest {
         dedicatedParser.result = success(parserUsed = ParserName.COUPANG)
         fallbackParser.result = success(parserUsed = ParserName.OG)
 
-        val first = parseProductUseCase.execute("https://www.coupang.com/vp/products/123")
-        val second = parseProductUseCase.execute("https://www.coupang.com/vp/products/123")
+        val first = parseProductUsecase.execute("https://www.coupang.com/vp/products/123")
+        val second = parseProductUsecase.execute("https://www.coupang.com/vp/products/123")
 
-        assertTrue(AopUtils.isAopProxy(parseProductUseCase))
+        assertTrue(AopUtils.isAopProxy(parseProductUsecase))
         assertEquals(first, second)
         assertEquals(1, dedicatedParser.parseCallCount.get())
         assertEquals(0, fallbackParser.parseCallCount.get())
@@ -63,8 +63,8 @@ class ParseProductUsecaseCachingTest {
         dedicatedParser.result = ParseResult.Failure("쿠팡 API 호출 실패: 404", ParserName.COUPANG)
         fallbackParser.result = ParseResult.Failure("파싱 가능한 정보가 없습니다", ParserName.OG)
 
-        parseProductUseCase.execute("https://www.coupang.com/vp/products/404")
-        parseProductUseCase.execute("https://www.coupang.com/vp/products/404")
+        parseProductUsecase.execute("https://www.coupang.com/vp/products/404")
+        parseProductUsecase.execute("https://www.coupang.com/vp/products/404")
 
         assertEquals(2, dedicatedParser.parseCallCount.get())
         assertEquals(2, fallbackParser.parseCallCount.get())
